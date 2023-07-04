@@ -28,7 +28,7 @@ namespace Fohjin.DDD.EventStore.Storage
             _log = log;
         }
 
-        public TAggregate GetById<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()
+        public TAggregate? GetById<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()
         {
             _log.LogInformation($"{nameof(GetById)}({{{nameof(id)}}})", id);
             var aggregateRoot = new TAggregate();
@@ -66,7 +66,7 @@ namespace Fohjin.DDD.EventStore.Storage
             }
             _eventProviders.Clear();
 
-            _bus.Commit();
+            _bus.CommitAsync();
             _domainEventStorage.Commit();
         }
 

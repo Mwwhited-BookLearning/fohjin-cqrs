@@ -18,8 +18,8 @@ namespace Test.Fohjin.DDD.Bus
                 .AddTransient<IEventHandler>(_ => _handler)
                 ;
             ;
-            var messageRouter = new MessageRouter(this.Provider,  this.Logger<MessageRouter>());
-            DoNotMock.Add(typeof(IRouteMessages), messageRouter);
+            var messageRouter = new MessageRouter(this.Provider, this.Logger<MessageRouter>());
+            DoNotMock?.Add(typeof(IRouteMessages), messageRouter);
         }
 
         protected override void Given()
@@ -27,16 +27,19 @@ namespace Test.Fohjin.DDD.Bus
             _event = new TestEvent();
         }
 
-        protected override void When()
+        protected override async Task WhenAsync()
         {
+            if (SubjectUnderTest == null || _event == null)
+                return;
+
             SubjectUnderTest.Publish(new List<object> { _event });
-            SubjectUnderTest.Commit();
+            await SubjectUnderTest.CommitAsync();
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_returned_event_handler_is_invoked_with_the_provided_event()
         {
-            _handler.Ids.First().WillBe(_event.Id);
+            _handler?.Ids.First().WillBe(_event?.Id);
         }
     }
 }

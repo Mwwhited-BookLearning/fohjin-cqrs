@@ -67,7 +67,7 @@ namespace Fohjin.DDD.Services
         {
             var account = _reportingRepository.GetByExample<AccountReport>(new { AccountNumber = moneyTransfer.TargetAccount }).First();
             _bus.Publish(new ReceiveMoneyTransferCommand(account.Id, moneyTransfer.Amount, moneyTransfer.SourceAccount));
-            _bus.Commit();
+            _bus.CommitAsync();
         }
 
         private void MoneyTransferIsGoingToAnExternalAccount(MoneyTransfer moneyTransfer)
@@ -77,7 +77,7 @@ namespace Fohjin.DDD.Services
 
         private void MoneyTransferIsGoingToAnExternalNonExistingAccount(MoneyTransfer moneyTransfer)
         {
-            _receiveMoneyTransfers.Receive(new MoneyTransfer(moneyTransfer.SourceAccount, moneyTransfer.TargetAccount.Reverse().ToString(), moneyTransfer.Amount));
+            _receiveMoneyTransfers.Receive(new MoneyTransfer(moneyTransfer.SourceAccount, moneyTransfer.TargetAccount?.Reverse().ToString(), moneyTransfer.Amount));
         }
 
         private void CompensatingActionBecauseOfFailedMoneyTransfer(MoneyTransfer moneyTransfer)

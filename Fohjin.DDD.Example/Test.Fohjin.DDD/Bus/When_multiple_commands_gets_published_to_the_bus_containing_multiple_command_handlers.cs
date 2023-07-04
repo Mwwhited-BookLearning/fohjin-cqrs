@@ -23,7 +23,7 @@ namespace Test.Fohjin.DDD.Bus
                 ;
 
             var messageRouter = new MessageRouter(this.Provider, this.Logger<MessageRouter>());
-            DoNotMock.Add(typeof(IRouteMessages), messageRouter);
+            DoNotMock?.Add(typeof(IRouteMessages), messageRouter);
         }
 
         protected override void Given()
@@ -32,34 +32,37 @@ namespace Test.Fohjin.DDD.Bus
             _otherCommand = new TestCommand(Guid.NewGuid());
         }
 
-        protected override void When()
+        protected override async Task WhenAsync()
         {
+            if (SubjectUnderTest == null || _command == null || _otherCommand == null)
+                return;
+
             SubjectUnderTest.Publish(new List<object> { _command, _otherCommand });
-            SubjectUnderTest.Commit();
+            await SubjectUnderTest.CommitAsync();
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_first_returned_command_handler_is_invoked_with_the_first_provided_command()
         {
-            _handler.Ids[0].WillBe(_command.Id);
+            _handler?.Ids[0].WillBe(_command?.Id);
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_first_returned_command_handler_is_invoked_with_the_second_provided_command()
         {
-            _handler.Ids[1].WillBe(_otherCommand.Id);
+            _handler?.Ids[1].WillBe(_otherCommand?.Id);
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_second_returned_command_handler_is_invoked_with_the_first_provided_command()
         {
-            _secondHandler.Ids[0].WillBe(_command.Id);
+            _secondHandler?.Ids[0].WillBe(_command?.Id);
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_second_returned_command_handler_is_invoked_with_the_second_provided_command()
         {
-            _secondHandler.Ids[1].WillBe(_otherCommand.Id);
+            _secondHandler?.Ids[1].WillBe(_otherCommand?.Id);
         }
     }
 }

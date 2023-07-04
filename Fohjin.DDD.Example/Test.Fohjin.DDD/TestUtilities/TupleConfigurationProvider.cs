@@ -10,12 +10,12 @@ namespace Test.Fohjin.DDD.TestUtilities
         }
         public TupleConfigurationProvider(IEnumerable<(string key, string value)> settings)
         {
-            foreach (var item in settings)
+            foreach (var (key, value) in settings)
             {
-                if (Data.ContainsKey(item.key))
-                    Data[item.key] = item.value;
+                if (Data.ContainsKey(key))
+                    Data[key] = value;
                 else
-                    Data.Add(item.key, item.value);
+                    Data.Add(key, value);
             }
         }
     }

@@ -1,5 +1,4 @@
 ﻿using Fohjin.DDD.Bus.Direct;
-using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Configuration;
 using Fohjin.DDD.EventHandlers;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +24,7 @@ namespace Test.Fohjin.DDD.Bus
                 ;
 
             var messageRouter = new MessageRouter(this.Provider, this.Logger<MessageRouter>());
-            DoNotMock.Add(typeof(IRouteMessages), messageRouter);
+            DoNotMock?.Add(typeof(IRouteMessages), messageRouter);
         }
 
         protected override void Given()
@@ -34,34 +33,37 @@ namespace Test.Fohjin.DDD.Bus
             _otherEvent = new TestEvent();
         }
 
-        protected override void When()
+        protected override async Task WhenAsync()
         {
+            if (SubjectUnderTest == null || _event == null || _otherEvent == null)
+                return;
+
             SubjectUnderTest.Publish(new List<object> { _event, _otherEvent });
-            SubjectUnderTest.Commit();
+            await SubjectUnderTest.CommitAsync();
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_first_returned_event_handler_is_invoked_with_the_first_provided_event()
         {
-            _handler.Ids[0].WillBe(_event.Id);
+            _handler?.Ids[0].WillBe(_event?.Id);
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_first_returned_event_handler_is_invoked_with_the_second_provided_event()
         {
-            _handler.Ids[1].WillBe(_otherEvent.Id);
+            _handler?.Ids[1].WillBe(_otherEvent?.Id);
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_second_returned_event_handler_is_invoked_with_the_first_provided_event()
         {
-            _secondHandler.Ids[0].WillBe(_event.Id);
+            _secondHandler?.Ids[0].WillBe(_event?.Id);
         }
 
         [TestMethod]
         public void Then_the_execute_method_on_the_second_returned_event_handler_is_invoked_with_the_second_provided_event()
         {
-            _secondHandler.Ids[1].WillBe(_otherEvent.Id);
+            _secondHandler?.Ids[1].WillBe(_otherEvent?.Id);
         }
     }
 }

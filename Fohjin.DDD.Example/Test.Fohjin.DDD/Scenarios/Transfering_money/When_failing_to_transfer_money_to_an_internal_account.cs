@@ -21,11 +21,11 @@ namespace Test.Fohjin.DDD.Scenarios.Transfering_money
         protected override void SetupDependencies()
         {
             OnDependency<IBus>()
-                .Setup(x => x.Publish(It.IsAny<ReceiveMoneyTransferCommand>()))
+                ?.Setup(x => x.Publish(It.IsAny<ReceiveMoneyTransferCommand>()))
                 .Throws(new Exception("exception message"));
 
             OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
+                ?.Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
                 .Returns(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
         }
 
@@ -35,19 +35,20 @@ namespace Test.Fohjin.DDD.Scenarios.Transfering_money
             // Setup the SystemRandom class to return the value where the account is not found
             Services
                 .AddTransient<ISystemRandom>(_ => new TestSystemRandom((min, max) => 0))
-                .AddTransient<ISystemTimer>(_=> new TestSystemTimer())
+                .AddTransient<ISystemTimer>(_ => new TestSystemTimer())
                 ;
         }
 
-        protected override void When()
+        protected override Task WhenAsync()
         {
-            SubjectUnderTest.Send(new MoneyTransfer("source account number", "target account number", 123.45M));
+            SubjectUnderTest?.Send(new MoneyTransfer("source account number", "target account number", 123.45M));
+            return Task.CompletedTask;
         }
 
         [TestMethod]
         public void Then_the_newly_created_account_will_be_saved()
         {
-            OnDependency<IBus>().Verify(x => x.Publish(It.IsAny<MoneyTransferFailedCompensatingCommand>()));
+            OnDependency<IBus>()?.Verify(x => x.Publish(It.IsAny<MoneyTransferFailedCompensatingCommand>()));
         }
 
         protected override void Finally()

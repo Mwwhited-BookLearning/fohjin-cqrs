@@ -1,4 +1,5 @@
 ﻿using Fohjin.DDD.Reporting.Dtos;
+using System.ComponentModel;
 
 namespace Fohjin.DDD.BankApplication.Views
 {
@@ -42,22 +43,26 @@ namespace Fohjin.DDD.BankApplication.Views
             _newAccountNameSaveButton.Click += (s, e) => OnChangeAccountName?.Invoke();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? AccountNameLabel
         {
             set { _accountNameLabel.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? AccountNumberLabel
         {
             set { _accountNumberLabel.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IEnumerable<LedgerReport>? Ledgers
         {
             get => _ledgers.DataSource as IEnumerable<LedgerReport>;
             set => _ledgers.DataSource = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IEnumerable<AccountReport>? TransferAccounts
         {
             get => _transferAccounts.DataSource as IEnumerable<AccountReport>;
@@ -132,29 +137,34 @@ namespace Fohjin.DDD.BankApplication.Views
             return (AccountReport)_transferAccounts.SelectedItem;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public decimal DepositAmount
         {
             get { return _depositAmount.Text.Trim() == "," ? 0 : Convert.ToDecimal(_depositAmount.Text.Trim()); }
             set { _depositAmount.Text = value.ToString(); }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public decimal WithdrawalAmount
         {
             get { return _withdrawalAmount.Text.Trim() == "," ? 0 : Convert.ToDecimal(_withdrawalAmount.Text.Trim()); }
             set { _withdrawalAmount.Text = value.ToString(); }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public decimal TransferAmount
         {
             get { return _transferAmount.Text.Trim() == "," ? 0 : Convert.ToDecimal(_transferAmount.Text.Trim()); }
             set { _transferAmount.Text = value.ToString(); }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public decimal BalanceLabel
         {
             set { _balanceLabel.Text = value.ToString(); }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? AccountName
         {
             get { return _accountName.Text; }

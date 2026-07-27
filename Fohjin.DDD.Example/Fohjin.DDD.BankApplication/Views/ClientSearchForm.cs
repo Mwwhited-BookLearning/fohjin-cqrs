@@ -1,4 +1,5 @@
 ﻿using Fohjin.DDD.Reporting.Dtos;
+using System.ComponentModel;
 
 namespace Fohjin.DDD.BankApplication.Views
 {
@@ -22,6 +23,7 @@ namespace Fohjin.DDD.BankApplication.Views
             _clients.Click += (s, e) => OnOpenSelectedClient?.Invoke();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IEnumerable<ClientReport>? Clients
         {
             get { return _clients.DataSource as IEnumerable<ClientReport>;  }

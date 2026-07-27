@@ -1,4 +1,5 @@
 ﻿using Fohjin.DDD.Reporting.Dtos;
+using System.ComponentModel;
 
 namespace Fohjin.DDD.BankApplication.Views
 {
@@ -42,42 +43,49 @@ namespace Fohjin.DDD.BankApplication.Views
             _phoneNumberSaveButton.Click += (s, e) => OnSaveNewPhoneNumber?.Invoke();
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? ClientName
         {
             get { return _clientName.Text; }
             set { _clientName.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? Street
         {
             get { return _street.Text; }
             set { _street.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? StreetNumber
         {
             get { return _streetNumber.Text; }
             set { _streetNumber.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? PostalCode
         {
             get { return _postalCode.Text; }
             set { _postalCode.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? City
         {
             get { return _city.Text; }
             set { _city.Text = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IEnumerable<AccountReport>? Accounts
         {
             get { return _accounts.DataSource as IEnumerable<AccountReport>; }
             set { _accounts.DataSource = value; }
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IEnumerable<ClosedAccountReport>? ClosedAccounts
         {
             get { return _closedAccounts.DataSource as IEnumerable<ClosedAccountReport>; }
@@ -90,33 +98,39 @@ namespace Fohjin.DDD.BankApplication.Views
         public ClosedAccountReport? GetSelectedClosedAccount() =>
             _closedAccounts.SelectedItem as ClosedAccountReport;
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? PhoneNumber
         {
             get => _phoneNumber.Text;
             set => _phoneNumber.Text = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? NewAccountName
         {
             get => _newAccountName.Text;
             set => _newAccountName.Text = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? ClientNameLabel
         {
             set => _clientNameLabel.Text = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? AddressLine1Label
         {
             set => _addressLine1Label.Text = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? AddressLine2Label
         {
             set => _addressLine2Label.Text = value;
         }
 
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public string? PhoneNumberLabel
         {
             set => _phoneNumberLabel.Text = value;

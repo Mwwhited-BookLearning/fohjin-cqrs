@@ -283,7 +283,6 @@ public class ActiveAccountRepositoryTest
     }
 
     [TestMethod]
-    [ExpectedException(typeof(AccountBalanceToLowException))]
     public void When_calling_GetById_after_9_events_a_new_ActiveAcount_will_be_populated()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
@@ -310,11 +309,13 @@ public class ActiveAccountRepositoryTest
             Assert.Fail(string.Format("This should not fail: {0}", Ex.Message));
         }
 
-        sut?.Withdrawal(new Amount(1));
+        Assert.ThrowsExactly<AccountBalanceToLowException>(() =>
+        {
+            sut?.Withdrawal(new Amount(1));
+        });
     }
 
     [TestMethod]
-    [ExpectedException(typeof(AccountBalanceToLowException))]
     public void When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
@@ -342,11 +343,13 @@ public class ActiveAccountRepositoryTest
             Assert.Fail(string.Format("This should not fail: {0}", Ex.Message));
         }
 
-        sut?.Withdrawal(new Amount(1));
+        Assert.ThrowsExactly<AccountBalanceToLowException>(() =>
+        {
+            sut?.Withdrawal(new Amount(1));
+        });
     }
 
     [TestMethod]
-    [ExpectedException(typeof(AccountBalanceToLowException))]
     public void When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created_11_events()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
@@ -375,6 +378,9 @@ public class ActiveAccountRepositoryTest
             Assert.Fail(string.Format("This should not fail: {0}", Ex.Message));
         }
 
-        sut?.Withdrawal(new Amount(1));
+        Assert.ThrowsExactly<AccountBalanceToLowException>(() =>
+        {
+            sut?.Withdrawal(new Amount(1));
+        });
     }
 }

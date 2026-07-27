@@ -13,7 +13,7 @@ namespace Test.Fohjin.DDD.TestUtilities
         {
             if (ContextualTestMethodAttribute.Current == null)
             {
-                if (TestContext.Properties.Contains(ContextualTestMethodAttribute.CurrentTestMethod))
+                if (TestContext.Properties.ContainsKey(ContextualTestMethodAttribute.CurrentTestMethod))
                     TestContext.Properties.Remove(ContextualTestMethodAttribute.CurrentTestMethod);
             }
             else
@@ -25,9 +25,9 @@ namespace Test.Fohjin.DDD.TestUtilities
         [TestCleanup]
         public virtual void TestCleanup()
         {
-            if (TestContext.Properties.Contains(ContextualTestMethodAttribute.CurrentTestMethod))
+            if (TestContext.Properties.ContainsKey(ContextualTestMethodAttribute.CurrentTestMethod))
                 TestContext.Properties.Remove(ContextualTestMethodAttribute.CurrentTestMethod);
-            if (TestContext.Properties.Contains(ContextualTestMethodAttribute.CurrentTestInstance))
+            if (TestContext.Properties.ContainsKey(ContextualTestMethodAttribute.CurrentTestInstance))
                 TestContext.Properties.Remove(ContextualTestMethodAttribute.CurrentTestInstance);
         }
     }

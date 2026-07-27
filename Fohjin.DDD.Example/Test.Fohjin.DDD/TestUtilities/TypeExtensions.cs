@@ -1,6 +1,5 @@
 ﻿using Fohjin.DDD.EventStore;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Reflection;
 

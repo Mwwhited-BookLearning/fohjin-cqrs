@@ -1,3 +1,4 @@
+using Fohjin.DDD.Domain.Account;
 using Fohjin.DDD.Reporting.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -24,30 +25,38 @@ public class SqlUpdateBuilderTest
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentNullException))]
     public void When_calling_CreateSqlSelectStatementFromDto_with_a_null_update_object_will_throw_an_exception()
     {
-        _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(null, new { Column2 = "123" });
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        {
+            _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(null, new { Column2 = "123" });
+        });
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentNullException))]
     public void When_calling_CreateSqlSelectStatementFromDto_with_a_null_where_object_will_throw_an_exception()
     {
-        _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(new { Column2 = "123" }, null);
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        {
+            _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(new { Column2 = "123" }, null);
+        });
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentNullException))]
     public void When_calling_CreateSqlSelectStatementFromDto_with_an_empty_update_object_will_throw_an_exception()
     {
-        _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(new {}, new { Column2 = "123" });
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        {
+            _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(new { }, new { Column2 = "123" });
+        });
     }
 
     [TestMethod]
-    [ExpectedException(typeof(ArgumentNullException))]
     public void When_calling_CreateSqlSelectStatementFromDto_with_an_empty_where_object_will_throw_an_exception()
     {
-        _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(new { Column2 = "123" }, new { });
+        Assert.ThrowsExactly<ArgumentNullException>(() =>
+        {
+            _sqlUpdateBuilder?.GetUpdateString<TestDtoCase1>(new { Column2 = "123" }, new { });
+        });
     }
 }

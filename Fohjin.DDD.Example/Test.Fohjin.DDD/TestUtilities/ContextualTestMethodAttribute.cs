@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Runtime.CompilerServices;
 
 namespace Test.Fohjin.DDD.TestUtilities
 {
@@ -17,18 +18,18 @@ namespace Test.Fohjin.DDD.TestUtilities
             set => _instance.Value = value;
         }
 
-        public ContextualTestMethodAttribute()
+        public ContextualTestMethodAttribute(
+            string? displayName = null,
+            [CallerFilePath] string callerFilePath = "",
+            [CallerLineNumber] int callerLineNumber = -1) : base(callerFilePath, callerLineNumber)
         {
+            this.DisplayName = displayName;
         }
 
-        public ContextualTestMethodAttribute(string? displayName) : base(displayName)
-        {
-        }
-
-        public override TestResult[] Execute(ITestMethod testMethod)
+        public override async Task<TestResult[]> ExecuteAsync(ITestMethod testMethod)
         {
             _current.Value = testMethod;
-            var ret = base.Execute(testMethod);
+            var ret = await base.ExecuteAsync(testMethod);
             _current.Value = null;
             return ret;
         }

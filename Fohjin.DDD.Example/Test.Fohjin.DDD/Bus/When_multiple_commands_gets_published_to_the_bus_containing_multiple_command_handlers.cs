@@ -1,6 +1,7 @@
 using Fohjin.DDD.Bus.Direct;
 using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Configuration;
+using Fohjin.DDD.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -23,6 +24,7 @@ namespace Test.Fohjin.DDD.Bus
                 .AddTransient<ICommandHandler>(_ => _secondHandler)
                 .AddTransient(typeof(ITransactionHandler<,>), typeof(TransactionHandler<,>))
                 .AddSingleton<IRouteMessages, MessageRouter>()
+                .AddSingleton<IUnitOfWork, NullUnitOfWork>()
                 ;
 
             DoNotMock?.Add(typeof(IServiceProvider), this.Provider);

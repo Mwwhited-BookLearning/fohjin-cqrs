@@ -133,19 +133,40 @@ by switching the process's current directory to a fresh temp folder instead (bot
 resolve against that consistently), which is why the project doesn't parallelize tests. Full
 solution build + `dotnet test`: 410 + 1 passed, 4 skipped, 0 failed.
 
-### Phase 3 — OData + the QUERY verb
+### Phase 3 — OData + the QUERY verb (done)
 
-Add `Microsoft.AspNetCore.OData`, expose the reporting DTOs (`08-reporting-read-models.md`)
-as OData entity sets. Add a `MapQuery` extension (see
-`docs/supporting/rfc10008-http-query-method.md` — .NET 10 has the `HttpMethods.Query`
-primitive but no built-in convenience method) for filters too large/complex for a GET query
-string. Because ASP.NET Core 10's OpenAPI generator currently excludes QUERY endpoints
-entirely, expose every QUERY route as an equivalent GET route too (same handler, two
-routes) so NSwag/OpenAPI/codegen have something to generate against — QUERY becomes the
-escape hatch for oversized filters, not the only way in.
+Added `Microsoft.AspNetCore.OData` 9.5.0 and a `Clients` entity set (`Fohjin.DDD.WebApi/OData/ODataModel.cs`)
+over `ClientReport`. `/odata/Clients` is one minimal-API delegate mapped to both `GET` and
+`QUERY` (`Fohjin.DDD.WebApi/OData/EndpointRouteBuilderExtensions.cs`'s `MapQuery` — the missing
+`HttpMethods.Query` convenience .NET 10 doesn't ship yet, per
+`docs/supporting/rfc10008-http-query-method.md`) — the *same delegate*, not two independently
+written ones, is what guarantees identical results for identical filters: for `QUERY`, the
+filter arrives in a JSON body and gets copied into the request's query string before
+`ODataQueryOptions<ClientReport>` parses it, so both verbs run through the exact same
+parse-and-`ApplyTo` code either way. Bypasses `IReportingRepository.GetByExampleAsync` for this
+endpoint on purpose — `[EnableQuery]`/`ODataQueryOptions.ApplyTo` need a live `IQueryable<T>`
+to push `$filter`/`$orderby` into SQL, which the repository's reflection-driven "example
+object" queries can't give them — using the existing `IDbContextFactory<ReportingDbContext>`
+directly instead (not a second, plain `AddDbContext<ReportingDbContext>` registration: that
+combination broke resolving the factory from the root DI scope, which the
+`SubscribeEventHandlers` startup call needs).
 
-**Exit criteria**: `GET /odata/Clients?$filter=...` and `QUERY /odata/Clients` (filter in
-the body) return equivalent results for the same filter.
+Deliberately scoped down to `$filter` + `$orderby`: `ODataValidationSettings` restricts
+`AllowedQueryOptions` to just those two, so `$select`/`$count`/`$expand` get a clear 400
+instead of the wrong thing happening silently — this endpoint serializes results with plain
+`System.Text.Json`, not OData's own content formatter, so `$select`'s projection-wrapper
+result type and `$count`'s envelope don't have anywhere correct to go. No `$metadata`
+endpoint either: that's wired through OData's controller/attribute-routing conventions,
+which this phase deliberately didn't add (staying minimal-API-only, consistent with the rest
+of the app) in favor of the shared-delegate design above.
+
+**Exit criteria — met**: `Test.Fohjin.DDD.ApiClient/ODataClientsEndpointTest.cs` (3 new tests)
+proves `GET ?$filter=...` and `QUERY` with the same filter in the body return identical
+client sets; that a bodyless `QUERY` behaves like "no filter" rather than crashing (a real bug
+hit and fixed during manual verification — the handler unconditionally tried to parse a JSON
+body that might not exist); and that `$select` is rejected with 400 rather than the
+`InvalidCastException` it threw before validation was added. Full solution build + test
+suite: 410 + 4 passed, 4 skipped, 0 failed.
 
 ### Phase 4 — SSE event stream + AsyncAPI
 
@@ -275,7 +296,8 @@ contract and would throw `InvalidCastException` instead of returning null.
 
 ## Suggested next step
 
-Start Phase 3. Phases 1 and 2 proved the core architectural bet and the codegen loop on a
-deliberately small surface (one command, one read model) — the next slice is growing that
-surface for real: OData entity sets over the reporting DTOs, plus a `MapQuery` extension for
-the RFC 10008 QUERY verb, before SSE/AsyncAPI and OIDC land on top.
+Start Phase 4. Phases 1–3 proved the core architectural bet, the codegen loop, and the OData
+query surface — the next slice is the SSE event stream over `bus.Events`, plus the one
+still-open design decision from that phase (full `Microsoft.OData.UriParser` semantics vs. a
+simpler hand-rolled grammar for filtering the stream), before OIDC and the frontends land on
+top.

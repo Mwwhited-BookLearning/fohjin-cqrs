@@ -32,7 +32,11 @@ static class Program
             .AddCommandLine(args)
             ;
 
+        var monitoringLoggerProvider = new MonitoringLoggerProvider();
+
         var services = new ServiceCollection()
+            .AddSingleton(monitoringLoggerProvider)
+            .AddSingleton<ILoggerProvider>(monitoringLoggerProvider)
             .AddLogging(opt=>opt.AddConsole().AddDebug()
 #if DEBUG
                 .SetMinimumLevel(LogLevel.Debug)
@@ -58,7 +62,9 @@ static class Program
             ;
 
         var clientSearchFormPresenter = service.GetRequiredService<IClientSearchFormPresenter>();
+        var monitoringPresenter = service.GetRequiredService<IMonitoringPresenter>();
         Application.EnableVisualStyles();
+        monitoringPresenter.Display();
         clientSearchFormPresenter.Display();
     }
 }

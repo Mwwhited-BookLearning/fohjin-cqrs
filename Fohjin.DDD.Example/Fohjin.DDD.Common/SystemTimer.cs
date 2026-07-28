@@ -14,7 +14,7 @@ public class SystemTimer : ISystemTimer, IDisposable
     }
 
     public void Dispose() =>
-        Task.WaitAll(_timers.ToArray());
+        Task.WaitAll([.. _timers]);
 
     public void Trigger(Func<Task> value, int @in)
     {

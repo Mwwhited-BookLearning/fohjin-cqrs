@@ -83,7 +83,7 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
     private static object CreateMock(Type type)
     {
         var constructorInfo = typeof (Mock<>).MakeGenericType(type).GetConstructors().First();
-        return constructorInfo.Invoke(Array.Empty<object>());
+        return constructorInfo.Invoke([]);
     }
 }
 

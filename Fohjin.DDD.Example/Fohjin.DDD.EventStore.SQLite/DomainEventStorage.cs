@@ -33,7 +33,7 @@ public class DomainEventStorage<TDomainEvent> : IDomainEventStorage<TDomainEvent
                 .OrderBy(e => e.Version)
                 .ToListAsync();
 
-            return (IEnumerable<TDomainEvent>)records.Select(r => Deserialize<TDomainEvent>(r.Event)).ToList();
+            return (IEnumerable<TDomainEvent>)[.. records.Select(r => Deserialize<TDomainEvent>(r.Event))];
         });
 
     public Task<IEnumerable<TDomainEvent>> GetEventsSinceLastSnapShotAsync(Guid eventProviderId) =>
@@ -46,7 +46,7 @@ public class DomainEventStorage<TDomainEvent> : IDomainEventStorage<TDomainEvent
                 .OrderBy(e => e.Version)
                 .ToListAsync();
 
-            return (IEnumerable<TDomainEvent>)records.Select(r => Deserialize<TDomainEvent>(r.Event)).ToList();
+            return (IEnumerable<TDomainEvent>)[.. records.Select(r => Deserialize<TDomainEvent>(r.Event))];
         });
 
     public Task<int> GetEventCountSinceLastSnapShotAsync(Guid eventProviderId) =>

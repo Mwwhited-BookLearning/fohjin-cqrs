@@ -11,7 +11,7 @@ public static class TypeExtensions
     {
         var defaultConstructor = type.GetDefaultConstructorInfo() ?? throw new NotSupportedException($"{type}");
 
-        var obj = defaultConstructor.Invoke(Array.Empty<object?>());
+        var obj = defaultConstructor.Invoke([]);
 
         var properties = type.GetSetterProperties();
         obj.FillObject(properties ,serviceProvider);
@@ -67,7 +67,7 @@ public static class TypeExtensions
             return true;
         else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
         {
-            var list = type?.GetDefaultConstructorInfo()?.Invoke(Array.Empty<object?>());
+            var list = type?.GetDefaultConstructorInfo()?.Invoke([]);
             var item = type?.GetGenericArguments()[0].GetNonDefaultValue(serviceProvider);
             type?.GetMethod("Add")?.Invoke(list, new object?[] { item });
             return list;
@@ -102,7 +102,7 @@ public static class TypeExtensions
             }
 
             return type.GetDefaultConstructorInfo()?
-                .Invoke(Array.Empty<object?>())
+                .Invoke([])
                 .FillObject(serviceProvider);
         }
     }
@@ -110,7 +110,7 @@ public static class TypeExtensions
     public static object? GetDefaultValue(this Type type) =>
         typeof(TypeExtensions).GetMethod(nameof(GetDefaultValue), 1, Type.EmptyTypes)
             ?.MakeGenericMethod(type)
-            ?.Invoke(null, Array.Empty<object?>());
+            ?.Invoke(null, []);
 
     public static T? GetDefaultValue<T>() => default;
 
@@ -121,13 +121,13 @@ public static class TypeExtensions
         {
             if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
             {
-                var list = property.GetValue(instance, Array.Empty<object?>());
+                var list = property.GetValue(instance, []);
                 var value = list.GetType().GetProperty("Item").GetValue(list, new object[] { 0 });
                 value.GetType().EnsureNotDefault(value);
             }
             else
             {
-                var value = property.GetValue(instance, Array.Empty<object?>());
+                var value = property.GetValue(instance, []);
 
 
                 var defValue = GetDefaultValue(property.PropertyType);

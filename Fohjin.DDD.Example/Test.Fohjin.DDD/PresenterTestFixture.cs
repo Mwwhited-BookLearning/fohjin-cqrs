@@ -58,7 +58,7 @@ public abstract class PresenterTestFixture<TPresenter>
             mocks.Add(parameter.ParameterType, CreateMock(parameter.ParameterType));
         }
 
-        return (TPresenter)constructorInfo.Invoke(mocks.Values.Select(x => ((Mock)x).Object).ToArray());
+        return (TPresenter)constructorInfo.Invoke([.. mocks.Values.Select(x => ((Mock)x).Object)]);
     }
 
     private static object CreateMock(Type type)

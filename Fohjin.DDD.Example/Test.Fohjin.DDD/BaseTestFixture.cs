@@ -112,7 +112,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
             parameters.Add(theObject);
         }
 
-        return (TSubjectUnderTest)constructorInfo.Invoke(parameters.ToArray());
+        return (TSubjectUnderTest)constructorInfo.Invoke([.. parameters]);
     }
 
     private void BuildMocks()

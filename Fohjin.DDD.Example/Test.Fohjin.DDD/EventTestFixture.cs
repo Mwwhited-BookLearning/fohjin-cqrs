@@ -66,7 +66,7 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
             mocks.Add(parameter.ParameterType, CreateMock(parameter.ParameterType));
         }
 
-        return (IEventHandler<TEvent>)constructorInfo.Invoke(mocks.Values.Select(x => ((Mock)x).Object).ToArray());
+        return (IEventHandler<TEvent>)constructorInfo.Invoke([.. mocks.Values.Select(x => ((Mock)x).Object)]);
     }
 
     private static object CreateMock(Type type)

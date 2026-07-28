@@ -35,7 +35,7 @@ public class CommandHandlerHelper : ICommandHandlerHelper
                   select i.GetGenericArguments().First()).ToList().AsEnumerable());
 
     protected IEnumerable<Type> GetCommands() =>
-        _commandCache ??= GetCommandHandlers().SelectMany(i => i.Value).Distinct().ToList();
+        _commandCache ??= [.. GetCommandHandlers().SelectMany(i => i.Value).Distinct()];
 
     public async Task<bool> RouteAsync(ICommand message)
     {

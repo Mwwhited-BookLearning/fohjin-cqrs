@@ -59,7 +59,7 @@ public abstract class Presenter<TView> where TView : class, IView
 
     private static List<string> GetViewDefinedEvents()
     {
-        return typeof(TView).GetEvents().Select(x => x.Name).ToList();
+        return [.. typeof(TView).GetEvents().Select(x => x.Name)];
     }
 
     private static IDictionary<string, EventInfo> GetViewEvents(TView view, ICollection<string> actionProperties)

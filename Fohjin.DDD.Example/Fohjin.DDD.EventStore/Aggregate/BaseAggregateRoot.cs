@@ -52,7 +52,7 @@ public class BaseAggregateRoot<TDomainEvent> : IEventProvider<TDomainEvent>, IRe
 
     IEnumerable<TDomainEvent> IEventProvider<TDomainEvent>.GetChanges()
     {
-        return _appliedEvents.Concat(GetChildEventsAndUpdateEventVersion()).OrderBy(x => x.Version).ToList();
+        return [.. _appliedEvents.Concat(GetChildEventsAndUpdateEventVersion()).OrderBy(x => x.Version)];
     }
 
     void IEventProvider<TDomainEvent>.Clear()

@@ -56,7 +56,7 @@ public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountD
         _accountDetailsView.AccountNumberLabel = _accountDetailsReport?.AccountNumber;
         _accountDetailsView.BalanceLabel = _accountDetailsReport?.Balance ?? 0;
         _accountDetailsView.Ledgers = _accountDetailsReport?.Ledgers;
-        _accountDetailsView.TransferAccounts = (await _reportingRepository.GetByExampleAsync<AccountReport>(null)).ToList().Where(x => x.Id != _accountDetailsReport?.Id).ToList();
+        _accountDetailsView.TransferAccounts = [.. (await _reportingRepository.GetByExampleAsync<AccountReport>(null)).ToList().Where(x => x.Id != _accountDetailsReport?.Id)];
     }
 
     public void SetAccount(AccountReport? accountReport)

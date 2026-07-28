@@ -51,7 +51,26 @@ static class Program
             .AddBankApplicationServices()
             ;
 
-        services.AddHttpClient<DesktopAuthService>();
+        // AddHttpMessageHandler<T>() only wires T into the client pipeline via
+        // services.GetRequiredService<T>() - it does NOT register T itself, so both handlers
+        // need an explicit registration or resolving FohjinApiClient/EventStreamClient throws
+        // "No service for type ... has been registered."
+        services.AddTransient<AuthorizationHandler>();
+        services.AddTransient<HttpCallLoggingHandler>();
+
+        // Deliberately NOT services.AddHttpClient<DesktopAuthService>() - that registers it as
+        // a typed client, which resolves a NEW DesktopAuthService instance every time (only the
+        // underlying HttpMessageHandler is pooled/reused, not the wrapper). AuthorizationHandler
+        // depends on reading back the SAME instance's AccessToken that Main sets via
+        // LoginAsync() below, so DesktopAuthService must be a singleton - a fresh instance for
+        // AuthorizationHandler always has AccessToken == null, silently sending every request
+        // with no Authorization header (401s that look like an auth/config problem, not a DI
+        // lifetime one).
+        services.AddSingleton(sp => new DesktopAuthService(
+            new HttpClient(),
+            sp.GetRequiredService<IConfiguration>(),
+            sp.GetRequiredService<ILogger<DesktopAuthService>>()));
+
         services.AddHttpClient<FohjinApiClient>(client =>
         {
             client.BaseAddress = new Uri(configuration["WebApi:BaseUrl"]
@@ -84,5 +103,13 @@ static class Program
         Application.EnableVisualStyles();
         monitoringPresenter.Display();
         clientSearchFormPresenter.Display();
+
+        // Both Display() calls above are async void, kicking off `await LoadDataAsync()` (a
+        // real HTTP call) and returning immediately - nothing else here would otherwise keep
+        // this STA thread's message loop pumping long enough for those continuations (and the
+        // ShowDialog() calls inside them) to ever run. Application.Run() pumps until
+        // Application.Exit() is called - see ClientSearchForm.cs's FormClosed handler for where
+        // that happens.
+        Application.Run();
     }
 }

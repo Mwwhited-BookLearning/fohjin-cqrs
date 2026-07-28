@@ -379,19 +379,121 @@ is intentionally non-deterministic in this codebase (`MoneyTransferService` rand
 internal/external/failed bank routing with a 5-second delay) and asserting on it would make the
 test flaky by design. Full solution build + test suite: 410 + 14 passed, 4 skipped, 0 failed.
 
-### Phase 7 — Retarget WinForms
+### Phase 7 — Retarget WinForms (done)
 
-Swap WinForms' DI wiring (currently direct `AddBusServices()` etc. in
-`Fohjin.DDD.BankApplication/Program.cs`) for `Fohjin.DDD.ApiClient`. Every Presenter that
-currently takes `IBus`/`IDomainRepository`/`IReportingRepository` (every presenter in
-`09-winforms-ui.md`'s component diagram) needs to go through the API client instead — this
-touches every presenter, not just a config change. **Decided**: desktop OIDC login uses
-the system browser + loopback redirect (not an embedded WebView2) — opens the STS login
-page in the user's actual browser, catches the redirect on a local loopback listener.
+Every presenter (`ClientSearchFormPresenter`, `ClientDetailsPresenter`, `AccountDetailsPresenter`)
+now calls the generated `FohjinApiClient` instead of `IBus`/`IReportingRepository` directly.
+`Fohjin.DDD.BankApplication/Program.cs` no longer hosts the CQRS core in-process at all — every
+`AddBusServices()`-style registration and the `BootStrapApplicationAsync()`/
+`SubscribeEventHandlers()` local-SQLite bootstrap are gone. `Fohjin.DDD.BankApplication.Core`
+keeps its CQRS-core project references, though: `ApplicationBootStrapper`/
+`DomainDatabaseBootStrapper`/`ReportingDatabaseBootStrapper` living in that same project are
+still used by `Fohjin.DDD.WebApi`'s own startup and by `Test.Fohjin.DDD`'s infrastructure
+tests, unrelated to WinForms — only the presenters stopped needing them, so no reference
+cleanup was possible without touching those other consumers.
 
-**Exit criteria**: WinForms behaves identically to today, but every operation is an HTTP
-call to `Fohjin.DDD.WebApi` instead of an in-process call. The monitoring pane
-(`09-winforms-ui.md`) still shows logs, and can now also show the HTTP calls it's making.
+**Decided** (already reflected above): desktop OIDC login uses the system browser + loopback
+redirect, not an embedded WebView2 — `DesktopAuthService` opens the STS's real login page via
+`Process.Start`/`UseShellExecute` and catches the redirect on a local `HttpListener`, the same
+authorization-code + PKCE flow the Vue app drives via `oidc-client-ts`, against the same seeded
+`dev-client` (the STS's seed logic was changed from create-once to upsert, so a pre-existing
+seeded application picks up the new loopback redirect URI on next startup). No refresh token —
+the access token (OpenIddict's default 1-hour lifetime) is held in memory for the process's
+lifetime, an accepted limitation for this dev sample. `MonitoringPresenter`'s event feed is
+retargeted to `GET /api/events` via a hand-rolled SSE consumer (`EventStreamClient`, using
+`System.Net.ServerSentEvents.SseParser<T>` — the generated client's `StreamEventsAsync()`
+discards the response body without reading it, confirmed by reading the generated method). Its
+log pane needed no changes: a new `HttpCallLoggingHandler` feeds it per-request log lines
+through the same `MonitoringLoggerProvider` pipeline that used to carry in-process
+bus/command-handler logging.
+
+`Fohjin.DDD.ApiClient/DisplayExtensions.cs` adds `ToString()` overrides via partial classes
+(NSwag generates every DTO as `partial` for exactly this) so the WinForms `ListBox`/`ComboBox`
+controls — which bind these DTOs directly without `DisplayMember` — keep showing the same text
+they did before switching from `Fohjin.DDD.Reporting.Dtos` types. This also fixed a pre-existing
+display bug: `LedgerReport.ToString()` was a plain string literal, not interpolated, so every
+ledger row showed the literal text `"{Action} - {Amount:C}"` instead of real values.
+
+**Bugs found via UI automation, not just retargeting the code** — all four would have broken
+the app for a real user, not just the test suite, and none were visible from a build or from
+the (all-mocked) presenter unit tests:
+- `DesktopAuthService`'s `HttpListener.Stop()` ran immediately after `GetContextAsync()`
+  returned, before the redirect-confirmation page was written to the response — tearing down
+  resources the in-flight `HttpListenerContext`'s response stream still needed, throwing
+  `ObjectDisposedException` on every real sign-in. Fixed by letting the `using var listener`
+  handle disposal after the response is actually sent.
+- `AddHttpMessageHandler<T>()` (used to wire `AuthorizationHandler`/`HttpCallLoggingHandler`
+  into `FohjinApiClient`'s pipeline) does not register `T` itself — it only resolves it via
+  `GetRequiredService<T>()` — so both handlers needed an explicit `AddTransient<T>()`, or every
+  `FohjinApiClient`/`EventStreamClient` resolution threw "No service for type ... has been
+  registered."
+- `DesktopAuthService` was registered via `services.AddHttpClient<DesktopAuthService>()`,
+  which makes it a *typed client* — a fresh instance every resolution, only the underlying
+  `HttpMessageHandler` is pooled. `AuthorizationHandler` was reading a different instance's
+  `AccessToken` than the one `Main()` actually logged in, which was always `null` — every
+  request silently went out with no `Authorization` header. Fixed by registering it as an
+  explicit singleton instead.
+- Nothing ever called `Application.Run()`. Real HTTP calls never complete synchronously the
+  way the old in-process calls sometimes did, so `ClientSearchFormPresenter.Display()`'s
+  `await LoadDataAsync()` always genuinely suspends — with no message loop pumping, `Main()`
+  returned and the whole process exited before that continuation, or `ShowDialog()`, ever ran.
+  This is the most severe of the four: the retargeted app would never have actually shown its
+  main window for a real user, only for whatever timing let a *synchronously-completed* await
+  slip through undetected in casual manual testing. Fixed by adding `Application.Run()` after
+  the initial `Display()` calls, with `ClientSearchForm`'s `FormClosed` handler calling
+  `Application.Exit()` to end it — matching the original exit-on-close-of-the-main-window
+  behavior from before `Application.Run()` existed.
+
+All 47 presenter scenario tests (`Test.Fohjin.DDD/Scenarios`) were rewritten to mock
+`FohjinApiClient`'s virtual methods instead of `IBus`/`IReportingRepository` (two parallel
+subagents handled the ~43 `AccountDetailsPresenter`/`ClientDetailsPresenter` files; the
+`ClientSearchFormPresenter`/`PopupPresenter` ones were small enough to do directly), plus a new
+test for `PopupPresenter`'s async `CatchPossibleExceptionAsync`.
+
+**New**: `Test.Fohjin.DDD.BankApplication.UI`, a FlaUI + Playwright UI automation suite that
+drives the real compiled `Fohjin.DDD.BankApplication.exe` against real, separately-launched
+`Fohjin.DDD.Sts`/`Fohjin.DDD.WebApi` processes — the desktop equivalent of the Playwright
+scripts used to verify `Fohjin.DDD.WebUI` in Phase 6. FlaUI (Windows UI Automation) drives the
+WinForms controls directly; Playwright is used only to attach, via `connectOverCDP`, to the
+real Edge window `DesktopAuthService` opens for the STS login step (`FOHJIN_TEST_BROWSER_EXECUTABLE`,
+a test-only seam in `DesktopAuthService.LaunchBrowser` — production always takes the
+`UseShellExecute` path). Automating an arbitrary already-running WinForms app surfaced several
+FlaUI/UIA quirks worth recording since they'll bite anyone else automating this app: (1)
+`Application.GetAllTopLevelWindows(automation)` reliably misses at least one real, visible,
+correctly-titled window — a raw Win32 `EnumWindows` call sees it the whole time; finding the
+HWND via Win32 first and wrapping only that handle through `AutomationBase.FromHandle` sidesteps
+it; (2) `ToolStripMenuItem`s don't support UIA's `AutomationId` property at all (throws
+`PropertyNotSupportedException` — they're owner-drawn by the strip, not real HWND-backed
+controls), so menu items have to be found by `Name` (display text); (3) a `MenuStrip`'s submenu
+items aren't realized in the UI Automation tree until the parent dropdown is actually opened,
+exactly like a real user would have to click it open first to see them; (4) UIA's
+`InvokePattern.Invoke()` is a synchronous, blocking round-trip call — invoking anything whose
+click handler opens a *modal* dialog (every menu item and save button in this app) deadlocks,
+since `Invoke()` won't return until the nested modal loop finishes closing, which can't happen
+until the test interacts with a dialog `Invoke()` is still blocked waiting to return from;
+fixed by always using a real (async) mouse `Click()` instead; (5) querying a window's
+`.Title`/`.IsOffscreen` mid-teardown can throw a transient `COMException` from the native UIA
+client, unrelated to any real failure — swallowed and retried; (6) list items scrolled outside
+the visible viewport (the dev databases persist across every run and every manual debugging
+session, so lists accumulate far more entries than fit on screen) throw
+`NoClickablePointException` on click — fixed via `ScrollItemPattern.ScrollIntoView()` first.
+Also fixed a real resource leak found along the way: `Browser.CloseAsync()` only disconnects
+the CDP session when attached via `ConnectOverCDPAsync` rather than launched by Playwright
+itself, and Chromium's browser process deliberately detaches from its launching parent's job
+object — neither `CloseAsync()` nor killing the WinForms app's process tree actually took the
+Edge instance down, leaking `msedge.exe` processes across every run. Fixed by giving every test
+run a uniquely-named browser profile directory and killing only the specific instance this run
+launched (matched by that profile path via WMI), never a broad "any msedge.exe."
+
+**Exit criteria — met**: WinForms behaves identically to before, but every operation is an
+HTTP call to `Fohjin.DDD.WebApi` instead of an in-process call, verified live end-to-end (not
+just mocked unit tests) via the new UI automation suite: sign in through the real STS login
+page, create a client through the full 3-step wizard, open it, open a new account for it,
+deposit cash, and confirm the balance updates in the real UI. The monitoring pane still shows
+logs (now HTTP call logs instead of in-process bus/command-handler logs) and events (now via
+SSE instead of the in-process `IObservable<IDomainEvent>`). Full solution build + test suite:
+413 + 14 passed (unit/integration), 4 skipped, 0 failed, plus 1/1 passed in the new UI
+automation suite.
 
 ### Phase 8 — Hosting: Aspire + Docker Compose
 
@@ -412,10 +514,61 @@ publishing produces a working `docker-compose up`.
 
 ### Phase 9 — Decommission the direct in-process wiring
 
-Once both WinForms (Phase 7) and Vue (Phase 6) are fully on the API, the old direct-wiring
-code in `Fohjin.DDD.BankApplication` is dead — remove it, making `Fohjin.DDD.WebApi` the
-only process that composes the CQRS core. Update docs `00`–`10` to reflect the new
-container topology (they currently describe the pre-migration, single-process shape).
+Now that both WinForms (Phase 7) and Vue (Phase 6) are fully on the API, most of what this
+phase originally described is already done: `Fohjin.DDD.BankApplication/Program.cs` no longer
+does any direct in-process wiring at all (Phase 7 removed every `AddBusServices()`-style
+registration and the local-SQLite bootstrap). What's left is narrower: confirm
+`Fohjin.DDD.BankApplication.Core`'s remaining CQRS-core project references
+(`Fohjin.DDD.Bus`, `Fohjin.DDD.CommandHandlers`, `Fohjin.DDD.Configuration`,
+`Fohjin.DDD.EventHandlers`, `Fohjin.DDD.EventStore(.SQLite)`, `Fohjin.DDD.Reporting`,
+`Fohjin.DDD.Services`) are there *only* to support `ApplicationBootStrapper`/
+`DomainDatabaseBootStrapper`/`ReportingDatabaseBootStrapper`, which `Fohjin.DDD.WebApi`'s own
+startup and `Test.Fohjin.DDD`'s infrastructure tests still legitimately need — and decide
+whether those bootstrapper classes belong in a project named `Fohjin.DDD.BankApplication.Core`
+at all anymore, or should move to a more accurately-named shared project now that WinForms
+itself doesn't use them. That's a real (if small) architectural cleanup, not just a rename —
+worth its own scoped change rather than folding it into whichever phase happens to touch that
+project next.
+
+### Phase 10 — Documentation pass: bring docs `00`–`10` in line with the final architecture
+
+Docs `00`–`10` (and `docs/supporting/*`) still describe the pre-migration, single-process
+WinForms-only shape — accurate when written, increasingly stale after every phase above
+(WebApi, OData/QUERY, SSE, OIDC, Vue, retargeted WinForms, and whatever Phase 8's Aspire/Docker
+Compose hosting adds on top). Do this pass **after** Phase 8 and Phase 9, once the system's
+shape is actually settling, not mid-migration where it would just need redoing — read every one
+of `00`–`10` fresh against the code as it exists at that point (not against what the earlier
+phase write-ups above *say* happened, since even those are summaries, not the source of truth)
+and update or rewrite each:
+- `00-architecture-overview.md` — container topology (`Fohjin.DDD.Sts`, `Fohjin.DDD.WebApi`,
+  `Fohjin.DDD.WebUI`, retargeted `Fohjin.DDD.BankApplication`, Aspire `AppHost`), not the
+  original single-process diagram.
+- `01`–`05` (client management, bank cards, account management, cash operations, money
+  transfers) — confirm these still describe the domain/command layer accurately (they mostly
+  should, since the guiding principle was the CQRS core never moved) but check for any
+  WinForms-specific UI references that now need a WebApi/Vue equivalent mentioned too.
+  `02-bank-cards.md` specifically should note the bank-card commands have no UI anywhere
+  (confirmed during Phase 6/7 planning) rather than implying a screen exists.
+- `06-event-sourcing-infrastructure.md`, `07-messaging-bus.md`, `08-reporting-read-models.md` —
+  confirm these still hold (core untouched) but add a note on where each is now *reached from*
+  (WebApi's minimal API endpoints, not WinForms presenters directly).
+- `09-winforms-ui.md` — rewrite the "how it talks to the backend" section entirely (HTTP via
+  `FohjinApiClient` + desktop OIDC, not direct DI-injected `IBus`/`IReportingRepository`); add
+  the Vue frontend as a sibling UI, not a WinForms-only document anymore, or split into
+  separate WinForms/Vue UI docs if that reads better once both exist in detail.
+  `10-patterns-and-practices.md` — check every pattern listed against what's actually still
+  true (e.g. the reflection-based `IEventHandler`/`Presenter<TView>` wiring, if anything from
+  Phases 1-7 changed how those get invoked).
+- `docs/supporting/*` — these were written as decision records for specific phases
+  (OData-vs-hand-rolled, OpenIddict-vs-Duende, Aspire-vs-Docker-Compose, NSwag) and can likely
+  stay as-is (historical record of a decision already made), but link them from wherever `00`
+  now describes the relevant piece, so a fresh reader can find the "why" without already
+  knowing this plan doc exists.
+
+**Exit criteria**: someone who has never seen this migration, reading only docs `00`–`10`
+(not this plan), can accurately describe the running system's actual architecture, every
+process/project's real responsibility, and how a request actually flows end to end for each
+of WinForms, Vue, and the API itself — with nothing left describing the pre-migration shape.
 
 ## What this plan still doesn't decide yet
 

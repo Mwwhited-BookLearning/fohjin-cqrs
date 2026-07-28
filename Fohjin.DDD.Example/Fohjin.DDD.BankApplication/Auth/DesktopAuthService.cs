@@ -44,17 +44,15 @@ public class DesktopAuthService(HttpClient httpClient, IConfiguration configurat
             $"&code_challenge={codeChallenge}&code_challenge_method=S256&state={state}";
 
         logger.LogInformation("Opening system browser for sign-in at {Authority}", authority);
-        Process.Start(new ProcessStartInfo(authorizeUrl) { UseShellExecute = true });
+        LaunchBrowser(authorizeUrl);
 
-        HttpListenerContext context;
-        try
-        {
-            context = await listener.GetContextAsync().WaitAsync(cancellationToken);
-        }
-        finally
-        {
-            listener.Stop();
-        }
+        // listener.Stop() must NOT run until after the response below is written - it tears
+        // down resources (e.g. the context's response stream's ThreadPoolBoundHandle) shared
+        // with any still-in-flight HttpListenerContext, so calling it right after
+        // GetContextAsync() (before RespondWithClosePageAsync's WriteAsync) throws
+        // ObjectDisposedException. The `using var listener` above already stops/disposes it
+        // once this method returns or throws, so nothing extra is needed here.
+        var context = await listener.GetContextAsync().WaitAsync(cancellationToken);
 
         var query = context.Request.QueryString;
         var receivedState = query["state"];
@@ -83,6 +81,42 @@ public class DesktopAuthService(HttpClient httpClient, IConfiguration configurat
         var payload = await tokenResponse.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken: cancellationToken);
         AccessToken = payload?.AccessToken ?? throw new InvalidOperationException("Token response did not include an access_token.");
         logger.LogInformation("Signed in successfully");
+    }
+
+    // Test seam only - production always takes the UseShellExecute path (the user's actual
+    // default browser). FOHJIN_TEST_BROWSER_EXECUTABLE lets the FlaUI UI automation suite
+    // (Test.Fohjin.DDD.BankApplication.UI) point this at a Chromium/Edge binary launched with
+    // remote debugging enabled, so the test can attach via Playwright's CDP client and drive
+    // the real STS login form the same way a human would, instead of trying to automate an
+    // arbitrary OS-default browser window through raw UI Automation.
+    private static void LaunchBrowser(string authorizeUrl)
+    {
+        var testBrowserExecutable = Environment.GetEnvironmentVariable("FOHJIN_TEST_BROWSER_EXECUTABLE");
+        if (string.IsNullOrEmpty(testBrowserExecutable))
+        {
+            Process.Start(new ProcessStartInfo(authorizeUrl) { UseShellExecute = true });
+            return;
+        }
+
+        var remoteDebuggingPort = Environment.GetEnvironmentVariable("FOHJIN_TEST_REMOTE_DEBUGGING_PORT") ?? "9333";
+        // A fresh, uniquely-named profile directory every launch, not a fixed reused path -
+        // reusing the same directory let Edge restore the previous run's leftover tabs
+        // (including a stale STS /connect/authorize redirect) instead of opening only the new
+        // authorizeUrl, which made the test attach to the wrong page.
+        var profileDirectory = Path.Combine(Path.GetTempPath(), $"fohjin-test-browser-profile-{Guid.NewGuid():N}");
+        Process.Start(new ProcessStartInfo(testBrowserExecutable)
+        {
+            ArgumentList =
+            {
+                $"--remote-debugging-port={remoteDebuggingPort}",
+                "--no-first-run",
+                "--no-default-browser-check",
+                "--disable-session-crashed-bubble",
+                $"--user-data-dir={profileDirectory}",
+                authorizeUrl,
+            },
+            UseShellExecute = false,
+        });
     }
 
     private static async Task RespondWithClosePageAsync(HttpListenerContext context, CancellationToken cancellationToken)

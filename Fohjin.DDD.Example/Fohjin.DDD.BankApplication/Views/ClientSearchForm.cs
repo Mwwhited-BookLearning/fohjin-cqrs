@@ -12,6 +12,15 @@ public partial class ClientSearchForm : ViewFormBase, IClientSearchFormView
         tabControl1.ItemSize = new Size(0, 1);
         tabControl1.SizeMode = TabSizeMode.Fixed;
         RegisterCLientEvents();
+
+        // Phase 7 (docs/11-migration-plan.md): Program.cs now needs a real Application.Run()
+        // message loop (real HTTP calls never complete synchronously the way the old in-process
+        // calls sometimes did, so ClientSearchFormPresenter.Display()'s `await LoadDataAsync()`
+        // always genuinely suspends - without a message loop pumping, Main() would return and
+        // the whole process would exit before that continuation ever runs). This is this
+        // window's half of ending that loop once the user closes it, matching the app's
+        // original exit-on-close-of-the-main-window behavior from before Application.Run() existed.
+        FormClosed += (_, _) => Application.Exit();
     }
 
     public event Action? OnCreateNewClient;

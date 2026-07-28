@@ -33,7 +33,7 @@ public class All_commands_must_have_a_handler : ContextualTestClassBase
             services.AddSingleton(fixedRepository!);
         var serviceProvider = services.BuildServiceProvider();
 
-        var command = hasFixup ? fixedCommand : (ICommand)commandType.GetNonDefaultValue(serviceProvider);
+        var command = hasFixup ? fixedCommand : (ICommand)commandType.GetNonDefaultValue(serviceProvider)!;
 
         var instance = (ICommandHandler)ActivatorUtilities.CreateInstance(serviceProvider, handlerType);
         if (command != null)

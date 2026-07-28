@@ -36,19 +36,19 @@ public class When_creating_a_closed_account : AggregateRootTestFixture<ClosedAcc
     [TestMethod]
     public void Then_the_published_event_will_contain_the_expected_details_of_the_closed_account()
     {
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().OriginalAccountId.WillBe(_accountId);
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().ClientId.WillBe(_clientId);
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().AccountName.WillBe("Closed Account");
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().AccountNumber.WillBe("1234567890");
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.OriginalAccountId.WillBe(_accountId);
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.ClientId.WillBe(_clientId);
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.AccountName.WillBe("Closed Account");
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.AccountNumber.WillBe("1234567890");
     }
 
     [TestMethod]
     public void Then_the_published_event_will_contain_the_expected_ledgers_of_the_closed_account()
     {
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().Ledgers.Count().WillBe(4);
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().Ledgers[0].Key.WillBe("CreditMutation");
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().Ledgers[1].Key.WillBe("DebitMutation");
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().Ledgers[2].Key.WillBe("CreditTransfer");
-        PublishedEvents?.Last<ClosedAccountCreatedEvent>().Ledgers[3].Key.WillBe("DebitTransfer");
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.Ledgers.Count().WillBe(4);
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.Ledgers[0].Key.WillBe("CreditMutation");
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.Ledgers[1].Key.WillBe("DebitMutation");
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.Ledgers[2].Key.WillBe("CreditTransfer");
+        PublishedEvents?.Last<ClosedAccountCreatedEvent>()!.Ledgers[3].Key.WillBe("DebitTransfer");
     }
 }

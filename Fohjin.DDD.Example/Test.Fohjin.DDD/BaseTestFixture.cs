@@ -9,7 +9,7 @@ namespace Test.Fohjin.DDD;
 [TestCategory("unit")]
 public abstract class BaseTestFixture
 {
-    protected Exception CaughtException;
+    protected Exception CaughtException = null!;
     protected virtual void Given() { }
     protected abstract void When();
     protected virtual void Finally() { }
@@ -47,11 +47,11 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 
-    private Dictionary<Type, object> mocks;
+    private Dictionary<Type, object> mocks = null!;
 
-    protected Dictionary<Type, object> DoNotMock;
-    protected TSubjectUnderTest SubjectUnderTest;
-    protected Exception CaughtException;
+    protected Dictionary<Type, object> DoNotMock = null!;
+    protected TSubjectUnderTest SubjectUnderTest = default!;
+    protected Exception CaughtException = null!;
     protected virtual void SetupDependencies() { }
     protected virtual void Given() { }
     protected abstract Task WhenAsync();
@@ -86,7 +86,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
 
     public Mock<TType> OnDependency<TType>() where TType : class
     {
-        return (Mock<TType>)mocks?[typeof(TType)];
+        return (Mock<TType>)mocks?[typeof(TType)]!;
     }
 
     private TSubjectUnderTest BuildSubjectUnderTest()
@@ -108,7 +108,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
             parameters.Add(theObject);
         }
 
-        return (TSubjectUnderTest)constructorInfo.Invoke([.. parameters]);
+        return (TSubjectUnderTest)constructorInfo.Invoke([.. parameters])!;
     }
 
     private void BuildMocks()

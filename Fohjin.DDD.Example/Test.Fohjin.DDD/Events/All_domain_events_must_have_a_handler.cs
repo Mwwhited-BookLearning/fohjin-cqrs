@@ -20,7 +20,7 @@ public class All_domain_events_must_have_a_handler
 
     [DataTestMethod]
     [DynamicData(nameof(TestData), DynamicDataSourceType.Method, DynamicDataDisplayName = nameof(TestDataDisplayName))]
-    public async Task TestEventHandler(Type eventType, Type handlerType = null)
+    public async Task TestEventHandler(Type eventType, Type? handlerType = null)
     {
         this.TestContext.WriteLine($"RUN_ID:{TestContext.Properties[$"RUN_ID"] = Guid.NewGuid()}");
         this.TestContext.Properties[$"Parameter::{nameof(eventType)}"] = eventType;
@@ -42,7 +42,7 @@ public class All_domain_events_must_have_a_handler
             ;
         var serviceProvider = services.BuildServiceProvider();
 
-        if (eventType.GetNonDefaultValue(serviceProvider) is IDomainEvent evnt && ActivatorUtilities.CreateInstance(serviceProvider, handlerType) is IEventHandler instance)
+        if (eventType.GetNonDefaultValue(serviceProvider) is IDomainEvent evnt && ActivatorUtilities.CreateInstance(serviceProvider, handlerType!) is IEventHandler instance)
         {
             // Generic KeyValuePair<string,string> fill can't know "Key" is really a closed set of
             // ledger transfer-type names - force it to a real one so the handler's happy path runs.

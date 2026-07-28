@@ -28,7 +28,7 @@ public class When_withdrawing_cash : CommandTestFixture<WithdrawalCashCommand, W
     [TestMethod]
     public void Then_the_published_event_will_contain_the_amount_and_new_account_balance()
     {
-        PublishedEvents?.Last<CashWithdrawnEvent>().Balance.WillBe(15M);
-        PublishedEvents?.Last<CashWithdrawnEvent>().Amount.WillBe(5M);
+        PublishedEvents?.Last<CashWithdrawnEvent>()!.Balance.WillBe(15M);
+        PublishedEvents?.Last<CashWithdrawnEvent>()!.Amount.WillBe(5M);
     }
 }

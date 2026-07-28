@@ -147,8 +147,8 @@ public static class TypeExtensions
             if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 var list = property.GetValue(instance, []);
-                var value = list.GetType().GetProperty("Item").GetValue(list, [0]);
-                value.GetType().EnsureNotDefault(value);
+                var value = list!.GetType().GetProperty("Item")!.GetValue(list, [0]);
+                value!.GetType().EnsureNotDefault(value);
             }
             else
             {

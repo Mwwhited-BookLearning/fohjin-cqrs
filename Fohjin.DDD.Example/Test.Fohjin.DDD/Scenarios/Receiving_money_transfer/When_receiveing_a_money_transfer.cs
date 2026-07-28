@@ -28,9 +28,9 @@ public class When_receiveing_a_money_transfer : CommandTestFixture<ReceiveMoneyT
     [TestMethod]
     public void Then_it_will_generate_an_Deposit_event_with_the_expected_ammount()
     {
-        PublishedEvents?.Last<MoneyTransferReceivedEvent>().Amount.WillBe(5.0M);
-        PublishedEvents?.Last<MoneyTransferReceivedEvent>().Balance.WillBe(25.0M);
-        PublishedEvents?.Last<MoneyTransferReceivedEvent>().TargetAccount.WillBe("1234567890");
-        PublishedEvents?.Last<MoneyTransferReceivedEvent>().SourceAccount.WillBe("0987654321");
+        PublishedEvents?.Last<MoneyTransferReceivedEvent>()!.Amount.WillBe(5.0M);
+        PublishedEvents?.Last<MoneyTransferReceivedEvent>()!.Balance.WillBe(25.0M);
+        PublishedEvents?.Last<MoneyTransferReceivedEvent>()!.TargetAccount.WillBe("1234567890");
+        PublishedEvents?.Last<MoneyTransferReceivedEvent>()!.SourceAccount.WillBe("0987654321");
     }
 }

@@ -27,6 +27,6 @@ public class When_changing_the_phone_number : CommandTestFixture<ChangeClientPho
     [TestMethod]
     public void Then_the_published_event_will_contain_the_new_phone_number_of_the_client()
     {
-        PublishedEvents?.Last<ClientPhoneNumberChangedEvent>().PhoneNumber.WillBe("95009937");
+        PublishedEvents?.Last<ClientPhoneNumberChangedEvent>()!.PhoneNumber.WillBe("95009937");
     }
 }

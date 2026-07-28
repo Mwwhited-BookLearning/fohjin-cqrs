@@ -228,8 +228,15 @@ data, so forcing that shape here would fight the feature rather than use it. Com
 have this problem (`init`-only, truly immutable end to end), which is exactly why they were
 a clean fit and these two are not.
 
-Still open: the nullable-annotation pass (properties are still bare `string` despite
-`<Nullable>enable</Nullable>` everywhere) — larger, more judgment-heavy, not done yet.
+Also done: the nullable-annotation pass. `Test.Fohjin.DDD.csproj` now builds with
+`<Nullable>enable</Nullable>` (it was `disable` while using `?` throughout, which is what
+caused ~194 CS8632 warnings); the ~200 real CS8600/CS8602/CS8618/CS8620/CS8625 warnings that
+enabling it surfaced were fixed file-by-file (`= null!`/`= default!` for fields assigned by
+test-lifecycle methods rather than constructors, `as` casts over hard casts, trailing `!` for
+null-conditional chains assigned into non-nullable contexts) and verified against the full
+test suite (410 passed, 4 skipped, unchanged). Found one real production bug along the way:
+`AccountDetails.GetSelectedTransferAccount()` didn't match its own interface's nullable
+contract and would throw `InvalidCastException` instead of returning null.
 
 ## Suggested next step
 

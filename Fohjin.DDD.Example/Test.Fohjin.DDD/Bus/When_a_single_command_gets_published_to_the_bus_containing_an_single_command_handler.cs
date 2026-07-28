@@ -11,8 +11,8 @@ namespace Test.Fohjin.DDD.Bus;
 [TestCategory("unit")]
 public class When_a_single_command_gets_published_to_the_bus_containing_an_single_command_handler : BaseTestFixture<DirectBus>
 {
-    private FirstTestCommandHandler _handler;
-    private TestCommand _command;
+    private FirstTestCommandHandler _handler = null!;
+    private TestCommand _command = null!;
 
     protected override void SetupDependencies()
     {

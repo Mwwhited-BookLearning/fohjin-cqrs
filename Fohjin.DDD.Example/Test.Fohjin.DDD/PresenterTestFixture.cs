@@ -10,8 +10,8 @@ public abstract class PresenterTestFixture<TPresenter>
 {
     private IDictionary<Type, object> mocks = null!;
 
-    protected TPresenter Presenter;
-    protected Exception CaughtException;
+    protected TPresenter Presenter = default!;
+    protected Exception CaughtException = null!;
     protected virtual void SetupDependencies() { }
     protected virtual void Given() { }
     protected abstract void When();

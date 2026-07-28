@@ -28,14 +28,14 @@ public class When_creating_a_new_account : AggregateRootTestFixture<ActiveAccoun
     [TestMethod]
     public void Then_the_published_event_will_contain_the_new_name_and_number_of_the_account()
     {
-        PublishedEvents?.Last<AccountOpenedEvent>().AccountName.WillBe("New Account");
-        PublishedEvents?.Last<AccountOpenedEvent>().AccountNumber.WillBe("Account Number");
+        PublishedEvents?.Last<AccountOpenedEvent>()!.AccountName.WillBe("New Account");
+        PublishedEvents?.Last<AccountOpenedEvent>()!.AccountNumber.WillBe("Account Number");
     }
 
     [TestMethod]
     public void Then_the_published_event_will_have_the_same_aggregate_id()
     {
-        PublishedEvents?.Last<AccountOpenedEvent>().AccountId.WillBe(AggregateRoot?.Id);
+        PublishedEvents?.Last<AccountOpenedEvent>()!.AccountId.WillBe(AggregateRoot?.Id);
     }
 
     protected override void Finally()

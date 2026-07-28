@@ -27,6 +27,6 @@ public class When_changing_the_name_of_a_client : CommandTestFixture<ChangeClien
     [TestMethod]
     public void Then_the_published_event_will_contain_the_new_name_of_the_client()
     {
-        PublishedEvents?.Last<ClientNameChangedEvent>().ClientName.WillBe("Mark Nijhof");
+        PublishedEvents?.Last<ClientNameChangedEvent>()!.ClientName.WillBe("Mark Nijhof");
     }
 }

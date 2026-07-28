@@ -14,12 +14,12 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
     where TCommandHandler : class, ICommandHandler<TCommand>
     where TAggregateRoot : class, IOriginator, IEventProvider<IDomainEvent>, new()
 {
-    private IDictionary<Type, object> mocks;
+    private IDictionary<Type, object> mocks = null!;
 
-    protected TAggregateRoot AggregateRoot;
-    protected ICommandHandler<TCommand> CommandHandler;
-    protected Exception CaughtException;
-    protected IEnumerable<IDomainEvent> PublishedEvents;
+    protected TAggregateRoot AggregateRoot = null!;
+    protected ICommandHandler<TCommand> CommandHandler = null!;
+    protected Exception CaughtException = null!;
+    protected IEnumerable<IDomainEvent> PublishedEvents = null!;
     protected virtual void SetupDependencies() { }
     protected virtual IEnumerable<IDomainEvent> Given() 
     {
@@ -56,7 +56,7 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
 
     public Mock<TType> OnDependency<TType>() where TType : class
     {
-        return (Mock<TType>)mocks?[typeof(TType)];
+        return (Mock<TType>)mocks?[typeof(TType)]!;
     }
 
     private ICommandHandler<TCommand> BuildCommandHandler()
@@ -77,7 +77,7 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
             mocks?.Add(parameter.ParameterType, CreateMock(parameter.ParameterType));
         }
 
-        return (ICommandHandler<TCommand>)constructorInfo.Invoke(mocks?.Values.Select(x => ((Mock) x).Object).ToArray());
+        return (ICommandHandler<TCommand>)constructorInfo.Invoke(mocks?.Values.Select(x => ((Mock) x).Object).ToArray())!;
     }
 
     private static object CreateMock(Type type)

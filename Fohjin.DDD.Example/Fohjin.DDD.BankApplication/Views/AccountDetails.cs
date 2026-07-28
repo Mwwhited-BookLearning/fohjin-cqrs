@@ -132,9 +132,9 @@ public partial class AccountDetails : ViewFormBase, IAccountDetailsView
         transferMoneyToolStripMenuItem.Enabled = false;
     }
 
-    public AccountReport GetSelectedTransferAccount()
+    public AccountReport? GetSelectedTransferAccount()
     {
-        return (AccountReport)_transferAccounts.SelectedItem;
+        return _transferAccounts.SelectedItem as AccountReport;
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]

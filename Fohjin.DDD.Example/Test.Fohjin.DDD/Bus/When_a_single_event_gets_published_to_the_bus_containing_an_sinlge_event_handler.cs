@@ -8,8 +8,8 @@ namespace Test.Fohjin.DDD.Bus;
 [TestCategory("unit")]
 public class When_a_single_event_gets_published_to_the_bus_containing_an_sinlge_event_handler : BaseTestFixture<DirectBus>
 {
-    private FirstTestEventHandler _handler;
-    private TestEvent _event;
+    private FirstTestEventHandler _handler = null!;
+    private TestEvent _event = null!;
 
     protected override void SetupDependencies()
     {

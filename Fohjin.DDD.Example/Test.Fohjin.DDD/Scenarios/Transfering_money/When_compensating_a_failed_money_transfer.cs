@@ -29,8 +29,8 @@ public class When_compensating_a_failed_money_transfer : CommandTestFixture<Mone
     [TestMethod]
     public void Then_the_published_event_will_contain_the_amount_and_new_account_balance()
     {
-        PublishedEvents?.Last<MoneyTransferFailedEvent>().Amount.WillBe(5.0M);
-        PublishedEvents?.Last<MoneyTransferFailedEvent>().Balance.WillBe(20.0M);
-        PublishedEvents?.Last<MoneyTransferFailedEvent>().TargetAccount.WillBe("0987654321");
+        PublishedEvents?.Last<MoneyTransferFailedEvent>()!.Amount.WillBe(5.0M);
+        PublishedEvents?.Last<MoneyTransferFailedEvent>()!.Balance.WillBe(20.0M);
+        PublishedEvents?.Last<MoneyTransferFailedEvent>()!.TargetAccount.WillBe("0987654321");
     }
 }

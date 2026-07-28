@@ -29,18 +29,18 @@ public class ClosedAccountRepositoryTest
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 
-    private IDomainRepository<IDomainEvent> _repository;
-    private DomainEventStorage<IDomainEvent> _domainEventStorage;
-    private EventStoreIdentityMap<IDomainEvent> _eventStoreIdentityMap;
-    private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork;
-    private List<Ledger> _ledgers;
+    private IDomainRepository<IDomainEvent> _repository = null!;
+    private DomainEventStorage<IDomainEvent> _domainEventStorage = null!;
+    private EventStoreIdentityMap<IDomainEvent> _eventStoreIdentityMap = null!;
+    private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork = null!;
+    private List<Ledger> _ledgers = null!;
 
     [TestInitialize]
     public async Task SetUp()
     {
         TestContext.SetupWorkingDirectory();
         var dataBaseFile = Path.Combine(
-            (string)TestContext.Properties[TestContextExtensions.TestWorkingDirectory] ??
+            TestContext.Properties[TestContextExtensions.TestWorkingDirectory] as string ??
                 throw new NotSupportedException($"TestContext.Properties is missing [TestContextExtensions.TestWorkingDirectory]"),
             DomainDatabaseBootStrapper.DataBaseFile
             );

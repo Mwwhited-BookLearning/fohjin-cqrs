@@ -27,6 +27,6 @@ public class When_changing_the_name_of_an_account : CommandTestFixture<ChangeAcc
     [TestMethod]
     public void Then_the_published_event_will_contain_the_new_name_of_the_account()
     {
-        PublishedEvents?.Last<AccountNameChangedEvent>().AccountName.WillBe("New Account Name");
+        PublishedEvents?.Last<AccountNameChangedEvent>()!.AccountName.WillBe("New Account Name");
     }
 }

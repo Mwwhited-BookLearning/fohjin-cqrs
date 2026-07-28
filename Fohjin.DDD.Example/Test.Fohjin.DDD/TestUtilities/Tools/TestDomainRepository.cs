@@ -17,10 +17,11 @@ public class TestDomainRepository<TDomainEvent>(
         _testContext.AddResults(typeof(TAggregate).Name, aggregateRoot);
     }
 
-    Task<TAggregate> IDomainRepository<TDomainEvent>.GetByIdAsync<TAggregate>(Guid id)
+    Task<TAggregate?> IDomainRepository<TDomainEvent>.GetByIdAsync<TAggregate>(Guid id)
+        where TAggregate : class
     {
         var aggregate = (TAggregate)typeof(TAggregate).FillObject(_serviceProvider);
         aggregate.Id = id;
-        return Task.FromResult(aggregate);
+        return Task.FromResult<TAggregate?>(aggregate);
     }
 }

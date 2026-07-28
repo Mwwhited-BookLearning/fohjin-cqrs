@@ -111,3 +111,5 @@ sides is a domain event traveling through the bus.
 | `08-reporting-read-models.md` | Read-model DTOs and their event-driven updates |
 | `09-winforms-ui.md` | Presenter/View pattern, screen flows |
 | `10-patterns-and-practices.md` | Named architectural/design patterns used, with references |
+| `11-migration-plan.md` | Phased plan for the WebAPI/OData/OIDC/SSE/Vue modernization |
+| `supporting/` | Research backing the migration plan's technology choices |

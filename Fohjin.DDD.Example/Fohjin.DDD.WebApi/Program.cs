@@ -230,6 +230,81 @@ app.MapPost("/api/clients/{id:guid}/accounts", (Guid id, OpenNewAccountForClient
 .Produces(StatusCodes.Status202Accepted)
 .RequireAuthorization();
 
+// Phase 6: the Account Details screen and its "transfer to" account picker.
+app.MapGet("/api/accounts", async (IReportingRepository repository) =>
+    await repository.GetByExampleAsync<AccountReport>(null))
+.WithName("GetAccounts")
+.Produces<IEnumerable<AccountReport>>(StatusCodes.Status200OK)
+.RequireAuthorization();
+
+// AccountClosedEventHandler (Fohjin.DDD.EventHandlers) deletes the live AccountDetailsReport
+// row and ClosedAccountCreatedEventHandler saves a ClosedAccountDetailsReport in its place
+// (same live/closed split as ClientDetailsReport.Accounts/ClosedAccounts) - fall back to the
+// closed report so this endpoint still works for an account after it's been closed.
+app.MapGet("/api/accounts/{id:guid}/details", async (Guid id, IReportingRepository repository) =>
+{
+    var account = (await repository.GetByExampleAsync<AccountDetailsReport>(new { Id = id })).FirstOrDefault()
+        ?? (await repository.GetByExampleAsync<ClosedAccountDetailsReport>(new { Id = id })).FirstOrDefault();
+    return account is null ? Results.NotFound() : Results.Ok(account);
+})
+.WithName("GetAccountDetailsById")
+.Produces<AccountDetailsReport>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization();
+
+// Phase 6: the five Account Details edit/transaction commands the WinForms Account Details
+// screen uses (Fohjin.DDD.BankApplication.Core/Presenters/AccountDetailsPresenter.cs) - same
+// bus.Publish(...); bus.CommitAsync(); (fire-and-forget) pattern as the Client commands above.
+app.MapPost("/api/accounts/{id:guid}/name", (Guid id, ChangeAccountNameRequest request, IBus bus) =>
+{
+    bus.Publish(new ChangeAccountNameCommand(id, request.AccountName));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/accounts/{id}/details");
+})
+.WithName("ChangeAccountName")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/accounts/{id:guid}/deposit", (Guid id, DepositCashRequest request, IBus bus) =>
+{
+    bus.Publish(new DepositCashCommand(id, request.Amount));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/accounts/{id}/details");
+})
+.WithName("DepositCash")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/accounts/{id:guid}/withdrawal", (Guid id, WithdrawalCashRequest request, IBus bus) =>
+{
+    bus.Publish(new WithdrawalCashCommand(id, request.Amount));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/accounts/{id}/details");
+})
+.WithName("WithdrawalCash")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/accounts/{id:guid}/transfer", (Guid id, SendMoneyTransferRequest request, IBus bus) =>
+{
+    bus.Publish(new SendMoneyTransferCommand(id, request.Amount, request.AccountNumber));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/accounts/{id}/details");
+})
+.WithName("SendMoneyTransfer")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/accounts/{id:guid}/close", (Guid id, IBus bus) =>
+{
+    bus.Publish(new CloseAccountCommand(id));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/accounts/{id}/details");
+})
+.WithName("CloseAccount")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
 // Phase 3: /api/clients above is the plain REST surface from Phase 1; /odata/Clients is the
 // new OData one, backed by a real IQueryable rather than IReportingRepository's example-object
 // queries. GET and QUERY share this single handler - QUERY (RFC 10008) exists for filters too
@@ -329,6 +404,10 @@ record ChangeClientNameRequest(string? ClientName);
 record ClientIsMovingRequest(string? Street, string? StreetNumber, string? PostalCode, string? City);
 record ChangeClientPhoneNumberRequest(string? PhoneNumber);
 record OpenNewAccountForClientRequest(string? AccountName);
+record ChangeAccountNameRequest(string? AccountName);
+record DepositCashRequest(decimal Amount);
+record WithdrawalCashRequest(decimal Amount);
+record SendMoneyTransferRequest(decimal Amount, string? AccountNumber);
 record ODataQueryRequest(string? Filter);
 
 // Lets WebApplicationFactory<Program> (Test.Fohjin.DDD.ApiClient) host this app in-process for

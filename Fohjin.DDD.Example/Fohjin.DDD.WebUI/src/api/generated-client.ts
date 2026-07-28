@@ -350,6 +350,290 @@ export class FohjinApiClient {
     /**
      * @return OK
      */
+    getAccounts(): Promise<AccountReport[]> {
+        let url_ = this.baseUrl + "/api/accounts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAccounts(_response);
+        });
+    }
+
+    protected processGetAccounts(response: Response): Promise<AccountReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AccountReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AccountReport[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    getAccountDetailsById(id: string): Promise<AccountDetailsReport> {
+        let url_ = this.baseUrl + "/api/accounts/{id}/details";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processGetAccountDetailsById(_response);
+        });
+    }
+
+    protected processGetAccountDetailsById(response: Response): Promise<AccountDetailsReport> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = AccountDetailsReport.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            return throwException("Not Found", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AccountDetailsReport>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    changeAccountName(id: string, body: ChangeAccountNameRequest): Promise<void> {
+        let url_ = this.baseUrl + "/api/accounts/{id}/name";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processChangeAccountName(_response);
+        });
+    }
+
+    protected processChangeAccountName(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    depositCash(id: string, body: DepositCashRequest): Promise<void> {
+        let url_ = this.baseUrl + "/api/accounts/{id}/deposit";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processDepositCash(_response);
+        });
+    }
+
+    protected processDepositCash(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    withdrawalCash(id: string, body: WithdrawalCashRequest): Promise<void> {
+        let url_ = this.baseUrl + "/api/accounts/{id}/withdrawal";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processWithdrawalCash(_response);
+        });
+    }
+
+    protected processWithdrawalCash(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    sendMoneyTransfer(id: string, body: SendMoneyTransferRequest): Promise<void> {
+        let url_ = this.baseUrl + "/api/accounts/{id}/transfer";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSendMoneyTransfer(_response);
+        });
+    }
+
+    protected processSendMoneyTransfer(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    closeAccount(id: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/accounts/{id}/close";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCloseAccount(_response);
+        });
+    }
+
+    protected processCloseAccount(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
     queryClients(): Promise<ClientReport[]> {
         let url_ = this.baseUrl + "/odata/Clients";
         url_ = url_.replace(/[?&]$/, "");
@@ -434,6 +718,82 @@ export class FohjinApiClient {
     }
 }
 
+export class AccountDetailsReport implements IAccountDetailsReport {
+    id?: string;
+    clientReportId?: string;
+    ledgers?: LedgerReport[];
+    accountName?: string | undefined;
+    balance?: number;
+    accountNumber?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IAccountDetailsReport) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.id = _data["id"];
+            this.clientReportId = _data["clientReportId"];
+            if (Array.isArray(_data["ledgers"])) {
+                this.ledgers = [] as any;
+                for (let item of _data["ledgers"])
+                    this.ledgers!.push(LedgerReport.fromJS(item));
+            }
+            this.accountName = _data["accountName"];
+            this.balance = _data["balance"];
+            this.accountNumber = _data["accountNumber"];
+        }
+    }
+
+    static fromJS(data: any): AccountDetailsReport {
+        data = typeof data === 'object' ? data : {};
+        let result = new AccountDetailsReport();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["id"] = this.id;
+        data["clientReportId"] = this.clientReportId;
+        if (Array.isArray(this.ledgers)) {
+            data["ledgers"] = [];
+            for (let item of this.ledgers)
+                data["ledgers"].push(item ? item.toJSON() : undefined as any);
+        }
+        data["accountName"] = this.accountName;
+        data["balance"] = this.balance;
+        data["accountNumber"] = this.accountNumber;
+        return data;
+    }
+}
+
+export interface IAccountDetailsReport {
+    id?: string;
+    clientReportId?: string;
+    ledgers?: LedgerReport[];
+    accountName?: string | undefined;
+    balance?: number;
+    accountNumber?: string | undefined;
+
+    [key: string]: any;
+}
+
 export class AccountReport implements IAccountReport {
     id?: string;
     clientDetailsReportId?: string;
@@ -490,6 +850,54 @@ export interface IAccountReport {
     clientDetailsReportId?: string;
     accountName?: string | undefined;
     accountNumber?: string | undefined;
+
+    [key: string]: any;
+}
+
+export class ChangeAccountNameRequest implements IChangeAccountNameRequest {
+    accountName!: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IChangeAccountNameRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.accountName = _data["accountName"];
+        }
+    }
+
+    static fromJS(data: any): ChangeAccountNameRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new ChangeAccountNameRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["accountName"] = this.accountName;
+        return data;
+    }
+}
+
+export interface IChangeAccountNameRequest {
+    accountName: string | undefined;
 
     [key: string]: any;
 }
@@ -926,6 +1334,114 @@ export interface ICreateClientRequest {
     [key: string]: any;
 }
 
+export class DepositCashRequest implements IDepositCashRequest {
+    amount!: number;
+
+    [key: string]: any;
+
+    constructor(data?: IDepositCashRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): DepositCashRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new DepositCashRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface IDepositCashRequest {
+    amount: number;
+
+    [key: string]: any;
+}
+
+export class LedgerReport implements ILedgerReport {
+    id?: string;
+    accountDetailsReportId?: string;
+    action?: string;
+    amount?: number;
+
+    [key: string]: any;
+
+    constructor(data?: ILedgerReport) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.id = _data["id"];
+            this.accountDetailsReportId = _data["accountDetailsReportId"];
+            this.action = _data["action"];
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): LedgerReport {
+        data = typeof data === 'object' ? data : {};
+        let result = new LedgerReport();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["id"] = this.id;
+        data["accountDetailsReportId"] = this.accountDetailsReportId;
+        data["action"] = this.action;
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface ILedgerReport {
+    id?: string;
+    accountDetailsReportId?: string;
+    action?: string;
+    amount?: number;
+
+    [key: string]: any;
+}
+
 export class OpenNewAccountForClientRequest implements IOpenNewAccountForClientRequest {
     accountName!: string | undefined;
 
@@ -970,6 +1486,106 @@ export class OpenNewAccountForClientRequest implements IOpenNewAccountForClientR
 
 export interface IOpenNewAccountForClientRequest {
     accountName: string | undefined;
+
+    [key: string]: any;
+}
+
+export class SendMoneyTransferRequest implements ISendMoneyTransferRequest {
+    amount!: number;
+    accountNumber!: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: ISendMoneyTransferRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.amount = _data["amount"];
+            this.accountNumber = _data["accountNumber"];
+        }
+    }
+
+    static fromJS(data: any): SendMoneyTransferRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SendMoneyTransferRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["amount"] = this.amount;
+        data["accountNumber"] = this.accountNumber;
+        return data;
+    }
+}
+
+export interface ISendMoneyTransferRequest {
+    amount: number;
+    accountNumber: string | undefined;
+
+    [key: string]: any;
+}
+
+export class WithdrawalCashRequest implements IWithdrawalCashRequest {
+    amount!: number;
+
+    [key: string]: any;
+
+    constructor(data?: IWithdrawalCashRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.amount = _data["amount"];
+        }
+    }
+
+    static fromJS(data: any): WithdrawalCashRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new WithdrawalCashRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["amount"] = this.amount;
+        return data;
+    }
+}
+
+export interface IWithdrawalCashRequest {
+    amount: number;
 
     [key: string]: any;
 }

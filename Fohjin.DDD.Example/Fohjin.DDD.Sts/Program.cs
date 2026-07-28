@@ -9,6 +9,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// The Vue SPA (Fohjin.DDD.WebUI) fetches the OIDC discovery document via a browser XHR before
+// the interactive part of the login redirect - that needs CORS, unlike the WinForms desktop
+// client (Phase 7), which never runs this code in a browser context at all.
+// http://host.docker.internal:5173 is how a Playwright container sees the Vue dev server when
+// driving a real headless browser for this project's E2E verification (no native Node.js
+// install on this machine - see docs/11-migration-plan.md Phase 6).
+const string VueDevCorsPolicy = "VueDev";
+builder.Services.AddCors(options => options.AddPolicy(VueDevCorsPolicy, policy => policy
+    .WithOrigins("http://localhost:5173", "http://host.docker.internal:5173")
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlite(builder.Configuration["Sts:SqliteConnectionString"]
@@ -80,6 +92,8 @@ else
 app.UseStaticFiles();
 app.UseRouting();
 
+app.UseCors(VueDevCorsPolicy);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -105,9 +119,19 @@ await using (var scope = app.Services.CreateAsyncScope())
             ClientType = ClientTypes.Public,
             ConsentType = ConsentTypes.Implicit,
             DisplayName = "Fohjin.DDD dev client",
-            // Placeholder until Phases 6/7 wire up the real Vue/WinForms callback URIs -
-            // this dev STS has no real caller yet, only the verification in this phase.
-            RedirectUris = { new Uri("http://127.0.0.1:5310/callback") },
+            // One client for both callers (Phase 5's "one seeded dev client" decision) - a
+            // public/PKCE client works the same way for a browser SPA and a desktop loopback
+            // redirect, so this just lists both. http://127.0.0.1:5310/callback (this STS's
+            // own address) is kept for Phase 5's curl-driven verification; Phase 7 will add
+            // the WinForms loopback address here too. host.docker.internal is what a
+            // Playwright container sees the Vue dev server as when driving a real headless
+            // browser through the login flow for Phase 6's verification (docs/11-migration-plan.md).
+            RedirectUris =
+            {
+                new Uri("http://127.0.0.1:5310/callback"),
+                new Uri("http://localhost:5173/callback"),
+                new Uri("http://host.docker.internal:5173/callback"),
+            },
             Permissions =
             {
                 Permissions.Endpoints.Authorization,

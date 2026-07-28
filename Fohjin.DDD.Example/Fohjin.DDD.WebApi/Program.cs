@@ -32,6 +32,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 
+// The Vue SPA (Fohjin.DDD.WebUI) calls this API directly from the browser - needs CORS, unlike
+// the WinForms desktop client (Phase 7), which never runs in a browser context at all.
+// http://host.docker.internal:5173 is how a Playwright container sees the Vue dev server when
+// driving a real headless browser for this project's E2E verification (no native Node.js
+// install on this machine - see docs/11-migration-plan.md Phase 6).
+const string VueDevCorsPolicy = "VueDev";
+builder.Services.AddCors(options => options.AddPolicy(VueDevCorsPolicy, policy => policy
+    .WithOrigins("http://localhost:5173", "http://host.docker.internal:5173")
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
 builder.Services
     .AddBusServices()
     .AddCommandHandlersServices()
@@ -116,6 +127,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors(VueDevCorsPolicy);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -157,6 +170,64 @@ app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository reposi
 .WithName("GetClientById")
 .Produces<ClientReport>(StatusCodes.Status200OK)
 .Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization();
+
+// Phase 6: the Client Details screen needs the richer ClientDetailsReport (address, phone
+// number, linked accounts) rather than the bare id+name ClientReport above. Same
+// IReportingRepository.GetByExampleAsync read pattern as GetClientById - SqliteReportingRepository
+// auto-loads ClientDetailsReport.Accounts/ClosedAccounts via its "{ParentTypeName}Id" convention,
+// so no extra join code is needed here.
+app.MapGet("/api/clients/{id:guid}/details", async (Guid id, IReportingRepository repository) =>
+{
+    var client = (await repository.GetByExampleAsync<ClientDetailsReport>(new { Id = id })).FirstOrDefault();
+    return client is null ? Results.NotFound() : Results.Ok(client);
+})
+.WithName("GetClientDetailsById")
+.Produces<ClientDetailsReport>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization();
+
+// Phase 6: the four edit commands the WinForms Client Details screen uses
+// (Fohjin.DDD.BankApplication.Core/Presenters/ClientDetailsPresenter.cs) - same
+// bus.Publish(...); bus.CommitAsync(); (fire-and-forget) pattern as CreateClient above.
+app.MapPost("/api/clients/{id:guid}/name", (Guid id, ChangeClientNameRequest request, IBus bus) =>
+{
+    bus.Publish(new ChangeClientNameCommand(id, request.ClientName));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("ChangeClientName")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/clients/{id:guid}/address", (Guid id, ClientIsMovingRequest request, IBus bus) =>
+{
+    bus.Publish(new ClientIsMovingCommand(id, request.Street, request.StreetNumber, request.PostalCode, request.City));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("ChangeClientAddress")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/clients/{id:guid}/phone-number", (Guid id, ChangeClientPhoneNumberRequest request, IBus bus) =>
+{
+    bus.Publish(new ChangeClientPhoneNumberCommand(id, request.PhoneNumber));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("ChangeClientPhoneNumber")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/clients/{id:guid}/accounts", (Guid id, OpenNewAccountForClientRequest request, IBus bus) =>
+{
+    bus.Publish(new OpenNewAccountForClientCommand(id, request.AccountName));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("OpenNewAccountForClient")
+.Produces(StatusCodes.Status202Accepted)
 .RequireAuthorization();
 
 // Phase 3: /api/clients above is the plain REST surface from Phase 1; /odata/Clients is the
@@ -254,6 +325,10 @@ app.MapGet("/api/events", (HttpContext httpContext, IBus bus, [FromKeyedServices
 app.Run();
 
 record CreateClientRequest(string? ClientName, string? Street, string? StreetNumber, string? PostalCode, string? City, string? PhoneNumber);
+record ChangeClientNameRequest(string? ClientName);
+record ClientIsMovingRequest(string? Street, string? StreetNumber, string? PostalCode, string? City);
+record ChangeClientPhoneNumberRequest(string? PhoneNumber);
+record OpenNewAccountForClientRequest(string? AccountName);
 record ODataQueryRequest(string? Filter);
 
 // Lets WebApplicationFactory<Program> (Test.Fohjin.DDD.ApiClient) host this app in-process for

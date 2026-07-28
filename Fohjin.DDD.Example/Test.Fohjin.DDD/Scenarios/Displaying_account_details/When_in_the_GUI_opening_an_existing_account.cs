@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Displaying_account_details
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_opening_an_existing_account : PresenterTestFixture<ClientDetailsPresenter>
     {
         private AccountReport? _accountReport;

@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Depositing_cash
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_depositing_cash_on_a_non_existing_account : CommandTestFixture<DepositCashCommand, DepositCashCommandHandler, ActiveAccount>
     {
         protected override DepositCashCommand When()
@@ -22,7 +24,7 @@ namespace Test.Fohjin.DDD.Scenarios.Depositing_cash
         [TestMethod]
         public void Then_the_exception_message_will_be()
         {
-            CaughtException.Message.WillBe("The ActiveAcount is not created and no opperations can be executed on it");
+            CaughtException.Message.WillBe("The ActiveAccount is not created and no operations can be executed on it");
         }
     }
 }

@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Assign_new_bank_card
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_assigning_a_new_bank_card_on_a_non_existing_client : CommandTestFixture<AssignNewBankCardCommand, AssignNewBankCardCommandHandler, Client>
     {
         private readonly Guid _accountId = Guid.NewGuid();

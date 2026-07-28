@@ -7,6 +7,7 @@ using Moq;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class EventTestFixture<TEvent, TEventHandler>
     where TEvent : class, IDomainEvent
     where TEventHandler : class, IEventHandler<TEvent>

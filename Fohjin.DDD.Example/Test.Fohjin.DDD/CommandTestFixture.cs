@@ -8,7 +8,8 @@ using Moq;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
-public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRoot> 
+[TestCategory("unit")]
+public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRoot>
     where TCommand : class, ICommand
     where TCommandHandler : class, ICommandHandler<TCommand>
     where TAggregateRoot : class, IOriginator, IEventProvider<IDomainEvent>, new()

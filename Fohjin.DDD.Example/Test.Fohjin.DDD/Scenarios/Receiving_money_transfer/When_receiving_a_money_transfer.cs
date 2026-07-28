@@ -9,6 +9,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Receiving_money_transfer
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_receiving_a_money_transfer : BaseTestFixture<MoneyReceiveService>
     {
         protected override void SetupDependencies()
@@ -18,14 +20,8 @@ namespace Test.Fohjin.DDD.Scenarios.Receiving_money_transfer
                 .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
         }
 
-        protected override Task WhenAsync()
-        {
-            if (SubjectUnderTest == null)
-                return Task.CompletedTask;
-
-            SubjectUnderTest.Receive(new MoneyTransfer("source account number", "target account number", 123.45M));
-            return Task.CompletedTask;
-        }
+        protected override Task WhenAsync() =>
+            SubjectUnderTest?.Receive(new MoneyTransfer("source account number", "target account number", 123.45M)) ?? Task.CompletedTask;
 
         [TestMethod]
         public void Then_the_newly_created_account_will_be_saved()

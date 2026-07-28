@@ -11,6 +11,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_executing_the_money_transfer : PresenterTestFixture<AccountDetailsPresenter>
     {
         protected override void SetupDependencies()

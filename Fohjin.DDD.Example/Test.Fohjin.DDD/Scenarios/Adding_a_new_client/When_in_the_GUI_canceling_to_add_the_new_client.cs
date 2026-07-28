@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_canceling_to_add_the_new_client : PresenterTestFixture<ClientDetailsPresenter>
 {
     private readonly Guid _clientId = Guid.NewGuid();

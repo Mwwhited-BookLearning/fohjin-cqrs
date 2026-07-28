@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_a_new_phone_number;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_a_client_phone_number_was_changed : EventTestFixture<ClientPhoneNumberChangedEvent, ClientPhoneNumberChangedEventHandler>
 {
     private static Guid _clientId;

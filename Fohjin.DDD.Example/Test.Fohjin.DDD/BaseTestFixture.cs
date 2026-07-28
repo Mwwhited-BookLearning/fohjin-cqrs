@@ -6,6 +6,7 @@ using Moq;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class BaseTestFixture
 {
     protected Exception CaughtException;
@@ -35,6 +36,7 @@ public abstract class BaseTestFixture
 }
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class BaseTestFixture<TSubjectUnderTest>
 {
     public TestContext TestContext { get; set; } = null!;

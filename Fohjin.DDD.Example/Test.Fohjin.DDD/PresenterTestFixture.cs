@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class PresenterTestFixture<TPresenter>
 {
     private IDictionary<Type, object> mocks = null!;

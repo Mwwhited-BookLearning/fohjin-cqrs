@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Test.Fohjin.DDD.Queueing;
 
 [TestClass]
+[TestCategory("unit")]
 public class InMemoryQueue_test
 {
     private readonly IServiceCollection _services = new ServiceCollection()

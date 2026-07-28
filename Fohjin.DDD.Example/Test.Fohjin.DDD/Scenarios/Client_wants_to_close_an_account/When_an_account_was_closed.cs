@@ -8,6 +8,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_an_account_was_closed : EventTestFixture<AccountClosedEvent, AccountClosedEventHandler>
     {
         protected override AccountClosedEvent When()

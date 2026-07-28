@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_a_new_phone_number;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_changing_a_clients_phone_number : PresenterTestFixture<ClientDetailsPresenter>
 {
     private readonly Guid _clientId = Guid.NewGuid();

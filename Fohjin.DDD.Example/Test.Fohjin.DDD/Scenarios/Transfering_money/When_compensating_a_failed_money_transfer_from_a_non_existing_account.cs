@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_compensating_a_failed_money_transfer_from_a_non_existing_account : CommandTestFixture<MoneyTransferFailedCompensatingCommand, MoneyTransferFailedCompensatingCommandHandler, ActiveAccount>
     {
         protected override MoneyTransferFailedCompensatingCommand When()
@@ -22,7 +24,7 @@ namespace Test.Fohjin.DDD.Scenarios.Transfering_money
         [TestMethod]
         public void Then_the_exception_message_will_be()
         {
-            CaughtException.Message.WillBe("The ActiveAcount is not created and no opperations can be executed on it");
+            CaughtException.Message.WillBe("The ActiveAccount is not created and no operations can be executed on it");
         }
     }
 }

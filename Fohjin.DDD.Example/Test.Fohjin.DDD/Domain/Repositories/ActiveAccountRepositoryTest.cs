@@ -17,6 +17,7 @@ using Test.Fohjin.DDD.TestUtilities;
 namespace Test.Fohjin.DDD.Domain.Repositories;
 
 [TestClass]
+[TestCategory("unit")]
 public class ActiveAccountRepositoryTest
 {
     public TestContext TestContext { get; set; } = null!;

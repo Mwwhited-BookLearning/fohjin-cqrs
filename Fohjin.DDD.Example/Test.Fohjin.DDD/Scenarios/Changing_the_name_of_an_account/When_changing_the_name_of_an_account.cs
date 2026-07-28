@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_changing_the_name_of_an_account : CommandTestFixture<ChangeAccountNameCommand, ChangeAccountNameCommandHandler, ActiveAccount>
 {
     protected override IEnumerable<IDomainEvent> Given()

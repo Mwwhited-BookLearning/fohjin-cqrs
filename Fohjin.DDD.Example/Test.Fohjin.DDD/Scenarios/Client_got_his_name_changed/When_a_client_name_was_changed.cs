@@ -8,6 +8,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_a_client_name_was_changed : EventTestFixture<ClientNameChangedEvent, ClientNameChangedEventHandler>
     {
         private static Guid _clientId;

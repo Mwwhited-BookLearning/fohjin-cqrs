@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Depositing_cash;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_cash_was_Depositd : EventTestFixture<CashDepositedEvent, CashDepositEventHandler>
 {
     private static Guid _accountId;

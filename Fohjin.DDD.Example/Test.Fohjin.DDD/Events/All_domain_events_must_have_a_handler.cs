@@ -13,6 +13,7 @@ using Test.Fohjin.DDD.TestUtilities.Tools;
 namespace Test.Fohjin.DDD.Events;
 
 [TestClass]
+[TestCategory("dev-tool")]
 public class All_domain_events_must_have_a_handler
 {
     public TestContext TestContext { get; set; } = null!;

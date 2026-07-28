@@ -3,6 +3,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Test.Fohjin.DDD.Presenter
 {
     [TestClass]
+    [TestCategory("unit")]
     public class PresenterTest
     {
         [TestMethod]

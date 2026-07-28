@@ -9,6 +9,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Assign_new_bank_card
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_canceling_a_non_existing_bank_card : CommandTestFixture<CancelBankCardCommand, CancelBankCardCommandHandler, Client>
     {
         private readonly Guid _bankCardId = Guid.NewGuid();

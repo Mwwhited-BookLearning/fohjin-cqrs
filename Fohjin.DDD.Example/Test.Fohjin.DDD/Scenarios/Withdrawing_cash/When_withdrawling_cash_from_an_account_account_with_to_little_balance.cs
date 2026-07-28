@@ -9,6 +9,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_Withdrawaling_cash_from_an_account_account_with_to_little_balance : CommandTestFixture<WithdrawalCashCommand, WithdrawalCashCommandHandler, ActiveAccount>
     {
         protected override IEnumerable<IDomainEvent> Given()

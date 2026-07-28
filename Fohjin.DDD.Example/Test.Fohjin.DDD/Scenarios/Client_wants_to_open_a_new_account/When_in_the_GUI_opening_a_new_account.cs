@@ -9,6 +9,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_opening_a_new_account : PresenterTestFixture<ClientDetailsPresenter>
     {
         protected override void SetupDependencies()

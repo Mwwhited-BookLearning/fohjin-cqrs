@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Opening_the_bank_application;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_openeing_the_bank_application : PresenterTestFixture<ClientSearchFormPresenter>
 {
     private List<ClientReport>? _clientReports;

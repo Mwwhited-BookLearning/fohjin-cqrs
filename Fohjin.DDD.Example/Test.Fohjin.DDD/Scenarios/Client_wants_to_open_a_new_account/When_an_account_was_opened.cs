@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_an_account_was_opened : EventTestFixture<AccountOpenedEvent, AccountOpenedEventHandler>
 {
     private static Guid _clientId;

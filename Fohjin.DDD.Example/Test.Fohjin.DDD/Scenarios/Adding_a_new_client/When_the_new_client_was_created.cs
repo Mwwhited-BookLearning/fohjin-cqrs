@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_the_new_client_was_created : EventTestFixture<ClientCreatedEvent, ClientCreatedEventHandler>
 {
     private static Guid _clientId;

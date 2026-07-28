@@ -9,6 +9,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Depositing_cash
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_inserting_the_Deposit_ammount : PresenterTestFixture<AccountDetailsPresenter>
     {
         protected override void SetupDependencies()

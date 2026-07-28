@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_a_new_phone_number
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_changing_the_phone_number_of_a_non_existing_client : CommandTestFixture<ChangeClientPhoneNumberCommand, ChangeClientPhoneNumberCommandHandler, Client>
     {
         protected override ChangeClientPhoneNumberCommand When()

@@ -4,6 +4,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_adding_a_new_client : PresenterTestFixture<ClientSearchFormPresenter>
     {
         protected override void When()

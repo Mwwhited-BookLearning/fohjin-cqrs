@@ -12,6 +12,7 @@ using Test.Fohjin.DDD.TestUtilities.Tools;
 namespace Test.Fohjin.DDD.Commands
 {
     [TestClass]
+    [TestCategory("dev-tool")]
     public class All_commands_must_have_a_handler : ContextualTestClassBase
     {
         [ContextualTestMethod]

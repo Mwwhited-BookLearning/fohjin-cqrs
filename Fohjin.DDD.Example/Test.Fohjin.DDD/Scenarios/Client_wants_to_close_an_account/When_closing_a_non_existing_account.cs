@@ -5,6 +5,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_closing_a_non_existing_account : CommandTestFixture<CloseAccountCommand, CloseAccountCommandHandler, ActiveAccount>
     {
         protected override CloseAccountCommand When()

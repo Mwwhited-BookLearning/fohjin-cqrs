@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_an_account_name_was_changed : EventTestFixture<AccountNameChangedEvent, AccountNameChangedEventHandler>
 {
     private static Guid _accountId;

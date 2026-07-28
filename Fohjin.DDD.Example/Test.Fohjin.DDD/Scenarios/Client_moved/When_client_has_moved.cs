@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_moved;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_client_has_moved : EventTestFixture<ClientMovedEvent, ClientMovedEventHandler>
 {
     private static Guid _clientId;

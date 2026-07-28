@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_money_transfer_failed : EventTestFixture<MoneyTransferFailedEvent, MoneyTransferFailedEventHandler>
 {
     private static Guid _accountId;

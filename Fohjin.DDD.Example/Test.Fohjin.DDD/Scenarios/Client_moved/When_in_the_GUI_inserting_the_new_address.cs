@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_moved;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_inserting_the_new_address : PresenterTestFixture<ClientDetailsPresenter>
 {
     private readonly Guid _clientId = Guid.NewGuid();

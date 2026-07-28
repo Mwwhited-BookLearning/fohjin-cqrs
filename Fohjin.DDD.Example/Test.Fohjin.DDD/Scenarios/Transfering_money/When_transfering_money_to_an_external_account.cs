@@ -10,6 +10,8 @@ using Test.Fohjin.DDD.TestUtilities;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_transfering_money_to_an_external_account : BaseTestFixture<MoneyTransferService>
     {
         protected override void SetupDependencies()
@@ -17,17 +19,11 @@ namespace Test.Fohjin.DDD.Scenarios.Transfering_money
             OnDependency<IReportingRepository>()
                 ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
                 .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
-        }
 
-        protected override void Given()
-        {
             // !!! This is DEMO code !!!
             // Setup the SystemRandom class to return the value where the account is not found
-
-            Services
-                .AddTransient<ISystemRandom>(_ => new TestSystemRandom((min, max) => 2))
-                .AddTransient<ISystemTimer>(_ => new TestSystemTimer())
-                ;
+            DoNotMock?.Add(typeof(ISystemRandom), new TestSystemRandom((min, max) => 2));
+            DoNotMock?.Add(typeof(ISystemTimer), new TestSystemTimer());
         }
 
         protected override Task WhenAsync()

@@ -158,7 +158,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             {
                 _editStep = 3;
 
-                _clientDetailsReport = ClientDetailsReport.New with
+                _clientDetailsReport = _clientDetailsReport with
                 {
                     Street = _clientDetailsView.Street,
                     StreetNumber = _clientDetailsView.StreetNumber,

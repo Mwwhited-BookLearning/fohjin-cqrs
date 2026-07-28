@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_Withdrawaling_cash_from_a_closed_account : CommandTestFixture<WithdrawalCashCommand, WithdrawalCashCommandHandler, ActiveAccount>
     {
         protected override IEnumerable<IDomainEvent> Given()
@@ -29,7 +31,7 @@ namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash
         [TestMethod]
         public void Then_the_exception_message_will_be()
         {
-            CaughtException.Message.WillBe("The ActiveAcount is closed and no opperations can be executed on it");
+            CaughtException.Message.WillBe("The ActiveAccount is closed and no operations can be executed on it");
         }
     }
 }

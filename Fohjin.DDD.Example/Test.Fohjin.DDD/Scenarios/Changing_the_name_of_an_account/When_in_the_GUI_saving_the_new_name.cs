@@ -11,6 +11,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_saving_the_new_name : PresenterTestFixture<AccountDetailsPresenter>
     {
         protected override void SetupDependencies()

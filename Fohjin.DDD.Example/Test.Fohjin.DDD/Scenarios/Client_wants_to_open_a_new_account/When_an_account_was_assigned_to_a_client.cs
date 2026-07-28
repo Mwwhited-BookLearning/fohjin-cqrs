@@ -4,6 +4,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_an_account_was_assigned_to_a_client : EventTestFixture<AccountToClientAssignedEvent, AccountToClientAssignedEventHandler>
     {
         protected override AccountToClientAssignedEvent When()

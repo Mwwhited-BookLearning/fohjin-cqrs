@@ -70,17 +70,11 @@ namespace Fohjin.DDD.Services
             await _bus.CommitAsync();
         }
 
-        private Task MoneyTransferIsGoingToAnExternalAccountAsync(MoneyTransfer moneyTransfer)
-        {
+        private Task MoneyTransferIsGoingToAnExternalAccountAsync(MoneyTransfer moneyTransfer) =>
             _receiveMoneyTransfers.Receive(moneyTransfer);
-            return Task.CompletedTask;
-        }
 
-        private Task MoneyTransferIsGoingToAnExternalNonExistingAccountAsync(MoneyTransfer moneyTransfer)
-        {
+        private Task MoneyTransferIsGoingToAnExternalNonExistingAccountAsync(MoneyTransfer moneyTransfer) =>
             _receiveMoneyTransfers.Receive(new MoneyTransfer(moneyTransfer.SourceAccount, moneyTransfer.TargetAccount?.Reverse().ToString(), moneyTransfer.Amount));
-            return Task.CompletedTask;
-        }
 
         private async Task CompensatingActionBecauseOfFailedMoneyTransferAsync(MoneyTransfer moneyTransfer)
         {

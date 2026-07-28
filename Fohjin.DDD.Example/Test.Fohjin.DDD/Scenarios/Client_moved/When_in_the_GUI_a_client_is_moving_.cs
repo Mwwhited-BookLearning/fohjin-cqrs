@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_moved;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_a_client_is_moving_ : PresenterTestFixture<ClientDetailsPresenter>
 {
     private readonly Guid _clientId = Guid.NewGuid();

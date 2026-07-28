@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_sending_a_money_transfer_from_an_account_with_to_little_balance : CommandTestFixture<SendMoneyTransferCommand, SendMoneyTransferCommandHandler, ActiveAccount>
     {
         protected override IEnumerable<IDomainEvent> Given()

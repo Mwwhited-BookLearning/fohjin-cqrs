@@ -5,6 +5,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Displaying_the_error_popup
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_displaying_the_error_popup : PresenterTestFixture<PopupPresenter>
     {
         protected override void When()

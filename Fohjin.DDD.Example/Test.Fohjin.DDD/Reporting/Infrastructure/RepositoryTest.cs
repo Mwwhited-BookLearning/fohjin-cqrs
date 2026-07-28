@@ -10,6 +10,7 @@ using Test.Fohjin.DDD.TestUtilities;
 namespace Test.Fohjin.DDD.Reporting.Infrastructure;
 
 [TestClass]
+[TestCategory("unit")]
 public class RepositoryTest
 {
     public TestContext TestContext { get; set; } = null!;

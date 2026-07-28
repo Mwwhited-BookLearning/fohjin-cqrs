@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace Test.Fohjin.DDD.Bus;
 
 [TestClass]
+[TestCategory("unit")]
 public class When_a_single_command_gets_published_to_the_bus_containing_an_single_command_handler : BaseTestFixture<DirectBus>
 {
     private FirstTestCommandHandler _handler;

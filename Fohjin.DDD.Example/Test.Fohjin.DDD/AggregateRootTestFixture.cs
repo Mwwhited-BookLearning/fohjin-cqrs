@@ -1,8 +1,10 @@
 using Fohjin.DDD.EventStore;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD;
 
-//[TestClass]
+[TestClass]
+[TestCategory("unit")]
 public abstract class AggregateRootTestFixture<TAggregateRoot> where TAggregateRoot : IEventProvider<IDomainEvent>, new()
 {
     protected TAggregateRoot AggregateRoot;
@@ -15,7 +17,7 @@ public abstract class AggregateRootTestFixture<TAggregateRoot> where TAggregateR
     protected virtual void Finally() {}
     protected abstract void When();
 
-    //[Given]
+    [TestInitialize]
     public void Setup()
     {
         CaughtException = new ThereWasNoExceptionButOneWasExpectedException();

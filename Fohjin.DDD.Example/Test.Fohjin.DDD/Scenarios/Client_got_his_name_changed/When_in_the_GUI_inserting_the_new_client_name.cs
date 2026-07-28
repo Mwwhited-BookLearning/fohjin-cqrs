@@ -9,6 +9,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_in_the_GUI_inserting_the_new_client_name : PresenterTestFixture<ClientDetailsPresenter>
     {
         private readonly Guid _clientId = Guid.NewGuid();

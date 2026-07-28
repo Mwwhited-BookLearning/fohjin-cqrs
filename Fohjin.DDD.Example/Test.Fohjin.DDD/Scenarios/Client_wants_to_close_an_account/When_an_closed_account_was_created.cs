@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_an_closed_account_was_created : EventTestFixture<ClosedAccountCreatedEvent, ClosedAccountCreatedEventHandler>
 {
     private static Guid _orginalAccountId;
@@ -70,7 +72,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     {
         SaveClosedAccountDetailsReportObject?.Id.WillBe(_accountId);
         SaveClosedAccountDetailsReportObject?.ClientReportId.WillBe(_clientId);
-        SaveClosedAccountDetailsReportObject?.Balance.WillBe(0);
+        SaveClosedAccountDetailsReportObject?.Balance.WillBe(0M);
         SaveClosedAccountDetailsReportObject?.AccountName.WillBe("Closed Account");
         SaveClosedAccountDetailsReportObject?.AccountNumber.WillBe("1234567890");
     }

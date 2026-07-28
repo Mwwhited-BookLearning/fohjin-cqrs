@@ -9,6 +9,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_opening_a_new_account_for_a_non_existing_client : CommandTestFixture<OpenNewAccountForClientCommand, OpenNewAccountForClientCommandHandler, Client>
     {
         protected override OpenNewAccountForClientCommand When()

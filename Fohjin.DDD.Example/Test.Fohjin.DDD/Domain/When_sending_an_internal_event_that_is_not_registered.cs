@@ -3,6 +3,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Domain
 {
+    [TestClass]
+    [TestCategory("unit")]
     public class When_sending_an_internal_event_that_is_not_registered : AggregateRootTestFixture<TestAggregateRoot>
     {
         protected override void When()

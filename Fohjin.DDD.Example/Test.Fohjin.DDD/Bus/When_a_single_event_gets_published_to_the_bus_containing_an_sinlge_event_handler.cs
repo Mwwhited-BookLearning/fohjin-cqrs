@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 namespace Test.Fohjin.DDD.Bus
 {
     [TestClass]
+    [TestCategory("unit")]
     public class When_a_single_event_gets_published_to_the_bus_containing_an_sinlge_event_handler : BaseTestFixture<DirectBus>
     {
         private FirstTestEventHandler _handler;

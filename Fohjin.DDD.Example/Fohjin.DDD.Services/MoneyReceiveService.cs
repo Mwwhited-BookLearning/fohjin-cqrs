@@ -18,10 +18,8 @@ namespace Fohjin.DDD.Services
             _reportingRepository = reportingRepository;
         }
 
-        public async void Receive(MoneyTransfer moneyTransfer)
-        {
-            await MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);
-        }
+        public Task Receive(MoneyTransfer moneyTransfer) =>
+            MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);
 
         private async Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
         {

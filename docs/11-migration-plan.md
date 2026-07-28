@@ -105,14 +105,33 @@ generation (`/openapi/v1.json`, native to .NET 10) already reflects both endpoin
 schedule for Phase 2. Full solution build + `dotnet test` unaffected: 410 passed, 4 skipped,
 0 failed. WinForms is untouched and still works.
 
-### Phase 2 — OpenAPI + NSwag client generation
+### Phase 2 — OpenAPI + NSwag client generation (done)
 
-Enable `Microsoft.AspNetCore.OpenApi` (native to .NET 10, no Swashbuckle needed). Add
-`Fohjin.DDD.ApiClient` and an `nswag.json` generating a C# client from it. Validate the
-codegen loop on this small surface before the API surface grows.
+`Microsoft.AspNetCore.OpenApi` was already enabled in Phase 1 (native to .NET 10, no
+Swashbuckle needed); this phase closed the loop by generating a real client from it. Added
+`Fohjin.DDD.ApiClient` (`NSwag.ApiDescription.Client` + an `OpenApiReference` MSBuild item,
+not a standalone `nswag.json` — the MSBuild-integrated form regenerates on every build rather
+than needing a separate CLI invocation) pointed at a checked-in `openapi.json` snapshot
+(curled from a running `Fohjin.DDD.WebApi` — see the comment above the `OpenApiReference`
+item for how to refresh it; fully automating that fetch is left for a later phase). Configured
+`/JsonLibrary:SystemTextJson` (NSwag defaults to Newtonsoft.Json, which doesn't match the rest
+of this codebase) and added explicit `.Produces<T>(...)` metadata to the WebApi endpoints —
+without it, minimal APIs returning bare `IResult` don't give the OpenAPI generator a schema to
+work with, so `GetClientByIdAsync` came back untyped on the first pass.
 
-**Exit criteria**: a throwaway test/console app using the generated client can create and
-read a client through the API.
+**Exit criteria — met**: `Test.Fohjin.DDD.ApiClient` (new MSTest project) hosts
+`Fohjin.DDD.WebApi` in-memory via `WebApplicationFactory<Program>` (which required marking
+`Program` `partial` — top-level statements otherwise leave it inaccessible to other
+assemblies) and drives the generated `FohjinApiClient` through a create-then-read round trip;
+passes reliably. One wrinkle: `ApplicationBootStrapper` migrates the SQLite databases at
+`Path.GetFullPath("domainDataBase.db3"/"reportingDataBase.db3")` — relative to the process's
+current directory, ignoring `IConfiguration` entirely — while the runtime `DbContext`
+factories resolve their connection string *through* configuration. Those two agree by
+convention in normal (dev) usage, but it means a config-only override doesn't isolate a test
+run: the bootstrapper would migrate one file while the app queries another. The test isolates
+by switching the process's current directory to a fresh temp folder instead (both paths
+resolve against that consistently), which is why the project doesn't parallelize tests. Full
+solution build + `dotnet test`: 410 + 1 passed, 4 skipped, 0 failed.
 
 ### Phase 3 — OData + the QUERY verb
 
@@ -256,7 +275,7 @@ contract and would throw `InvalidCastException` instead of returning null.
 
 ## Suggested next step
 
-Start Phase 2. Phase 1 proved the core architectural bet — hosting the existing CQRS core
-over HTTP works, against real SQLite databases, with WinForms untouched — so the next slice
-is validating the OpenAPI → NSwag codegen loop on that same small surface before the API
-grows into OData/QUERY, SSE, and OIDC.
+Start Phase 3. Phases 1 and 2 proved the core architectural bet and the codegen loop on a
+deliberately small surface (one command, one read model) — the next slice is growing that
+surface for real: OData entity sets over the reporting DTOs, plus a `MapQuery` extension for
+the RFC 10008 QUERY verb, before SSE/AsyncAPI and OIDC land on top.

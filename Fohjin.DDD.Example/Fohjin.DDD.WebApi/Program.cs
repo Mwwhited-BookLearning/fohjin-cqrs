@@ -59,19 +59,27 @@ app.MapPost("/api/clients", (CreateClientRequest request, IBus bus) =>
     bus.CommitAsync();
     return Results.Accepted("/api/clients");
 })
-.WithName("CreateClient");
+.WithName("CreateClient")
+.Produces(StatusCodes.Status202Accepted);
 
 app.MapGet("/api/clients", async (IReportingRepository repository) =>
     await repository.GetByExampleAsync<ClientReport>(null))
-.WithName("GetClients");
+.WithName("GetClients")
+.Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK);
 
 app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository repository) =>
 {
     var client = (await repository.GetByExampleAsync<ClientReport>(new { Id = id })).FirstOrDefault();
     return client is null ? Results.NotFound() : Results.Ok(client);
 })
-.WithName("GetClientById");
+.WithName("GetClientById")
+.Produces<ClientReport>(StatusCodes.Status200OK)
+.Produces(StatusCodes.Status404NotFound);
 
 app.Run();
 
 record CreateClientRequest(string? ClientName, string? Street, string? StreetNumber, string? PostalCode, string? City, string? PhoneNumber);
+
+// Lets WebApplicationFactory<Program> (Test.Fohjin.DDD.ApiClient) host this app in-process for
+// integration tests - top-level statements otherwise leave Program inaccessible to other assemblies.
+public partial class Program;

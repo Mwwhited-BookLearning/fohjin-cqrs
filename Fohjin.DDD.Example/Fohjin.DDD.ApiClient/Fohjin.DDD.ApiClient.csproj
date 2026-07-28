@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSwag.ApiDescription.Client" Version="14.7.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      openapi.json is a checked-in snapshot fetched from a running Fohjin.DDD.WebApi
+      (curl http://localhost:PORT/openapi/v1.json > openapi.json) - regenerate it by hand
+      after changing the API surface, then rebuild this project to refresh the client.
+      Automating that fetch is left for a later phase (Aspire/CI).
+    -->
+    <OpenApiReference Include="openapi.json" CodeGenerator="NSwagCSharp" Namespace="Fohjin.DDD.ApiClient" ClassName="FohjinApiClient" Options="/JsonLibrary:SystemTextJson" />
+  </ItemGroup>
+
+</Project>

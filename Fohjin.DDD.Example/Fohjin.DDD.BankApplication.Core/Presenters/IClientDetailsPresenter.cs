@@ -1,4 +1,4 @@
-using Fohjin.DDD.Reporting.Dtos;
+using Fohjin.DDD.ApiClient;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 

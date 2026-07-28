@@ -20,6 +20,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Phase 7 (docs/11-migration-plan.md): presenters and view interfaces are being retargeted,
+      one at a time, to call Fohjin.DDD.WebApi through FohjinApiClient instead of the CQRS core
+      directly - added here ahead of that swap so ApiClient DTOs can replace
+      Fohjin.DDD.Reporting.Dtos ones as each view/presenter pair is converted. The CQRS-core
+      references below (Bus, CommandHandlers, Configuration, EventHandlers, EventStore(.SQLite),
+      Reporting, Services) are removed once every presenter no longer needs them.
+    -->
+    <ProjectReference Include="..\Fohjin.DDD.ApiClient\Fohjin.DDD.ApiClient.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Abstractions\Fohjin.DDD.Abstractions.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Bus\Fohjin.DDD.Bus.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.CommandHandlers\Fohjin.DDD.CommandHandlers.csproj" />

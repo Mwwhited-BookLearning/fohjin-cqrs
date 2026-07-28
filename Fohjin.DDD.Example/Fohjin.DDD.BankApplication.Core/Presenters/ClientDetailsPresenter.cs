@@ -1,9 +1,6 @@
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
-using Fohjin.DDD.Commands;
 using Fohjin.DDD.Common;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
@@ -11,8 +8,7 @@ public class ClientDetailsPresenter(
     IClientDetailsView clientDetailsView,
     IAccountDetailsPresenter accountDetailsPresenter,
     IPopupPresenter popupPresenter,
-    IBus bus,
-    IReportingRepository reportingRepository,
+    FohjinApiClient apiClient,
     ISystemTimer systemTimer
         ) : Presenter<IClientDetailsView>(clientDetailsView), IClientDetailsPresenter
 {
@@ -24,8 +20,7 @@ public class ClientDetailsPresenter(
     private readonly IClientDetailsView _clientDetailsView = clientDetailsView;
     private readonly IAccountDetailsPresenter _accountDetailsPresenter = accountDetailsPresenter;
     private readonly IPopupPresenter _popupPresenter = popupPresenter;
-    private readonly IBus _bus = bus;
-    private readonly IReportingRepository _reportingRepository = reportingRepository;
+    private readonly FohjinApiClient _apiClient = apiClient;
     private readonly ISystemTimer _systemTimer = systemTimer;
 
     public async void Display()
@@ -39,7 +34,7 @@ public class ClientDetailsPresenter(
         {
             _editStep = 1;
             _createNewProcess = true;
-            _clientDetailsReport = ClientDetailsReport.New;
+            _clientDetailsReport = new ClientDetailsReport { Id = Guid.NewGuid() };
             ResetForm();
             _clientDetailsView.EnableClientNamePanel();
             _clientDetailsView.ShowDialog();
@@ -54,8 +49,7 @@ public class ClientDetailsPresenter(
 
     private async Task LoadDataAsync()
     {
-        _clientDetailsReport = (await _reportingRepository.GetByExampleAsync<ClientDetailsReport>(new { _clientReport?.Id })).FirstOrDefault()
-            ?? ClientDetailsReport.New;
+        _clientDetailsReport = await _apiClient.GetClientDetailsByIdAsync(_clientReport!.Id);
 
         SetClientDetailsData();
         SetReadOnlyData();
@@ -70,8 +64,8 @@ public class ClientDetailsPresenter(
     {
         _popupPresenter.CatchPossibleException(() =>
         {
-            var client = _clientDetailsView.GetSelectedAccount();
-            _accountDetailsPresenter.SetAccount(client);
+            var account = _clientDetailsView.GetSelectedAccount();
+            _accountDetailsPresenter.SetAccount(account);
             _accountDetailsPresenter.Display();
         });
     }
@@ -102,16 +96,17 @@ public class ClientDetailsPresenter(
         }
     }
 
-    public void SaveNewClientName()
+    public async void SaveNewClientName()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
             _clientDetailsView.DisableSaveButton();
             if (_createNewProcess)
             {
                 _editStep = 2;
-                _clientDetailsReport = ClientDetailsReport.New with
+                _clientDetailsReport = new ClientDetailsReport
                 {
+                    Id = _clientDetailsReport.Id,
                     ClientName = _clientDetailsView.ClientName,
                 };
 
@@ -119,121 +114,104 @@ public class ClientDetailsPresenter(
                 return;
             }
 
-            _bus.Publish(new ChangeClientNameCommand(
-                         _clientDetailsReport.Id,
-                         _clientDetailsView.ClientName));
-
-            _clientDetailsReport = _clientDetailsReport with
+            await _apiClient.ChangeClientNameAsync(_clientDetailsReport.Id, new ChangeClientNameRequest
             {
                 ClientName = _clientDetailsView.ClientName,
-            };
+            });
+
+            _clientDetailsReport.ClientName = _clientDetailsView.ClientName;
 
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 1000);
         });
     }
 
-    public void SaveNewAddress()
+    public async void SaveNewAddress()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
             _clientDetailsView.DisableSaveButton();
             if (_createNewProcess)
             {
                 _editStep = 3;
 
-                _clientDetailsReport = _clientDetailsReport with
-                {
-                    Street = _clientDetailsView.Street,
-                    StreetNumber = _clientDetailsView.StreetNumber,
-                    PostalCode = _clientDetailsView.PostalCode,
-                    City = _clientDetailsView.City,
-                };
+                _clientDetailsReport.Street = _clientDetailsView.Street;
+                _clientDetailsReport.StreetNumber = _clientDetailsView.StreetNumber;
+                _clientDetailsReport.PostalCode = _clientDetailsView.PostalCode;
+                _clientDetailsReport.City = _clientDetailsView.City;
 
                 _clientDetailsView.EnablePhoneNumberPanel();
                 return;
             }
 
-            _bus.Publish(new ClientIsMovingCommand(
-                             _clientDetailsReport.Id,
-                             _clientDetailsView.Street,
-                             _clientDetailsView.StreetNumber,
-                             _clientDetailsView.PostalCode,
-                             _clientDetailsView.City));
-
-            _clientDetailsReport = _clientDetailsReport with
+            await _apiClient.ChangeClientAddressAsync(_clientDetailsReport.Id, new ClientIsMovingRequest
             {
                 Street = _clientDetailsView.Street,
                 StreetNumber = _clientDetailsView.StreetNumber,
                 PostalCode = _clientDetailsView.PostalCode,
                 City = _clientDetailsView.City,
-            };
+            });
+
+            _clientDetailsReport.Street = _clientDetailsView.Street;
+            _clientDetailsReport.StreetNumber = _clientDetailsView.StreetNumber;
+            _clientDetailsReport.PostalCode = _clientDetailsView.PostalCode;
+            _clientDetailsReport.City = _clientDetailsView.City;
 
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
-    public void SaveNewPhoneNumber()
+    public async void SaveNewPhoneNumber()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
             _clientDetailsView.DisableSaveButton();
             if (_createNewProcess)
             {
                 _editStep = 4;
 
-                if (_clientDetailsReport != null)
-                    _bus.Publish(new CreateClientCommand(
-                                 Guid.NewGuid(),
-                                 _clientDetailsReport.ClientName,
-                                 _clientDetailsReport.Street,
-                                 _clientDetailsReport.StreetNumber,
-                                 _clientDetailsReport.PostalCode,
-                                 _clientDetailsReport.City,
-                                 _clientDetailsView.PhoneNumber));
+                await _apiClient.CreateClientAsync(new CreateClientRequest
+                {
+                    ClientName = _clientDetailsReport.ClientName,
+                    Street = _clientDetailsReport.Street,
+                    StreetNumber = _clientDetailsReport.StreetNumber,
+                    PostalCode = _clientDetailsReport.PostalCode,
+                    City = _clientDetailsReport.City,
+                    PhoneNumber = _clientDetailsView.PhoneNumber,
+                });
 
-                _bus.CommitAsync();
                 _clientDetailsView.Close();
                 return;
             }
 
-            _bus.Publish(new ChangeClientPhoneNumberCommand(
-                             _clientDetailsReport.Id,
-                             _clientDetailsView.PhoneNumber));
+            await _apiClient.ChangeClientPhoneNumberAsync(_clientDetailsReport.Id, new ChangeClientPhoneNumberRequest
+            {
+                PhoneNumber = _clientDetailsView.PhoneNumber,
+            });
 
-            _clientDetailsReport = new ClientDetailsReport(
-                _clientDetailsReport.Id,
-                _clientDetailsReport.ClientName,
-                _clientDetailsReport.Street,
-                _clientDetailsReport.StreetNumber,
-                _clientDetailsReport.PostalCode,
-                _clientDetailsReport.City,
-                _clientDetailsView.PhoneNumber);
+            _clientDetailsReport.PhoneNumber = _clientDetailsView.PhoneNumber;
 
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
-    public void CreateNewAccount()
+    public async void CreateNewAccount()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
-            _bus.Publish(new OpenNewAccountForClientCommand(
-                             _clientDetailsReport.Id,
-                             _clientDetailsView.NewAccountName));
+            await _apiClient.OpenNewAccountForClientAsync(_clientDetailsReport.Id, new OpenNewAccountForClientRequest
+            {
+                AccountName = _clientDetailsView.NewAccountName,
+            });
 
             _addNewAccountProcess = false;
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }

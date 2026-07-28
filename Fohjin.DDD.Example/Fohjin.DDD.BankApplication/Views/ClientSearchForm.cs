@@ -1,4 +1,4 @@
-﻿using Fohjin.DDD.Reporting.Dtos;
+﻿using Fohjin.DDD.ApiClient;
 using System.ComponentModel;
 
 namespace Fohjin.DDD.BankApplication.Views;

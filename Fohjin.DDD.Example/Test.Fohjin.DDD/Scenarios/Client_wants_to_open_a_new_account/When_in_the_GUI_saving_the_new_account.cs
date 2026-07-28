@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
-using Fohjin.DDD.Commands;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Threading.Tasks;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account;
 
@@ -18,17 +15,30 @@ public class When_in_the_GUI_saving_the_new_account : PresenterTestFixture<Clien
     protected override void SetupDependencies()
     {
         OnDependency<IPopupPresenter>()
-            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-            .Callback<Action>(x => x());
+            .Setup(x => x.CatchPossibleExceptionAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(action => action());
 
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
-            .ReturnsAsync(new List<ClientDetailsReport> { new ClientDetailsReport(Guid.NewGuid(), "Client Name", "street", "123", "5000", "bergen", "1234567890") });
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetClientDetailsByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new ClientDetailsReport
+            {
+                Id = Guid.NewGuid(),
+                ClientName = "Client Name",
+                Street = "street",
+                StreetNumber = "123",
+                PostalCode = "5000",
+                City = "bergen",
+                PhoneNumber = "1234567890",
+            });
+
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.OpenNewAccountForClientAsync(It.IsAny<Guid>(), It.IsAny<OpenNewAccountForClientRequest>()))
+            .Returns(Task.CompletedTask);
     }
 
     protected override void Given()
     {
-        Presenter.SetClient(new ClientReport(Guid.NewGuid(), "Client name"));
+        Presenter.SetClient(new ClientReport { Id = Guid.NewGuid(), Name = "Client name" });
         Presenter.Display();
         On<IClientDetailsView>().FireEvent(x => x.OnInitiateOpenNewAccount += delegate { });
         On<IClientDetailsView>().ValueFor(x => x.NewAccountName).IsSetTo("New account name");
@@ -43,7 +53,7 @@ public class When_in_the_GUI_saving_the_new_account : PresenterTestFixture<Clien
     [TestMethod]
     public void Then_a_add_new_account_to_client_command_will_be_published()
     {
-        On<IBus>().VerifyThat.Method(x => x.Publish(It.IsAny<OpenNewAccountForClientCommand>())).WasCalled();
+        On<FohjinApiClient>().VerifyThat.Method(x => x.OpenNewAccountForClientAsync(It.IsAny<Guid>(), It.IsAny<OpenNewAccountForClientRequest>())).WasCalled();
     }
 
     [TestMethod]

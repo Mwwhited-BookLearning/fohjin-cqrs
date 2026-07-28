@@ -1,7 +1,7 @@
 ﻿using System;
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -19,7 +19,13 @@ public class When_in_the_GUI_opening_an_existing_account : PresenterTestFixture<
             .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
             .Callback<Action>(x => x());
 
-        _accountReport = new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890");
+        _accountReport = new AccountReport
+        {
+            Id = Guid.NewGuid(),
+            ClientDetailsReportId = Guid.NewGuid(),
+            AccountName = "Account name",
+            AccountNumber = "1234567890",
+        };
 
         OnDependency<IClientDetailsView>()
             .Setup(x => x.GetSelectedAccount())

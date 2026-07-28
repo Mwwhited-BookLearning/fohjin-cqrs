@@ -111,39 +111,48 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.MigrateAsync();
 
     var applicationManager = scope.ServiceProvider.GetRequiredService<IOpenIddictApplicationManager>();
-    if (await applicationManager.FindByClientIdAsync("dev-client") is null)
+
+    // One client for every caller (Phase 5's "one seeded dev client" decision) - a
+    // public/PKCE client works the same way for a browser SPA, a desktop loopback redirect, and
+    // curl-driven verification, so this just lists all of them. http://127.0.0.1:5310/callback
+    // is this STS's own address (Phase 5's curl-driven verification); host.docker.internal is
+    // what a Playwright container sees the Vue dev server as when driving a real headless
+    // browser through the login flow (Phase 6's verification); http://127.0.0.1:5330/callback/
+    // is Fohjin.DDD.BankApplication's desktop loopback listener (Phase 7 - system browser +
+    // PKCE, docs/11-migration-plan.md's "desktop OIDC login uses the system browser + loopback
+    // redirect" decision). Upserted rather than create-once-and-skip, since new redirect URIs
+    // get added across phases and a pre-existing seeded application would otherwise never pick
+    // them up on an already-migrated dev database.
+    var devClientDescriptor = new OpenIddictApplicationDescriptor
     {
-        await applicationManager.CreateAsync(new OpenIddictApplicationDescriptor
+        ClientId = "dev-client",
+        ClientType = ClientTypes.Public,
+        ConsentType = ConsentTypes.Implicit,
+        DisplayName = "Fohjin.DDD dev client",
+        RedirectUris =
         {
-            ClientId = "dev-client",
-            ClientType = ClientTypes.Public,
-            ConsentType = ConsentTypes.Implicit,
-            DisplayName = "Fohjin.DDD dev client",
-            // One client for both callers (Phase 5's "one seeded dev client" decision) - a
-            // public/PKCE client works the same way for a browser SPA and a desktop loopback
-            // redirect, so this just lists both. http://127.0.0.1:5310/callback (this STS's
-            // own address) is kept for Phase 5's curl-driven verification; Phase 7 will add
-            // the WinForms loopback address here too. host.docker.internal is what a
-            // Playwright container sees the Vue dev server as when driving a real headless
-            // browser through the login flow for Phase 6's verification (docs/11-migration-plan.md).
-            RedirectUris =
-            {
-                new Uri("http://127.0.0.1:5310/callback"),
-                new Uri("http://localhost:5173/callback"),
-                new Uri("http://host.docker.internal:5173/callback"),
-            },
-            Permissions =
-            {
-                Permissions.Endpoints.Authorization,
-                Permissions.Endpoints.Token,
-                Permissions.GrantTypes.AuthorizationCode,
-                Permissions.ResponseTypes.Code,
-                Permissions.Scopes.Email,
-                Permissions.Scopes.Profile,
-            },
-            Requirements = { Requirements.Features.ProofKeyForCodeExchange },
-        });
-    }
+            new Uri("http://127.0.0.1:5310/callback"),
+            new Uri("http://localhost:5173/callback"),
+            new Uri("http://host.docker.internal:5173/callback"),
+            new Uri("http://127.0.0.1:5330/callback/"),
+        },
+        Permissions =
+        {
+            Permissions.Endpoints.Authorization,
+            Permissions.Endpoints.Token,
+            Permissions.GrantTypes.AuthorizationCode,
+            Permissions.ResponseTypes.Code,
+            Permissions.Scopes.Email,
+            Permissions.Scopes.Profile,
+        },
+        Requirements = { Requirements.Features.ProofKeyForCodeExchange },
+    };
+
+    var existingDevClient = await applicationManager.FindByClientIdAsync("dev-client");
+    if (existingDevClient is null)
+        await applicationManager.CreateAsync(devClientDescriptor);
+    else
+        await applicationManager.UpdateAsync(existingDevClient, devClientDescriptor);
 
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
     if (await userManager.FindByNameAsync("dev@fohjin.local") is null)

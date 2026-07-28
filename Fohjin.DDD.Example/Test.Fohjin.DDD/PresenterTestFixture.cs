@@ -1,3 +1,4 @@
+using Fohjin.DDD.ApiClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System.Linq.Expressions;
@@ -63,6 +64,13 @@ public abstract class PresenterTestFixture<TPresenter>
 
     private static object CreateMock(Type type)
     {
+        // FohjinApiClient (Phase 7, docs/11-migration-plan.md) has no parameterless
+        // constructor - it's generated with exactly one, taking an HttpClient - so it needs
+        // its own Mock<T>(args) call instead of the reflection-based new Mock<T>() every other
+        // (interface-typed) presenter dependency uses.
+        if (type == typeof(FohjinApiClient))
+            return new Mock<FohjinApiClient>(new HttpClient());
+
         var constructorInfo = typeof(Mock<>).MakeGenericType(type).GetConstructors().First();
         return constructorInfo.Invoke([]);
     }

@@ -1,9 +1,9 @@
-﻿using Fohjin.DDD.BankApplication.Presenters;
+﻿using Fohjin.DDD.ApiClient;
+using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
-using Fohjin.DDD.Commands;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Threading.Tasks;
 
 namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client;
 
@@ -11,17 +11,18 @@ namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client;
 [TestCategory("unit")]
 public class When_in_the_GUI_the_phone_number_of_the_new_client_is_saved : PresenterTestFixture<ClientDetailsPresenter>
 {
-    private object CreateClientCommand = null!;
+    private CreateClientRequest CreateClientCommand = null!;
 
     protected override void SetupDependencies()
     {
         OnDependency<IPopupPresenter>()
-            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-            .Callback<Action>(x => x());
+            .Setup(x => x.CatchPossibleExceptionAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(action => action());
 
-        OnDependency<IBus>()
-            .Setup(x => x.Publish(It.IsAny<object>()))
-            .Callback<object>(x => CreateClientCommand = x);
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.CreateClientAsync(It.IsAny<CreateClientRequest>()))
+            .Callback<CreateClientRequest>(x => CreateClientCommand = x)
+            .Returns(Task.CompletedTask);
     }
 
     protected override void Given()
@@ -57,14 +58,14 @@ public class When_in_the_GUI_the_phone_number_of_the_new_client_is_saved : Prese
     [TestMethod]
     public void Then_a_create_client_command_with_all_collected_information_will_be_published()
     {
-        On<IBus>().VerifyThat.Method(x => x.Publish(It.IsAny<CreateClientCommand>())).WasCalled();
+        On<FohjinApiClient>().VerifyThat.Method(x => x.CreateClientAsync(It.IsAny<CreateClientRequest>())).WasCalled();
 
-        CreateClientCommand.As<CreateClientCommand>().ClientName.WillBe("New Client Name");
-        CreateClientCommand.As<CreateClientCommand>().Street.WillBe("Street");
-        CreateClientCommand.As<CreateClientCommand>().StreetNumber.WillBe("123");
-        CreateClientCommand.As<CreateClientCommand>().PostalCode.WillBe("5000");
-        CreateClientCommand.As<CreateClientCommand>().City.WillBe("Bergen");
-        CreateClientCommand.As<CreateClientCommand>().PhoneNumber.WillBe("1234567890");
+        CreateClientCommand.ClientName.WillBe("New Client Name");
+        CreateClientCommand.Street.WillBe("Street");
+        CreateClientCommand.StreetNumber.WillBe("123");
+        CreateClientCommand.PostalCode.WillBe("5000");
+        CreateClientCommand.City.WillBe("Bergen");
+        CreateClientCommand.PhoneNumber.WillBe("1234567890");
     }
 
     [TestMethod]

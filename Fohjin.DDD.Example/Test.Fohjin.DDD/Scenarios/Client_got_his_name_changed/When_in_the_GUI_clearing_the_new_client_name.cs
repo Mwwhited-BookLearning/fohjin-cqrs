@@ -1,7 +1,6 @@
-﻿using Fohjin.DDD.BankApplication.Presenters;
+﻿using Fohjin.DDD.ApiClient;
+using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -13,20 +12,27 @@ public class When_in_the_GUI_clearing_the_new_client_name : PresenterTestFixture
 {
     private readonly Guid _clientId = Guid.NewGuid();
     private ClientDetailsReport _clientDetailsReport = null!;
-    private List<ClientDetailsReport>? _clientDetailsReports;
 
     protected override void SetupDependencies()
     {
-        _clientDetailsReport = new ClientDetailsReport(_clientId, "Client Name", "Street", "123", "5000", "Bergen", "1234567890");
-        _clientDetailsReports = new List<ClientDetailsReport> { _clientDetailsReport };
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
-            .ReturnsAsync(_clientDetailsReports);
+        _clientDetailsReport = new ClientDetailsReport
+        {
+            Id = _clientId,
+            ClientName = "Client Name",
+            Street = "Street",
+            StreetNumber = "123",
+            PostalCode = "5000",
+            City = "Bergen",
+            PhoneNumber = "1234567890",
+        };
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetClientDetailsByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(_clientDetailsReport);
     }
 
     protected override void Given()
     {
-        Presenter.SetClient(new ClientReport(_clientId, "Client Name"));
+        Presenter.SetClient(new ClientReport { Id = _clientId, Name = "Client Name" });
         Presenter.Display();
         On<IClientDetailsView>().ValueFor(x => x.ClientName).IsSetTo("Client name");
         On<IClientDetailsView>().ValueFor(x => x.PhoneNumber).IsSetTo("1234567890");

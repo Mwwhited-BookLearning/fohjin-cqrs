@@ -1,11 +1,9 @@
-﻿using Fohjin.DDD.BankApplication.Presenters;
+﻿using Fohjin.DDD.ApiClient;
+using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
-using Fohjin.DDD.Commands;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Threading.Tasks;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_moved;
 
@@ -15,24 +13,35 @@ public class When_in_the_GUI_saving_the_new_address : PresenterTestFixture<Clien
 {
     private readonly Guid _clientId = Guid.NewGuid();
     private ClientDetailsReport _clientDetailsReport = null!;
-    private List<ClientDetailsReport>? _clientDetailsReports;
 
     protected override void SetupDependencies()
     {
         OnDependency<IPopupPresenter>()
-            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-            .Callback<Action>(x => x());
+            .Setup(x => x.CatchPossibleExceptionAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(action => action());
 
-        _clientDetailsReport = new ClientDetailsReport(_clientId, "Client Name", "Street", "123", "5000", "Bergen", "1234567890");
-        _clientDetailsReports = new List<ClientDetailsReport> { _clientDetailsReport };
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
-            .ReturnsAsync(_clientDetailsReports);
+        _clientDetailsReport = new ClientDetailsReport
+        {
+            Id = _clientId,
+            ClientName = "Client Name",
+            Street = "Street",
+            StreetNumber = "123",
+            PostalCode = "5000",
+            City = "Bergen",
+            PhoneNumber = "1234567890",
+        };
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetClientDetailsByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(_clientDetailsReport);
+
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.ChangeClientAddressAsync(It.IsAny<Guid>(), It.IsAny<ClientIsMovingRequest>()))
+            .Returns(Task.CompletedTask);
     }
 
     protected override void Given()
     {
-        Presenter.SetClient(new ClientReport(_clientId, "Client Name"));
+        Presenter.SetClient(new ClientReport { Id = _clientId, Name = "Client Name" });
         Presenter.Display();
         On<IClientDetailsView>().ValueFor(x => x.ClientName).IsSetTo("Client name");
         On<IClientDetailsView>().ValueFor(x => x.PhoneNumber).IsSetTo("1234567890");
@@ -52,7 +61,7 @@ public class When_in_the_GUI_saving_the_new_address : PresenterTestFixture<Clien
     [TestMethod]
     public void Then_a_change_client_phone_number_command_will_be_published()
     {
-        On<IBus>().VerifyThat.Method(x => x.Publish(It.IsAny<ClientIsMovingCommand>())).WasCalled();
+        On<FohjinApiClient>().VerifyThat.Method(x => x.ChangeClientAddressAsync(It.IsAny<Guid>(), It.IsAny<ClientIsMovingRequest>())).WasCalled();
     }
 
     [TestMethod]

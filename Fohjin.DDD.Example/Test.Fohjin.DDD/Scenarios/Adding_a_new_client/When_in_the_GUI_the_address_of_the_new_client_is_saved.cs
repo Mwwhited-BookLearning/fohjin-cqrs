@@ -2,6 +2,7 @@
 using Fohjin.DDD.BankApplication.Views;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Threading.Tasks;
 
 namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client;
 
@@ -12,8 +13,8 @@ public class When_in_the_GUI_the_address_of_the_new_client_is_saved : PresenterT
     protected override void SetupDependencies()
     {
         OnDependency<IPopupPresenter>()
-            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-            .Callback<Action>(x => x());
+            .Setup(x => x.CatchPossibleExceptionAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(action => action());
     }
 
     protected override void Given()

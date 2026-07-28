@@ -1,26 +1,21 @@
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
-using Fohjin.DDD.Commands;
 using Fohjin.DDD.Common;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
 public class AccountDetailsPresenter(
     IAccountDetailsView accountDetailsView,
     IPopupPresenter popupPresenter,
-    IBus bus,
-    IReportingRepository reportingRepository,
+    FohjinApiClient apiClient,
     ISystemTimer systemTimer) : Presenter<IAccountDetailsView>(accountDetailsView), IAccountDetailsPresenter
 {
     private int _editStep = 0;
     private AccountReport? _accountReport;
-    private AccountDetailsReport _accountDetailsReport = AccountDetailsReport.New;
+    private AccountDetailsReport _accountDetailsReport = new();
     private readonly IAccountDetailsView _accountDetailsView = accountDetailsView;
     private readonly IPopupPresenter _popupPresenter = popupPresenter;
-    private readonly IBus _bus = bus;
-    private readonly IReportingRepository _reportingRepository = reportingRepository;
+    private readonly FohjinApiClient _apiClient = apiClient;
     private readonly ISystemTimer _systemTimer = systemTimer;
 
     public async void Display()
@@ -38,14 +33,13 @@ public class AccountDetailsPresenter(
         if (_accountReport == null)
             return;
 
-        _accountDetailsReport = (await _reportingRepository.GetByExampleAsync<AccountDetailsReport>(new { _accountReport.Id })).FirstOrDefault() ??
-            AccountDetailsReport.New;
-        _accountDetailsView.AccountName = _accountDetailsReport?.AccountName;
-        _accountDetailsView.AccountNameLabel = _accountDetailsReport?.AccountName;
-        _accountDetailsView.AccountNumberLabel = _accountDetailsReport?.AccountNumber;
-        _accountDetailsView.BalanceLabel = _accountDetailsReport?.Balance ?? 0;
-        _accountDetailsView.Ledgers = _accountDetailsReport?.Ledgers;
-        _accountDetailsView.TransferAccounts = [.. (await _reportingRepository.GetByExampleAsync<AccountReport>(null)).ToList().Where(x => x.Id != _accountDetailsReport?.Id)];
+        _accountDetailsReport = await _apiClient.GetAccountDetailsByIdAsync(_accountReport.Id);
+        _accountDetailsView.AccountName = _accountDetailsReport.AccountName;
+        _accountDetailsView.AccountNameLabel = _accountDetailsReport.AccountName;
+        _accountDetailsView.AccountNumberLabel = _accountDetailsReport.AccountNumber;
+        _accountDetailsView.BalanceLabel = (decimal)_accountDetailsReport.Balance;
+        _accountDetailsView.Ledgers = _accountDetailsReport.Ledgers;
+        _accountDetailsView.TransferAccounts = [.. (await _apiClient.GetAccountsAsync()).Where(x => x.Id != _accountDetailsReport.Id)];
     }
 
     public void SetAccount(AccountReport? accountReport)
@@ -53,15 +47,12 @@ public class AccountDetailsPresenter(
         _accountReport = accountReport;
     }
 
-    public void CloseTheAccount()
+    public async void CloseTheAccount()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
-            //                if (_accountDetailsReport == null)
-            //                    return;
-
             if (_accountReport != null)
-                _bus.Publish(new CloseAccountCommand(_accountReport.Id));
+                await _apiClient.CloseAccountAsync(_accountReport.Id);
 
             _accountDetailsView.Close();
         });
@@ -107,70 +98,65 @@ public class AccountDetailsPresenter(
         _accountDetailsView.EnableAccountNameChangePanel();
     }
 
-    public void ChangeAccountName()
+    public async void ChangeAccountName()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
-            _bus.Publish(new ChangeAccountNameCommand(
-                             _accountDetailsReport.Id,
-                             _accountDetailsView.AccountName));
+            await _apiClient.ChangeAccountNameAsync(_accountDetailsReport.Id, new ChangeAccountNameRequest
+            {
+                AccountName = _accountDetailsView.AccountName,
+            });
 
-            _accountDetailsReport = new AccountDetailsReport(
-                _accountDetailsReport.Id,
-                _accountDetailsReport.ClientReportId,
-                _accountDetailsView.AccountName,
-                _accountDetailsReport.Balance,
-                _accountDetailsReport.AccountNumber);
+            _accountDetailsReport.AccountName = _accountDetailsView.AccountName;
 
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
-    public void DepositMoney()
+    public async void DepositMoney()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
-            _bus.Publish(new DepositCashCommand(
-                             _accountDetailsReport.Id,
-                             _accountDetailsView.DepositAmount));
+            await _apiClient.DepositCashAsync(_accountDetailsReport.Id, new DepositCashRequest
+            {
+                Amount = (double)_accountDetailsView.DepositAmount,
+            });
 
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
-    public void WithdrawalMoney()
+    public async void WithdrawalMoney()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
-            _bus.Publish(new WithdrawalCashCommand(
-                             _accountDetailsReport.Id,
-                             _accountDetailsView.WithdrawalAmount));
+            await _apiClient.WithdrawalCashAsync(_accountDetailsReport.Id, new WithdrawalCashRequest
+            {
+                Amount = (double)_accountDetailsView.WithdrawalAmount,
+            });
 
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
-    public void TransferMoney()
+    public async void TransferMoney()
     {
-        _popupPresenter.CatchPossibleException(() =>
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
         {
-            _bus.Publish(new SendMoneyTransferCommand(
-                             _accountDetailsReport.Id,
-                             _accountDetailsView.TransferAmount,
-                             _accountDetailsView.GetSelectedTransferAccount()?.AccountNumber));
+            await _apiClient.SendMoneyTransferAsync(_accountDetailsReport.Id, new SendMoneyTransferRequest
+            {
+                Amount = (double)_accountDetailsView.TransferAmount,
+                AccountNumber = _accountDetailsView.GetSelectedTransferAccount()?.AccountNumber,
+            });
 
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
-            _bus.CommitAsync();
             _systemTimer.Trigger(LoadDataAsync, 2000);
             _systemTimer.Trigger(LoadDataAsync, 4000); // This one is because there is also a delay in the transfer service :)
         });

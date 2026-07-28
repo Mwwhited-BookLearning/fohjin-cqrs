@@ -19,11 +19,37 @@ public class SystemTimer : ISystemTimer, IDisposable
     public void Trigger(Func<Task> value, int @in)
     {
         _log.LogInformation($"Schedule Timer: {value} ({@in})");
+
+        // Trigger is called from the UI thread (a button click, a saved form), so capture its
+        // SynchronizationContext now - Task.Run below drops onto the thread pool with none, and
+        // running `value` there instead would set WinForms-bound properties off the UI thread.
+        var uiContext = SynchronizationContext.Current;
+
         _timers.Add(Task.Run(async () =>
         {
             await Task.Delay(@in);
             _log.LogInformation($"Triggered Timer: {value} ({@in})");
-            await value();
+
+            if (uiContext == null)
+            {
+                await value();
+                return;
+            }
+
+            var completion = new TaskCompletionSource();
+            uiContext.Post(async _ =>
+            {
+                try
+                {
+                    await value();
+                    completion.SetResult();
+                }
+                catch (Exception ex)
+                {
+                    completion.SetException(ex);
+                }
+            }, null);
+            await completion.Task;
         }));
     }
 }

@@ -13,3 +13,6 @@ NDependOut
 .svn
 *.chm
 /.vs/fohjin-cqrs/v17
+*.db3
+*.db3-shm
+*.db3-wal

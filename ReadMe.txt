@@ -15,11 +15,9 @@ You can find the book here: https://leanpub.com/cqrs
 
 # x86 vs x64
 
-When running the example on a x86 machine you have to go into the /Lib/sqlite/bin/ folder 
-and copy the three System.Data.SQLite.* files into the /Lib/sqlite/bin/x64/ folder. This 
-is because I am developing on a x64 system. An interesting fact is that the TestDriven.Net
-test runner does actually run in x86 mode, so the SQLite reference in the Test project is 
-the the x86 SQLite version already. Resharper test runner acts the same.
+This section described the original System.Data.SQLite native-binary setup and no longer
+applies. Storage now goes through EF Core / Microsoft.Data.Sqlite, which has no x86/x64
+binary-swap step.
 
 If you have any questions or other feedback then I would love to hear about it at
 Mark.Nijhof@Cre8iveThought.com
@@ -28,16 +26,21 @@ Mark.Nijhof@Cre8iveThought.com
 
 ---
 
-While this is based on Mark's book I have been working on updating this to .Net 7.0 
+While this is based on Mark's book I have been working on updating this to .NET 10.0
 
-After the effort to convert this to more modern infrastructure hopefully others will find 
-this of use.  
+After the effort to convert this to more modern infrastructure hopefully others will find
+this of use.
 
 -Thanks,
 Matt Whited
 
 ## Known Issues
 
-All useful tests now pass but there is a concurency issue and some events are not processed
-correctly.  The application does not automatically refresh when data is updated.  
+The original concurrency/event-processing issues from the .NET 7 pass were tracked down to
+several concrete bugs during the .NET 10 modernization (fire-and-forget bus dispatch,
+async-void exception swallowing, dead test wiring, a wizard-step state bug) and fixed - see
+the `poc/dotnet10-modernization` branch history. The WinForms UI itself has not been
+manually exercised end-to-end during this pass, only through the automated test suite, so
+treat live UI behavior (including auto-refresh after a command) as unverified rather than
+confirmed-working.
 

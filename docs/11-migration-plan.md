@@ -138,8 +138,10 @@ user. WebAPI adds `AddAuthentication().AddJwtBearer(o => o.Authority = <config>)
 configuration, never a hardcoded OpenIddict-specific type, so a real IdP is a config
 change later (`docs/supporting/oidc-sts-openiddict-vs-duende.md`).
 
-**Decision needed during this phase**: does the dev STS need a real (if minimal) login UI,
-or is a one-click "skip login as the seeded test user" acceptable for a dev-only STS?
+**Decided**: preconfigured/seeded accounts (no interactive registration), still going
+through a real (if minimal) login screen and a genuine authorization-code + PKCE exchange
+— "simple for testing" means simple *credentials*, not a shortcut that skips the actual
+OIDC flow, so what gets exercised in dev matches what a real IdP swap-in would do.
 
 **Exit criteria**: unauthenticated requests are rejected; a token obtained from the dev STS
 is accepted; swapping `Authority` to a different OIDC-compliant issuer requires no code
@@ -161,8 +163,9 @@ Swap WinForms' DI wiring (currently direct `AddBusServices()` etc. in
 `Fohjin.DDD.BankApplication/Program.cs`) for `Fohjin.DDD.ApiClient`. Every Presenter that
 currently takes `IBus`/`IDomainRepository`/`IReportingRepository` (every presenter in
 `09-winforms-ui.md`'s component diagram) needs to go through the API client instead — this
-touches every presenter, not just a config change. Desktop OIDC login needs its own flow
-(system browser + loopback redirect, or an embedded WebView2 — decide during this phase).
+touches every presenter, not just a config change. **Decided**: desktop OIDC login uses
+the system browser + loopback redirect (not an embedded WebView2) — opens the STS login
+page in the user's actual browser, catches the redirect on a local loopback listener.
 
 **Exit criteria**: WinForms behaves identically to today, but every operation is an HTTP
 call to `Fohjin.DDD.WebApi` instead of an in-process call. The monitoring pane
@@ -174,10 +177,13 @@ call to `Fohjin.DDD.WebApi` instead of an in-process call. The monitoring pane
 STS → WebApi → WebUI startup order. Publish to `docker-compose.yml` via
 `Aspire.Hosting.Docker` (`docs/supporting/hosting-aspire-docker-compose.md`).
 
-**Decision needed during this phase**: SQLite doesn't containerize as a separate networked
-resource the way Postgres would. Options: keep SQLite via a mounted volume for the
-containerized path (minimal rewrite), or add a real server database as a container-only
-option while keeping SQLite for pure local dev.
+**Decided**: move off SQLite entirely, to SQL Server running in a **Linux** container
+(Aspire has a first-class `AddSqlServer(...)` resource for this). One database engine for
+every environment — no SQLite-for-dev/SQL-Server-for-prod split to keep in sync. This
+touches both `Fohjin.DDD.EventStore.SQLite` and `Fohjin.DDD.Reporting`'s EF Core
+provider/migrations (`Microsoft.EntityFrameworkCore.Sqlite` → `Microsoft.EntityFrameworkCore.SqlServer`,
+new migrations generated against SQL Server) — likely worth its own step at the start of
+this phase, before wiring up the Aspire resource itself.
 
 **Exit criteria**: `dotnet run` on the AppHost boots the whole system with one command;
 publishing produces a working `docker-compose up`.
@@ -189,12 +195,24 @@ code in `Fohjin.DDD.BankApplication` is dead — remove it, making `Fohjin.DDD.W
 only process that composes the CQRS core. Update docs `00`–`10` to reflect the new
 container topology (they currently describe the pre-migration, single-process shape).
 
-## What this plan deliberately doesn't decide yet
+## What this plan still doesn't decide yet
 
-Four decisions are called out inline above (event-stream filter grammar, dev-STS login UX,
-desktop OIDC flow, containerized database choice) rather than resolved now — each is
-scoped to land during its own phase, once there's a running system to make the decision
-against instead of guessing in the abstract.
+Three of the four originally-deferred decisions are now resolved (dev-STS login UX,
+desktop OIDC flow, database choice — see Phases 5, 7, 8 above). One remains open:
+
+- **Phase 4** — full `Microsoft.OData.UriParser` filter semantics against event records,
+  or a simpler hand-rolled filter grammar. Still scoped to land during Phase 4 itself, once
+  the SSE endpoint exists to make the decision against.
+
+## Modernization pass alongside this migration
+
+Also requested, not phase-gated (doesn't block or depend on any phase above, so it's
+happening now rather than waiting): push the existing codebase as far toward C# 12+ idioms
+as it reasonably goes — file-scoped namespaces everywhere, primary constructors on
+constructor-injected classes, collection expressions, positional records where a type's
+shape allows it, and an actual nullable-annotation pass rather than `<Nullable>enable</Nullable>`
+with no annotations behind it. See the commit(s) tagged "C# 12 modernization" for what
+changed and why anything was left as-is.
 
 ## Suggested next step
 

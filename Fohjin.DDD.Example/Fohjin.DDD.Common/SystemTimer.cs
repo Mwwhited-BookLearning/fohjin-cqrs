@@ -27,29 +27,38 @@ public class SystemTimer : ISystemTimer, IDisposable
 
         _timers.Add(Task.Run(async () =>
         {
-            await Task.Delay(@in);
-            _log.LogInformation("Triggered Timer: {value} ({in})", value, @in);
-
-            if (uiContext == null)
+            try
             {
-                await value();
-                return;
-            }
+                await Task.Delay(@in);
+                _log.LogInformation("Triggered Timer: {value} ({in})", value, @in);
 
-            var completion = new TaskCompletionSource();
-            uiContext.Post(async _ =>
-            {
-                try
+                if (uiContext == null)
                 {
                     await value();
-                    completion.SetResult();
+                    return;
                 }
-                catch (Exception ex)
+
+                var completion = new TaskCompletionSource();
+                uiContext.Post(async _ =>
                 {
-                    completion.SetException(ex);
-                }
-            }, null);
-            await completion.Task;
+                    try
+                    {
+                        await value();
+                        completion.SetResult();
+                    }
+                    catch (Exception ex)
+                    {
+                        completion.SetException(ex);
+                    }
+                }, null);
+                await completion.Task;
+            }
+            catch (Exception ex)
+            {
+                // Otherwise this sits unobserved in _timers until Dispose() calls Task.WaitAll,
+                // which is long after the failure actually happened and doesn't log anything itself.
+                _log.LogError(ex, "Timer callback {value} ({in}) failed", value, @in);
+            }
         }));
     }
 }

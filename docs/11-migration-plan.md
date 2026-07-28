@@ -289,15 +289,95 @@ Fixed with a targeted try/catch, plus a regression test
 solution build + test suite: 410 + 5 passed, 4 skipped, 0 failed (before Phase 5 added its
 own tests on top).
 
-### Phase 6 — Vue frontend
+### Phase 6 — Vue frontend (done)
 
-New `Fohjin.DDD.WebUI` (Vue 3 + Vite + TypeScript). NSwag-generated TypeScript client.
-OIDC login (e.g. `oidc-client-ts`) against the same STS. Re-implement the existing screens
-(`09-winforms-ui.md`: client search, the client-details wizard, account details) — this is
-new frontend work, not a mechanical port of the WinForms Presenter/View code.
+New `Fohjin.DDD.WebUI` (Vue 3 + Vite + TypeScript, scaffolded via `npm create vite@latest`),
+`vue-router` with a `beforeEach` auth guard, and `oidc-client-ts` (authorization code + PKCE,
+automatic for `response_type: "code"`) against the same dev STS from Phase 5. A second
+`OpenApiReference` (`CodeGenerator="NSwagTypeScript"`) added to `Fohjin.DDD.ApiClient.csproj`
+generates a TypeScript client straight into `Fohjin.DDD.WebUI/src/api/` from the same
+`openapi.json` snapshot the C# client already used, keeping both clients generated from one
+source instead of hand-writing `fetch` calls.
 
-**Exit criteria**: everything the WinForms app does today is also possible from a browser,
-through the new API.
+Before writing any frontend code, an audit of `Fohjin.DDD.BankApplication.Core`'s Presenters
+against the WebApi surface built so far found the API only covered client creation and two of
+five query shapes the WinForms screens actually use — asked the user how to sequence the
+remaining work; chosen approach was **interleave**: for each WinForms screen, add its missing
+endpoint(s) to `Fohjin.DDD.WebApi` and immediately build the matching Vue screen, committing
+after each. That produced, on top of Phase 1–5's `POST /api/clients` / `GET /api/clients` /
+`GET /api/clients/{id}`: `GET /api/clients/{id}/details`, `ChangeClientName`,
+`ClientIsMoving` (address), `ChangeClientPhoneNumber`, `OpenNewAccountForClient`,
+`GET /api/accounts`, `GET /api/accounts/{id}/details`, `ChangeAccountName`, `DepositCash`,
+`WithdrawalCash`, `SendMoneyTransfer`, and `CloseAccount` — every command and query shape the
+WinForms UI actually exercises (`BankCard`-related commands exist in `Fohjin.DDD.CommandHandlers`
+but have no WinForms screen at all, confirmed by grep, so there's nothing to reach parity
+with there). All of it backed by commands/handlers that already existed from the WinForms era
+— this phase only added the missing HTTP endpoints, never new domain behavior. Five screens:
+Login/callback, Client Search, Client Create, Client Details (name/address/phone/open-account,
+plus the open/closed account list), Account Details (name/deposit/withdrawal/transfer/close,
+plus the ledger history), and Monitoring (the live `/api/events` SSE stream from Phase 4).
+
+No native Node.js/npm exists on this machine (the `node`/`npm` on `PATH` belong to an
+unrelated project and fail outside an interactive terminal) — every `npm`/`vite`/`node`
+command in this phase ran via `docker run node:22-alpine ...` instead, always through
+PowerShell rather than Bash/git-bash (which silently mangles `/app`-style container paths via
+MSYS path conversion). This validated, ahead of time, that Phase 8's Aspire/Docker-Compose
+hosting for a Node-based frontend resource is workable on this machine.
+
+NSwag's TypeScript generator always wraps its output in `namespace X { ... }` with no
+supported way to suppress it (confirmed by reading NSwag/NJsonSchema source, not just
+guessing at options) — incompatible with Vite's `erasableSyntaxOnly` tsconfig setting, which
+can't compile a namespace containing runtime code. Fixed with a checked-in post-processing
+script (`strip-ts-namespace.ps1`) wired via an MSBuild `AfterTargets="Build"` target, so
+regenerating the client (rebuild `Fohjin.DDD.ApiClient` after refreshing `openapi.json`) always
+produces a flat ES module.
+
+End-to-end verification for every screen used a real headless browser (Playwright,
+`mcr.microsoft.com/playwright` image) driving the real dev STS and `Fohjin.DDD.WebApi` as
+separate live processes — not mocks — since that's the only way to prove a real OIDC
+login/redirect/PKCE round trip and real CORS/cross-origin behavior work from an actual
+browser. That surfaced three environment-specific issues worth recording because they'll
+recur for anyone else driving this same setup: (1) the STS's issuer claim is
+request-relative, so a browser reaching it via `host.docker.internal` (needed for a
+containerized Playwright browser to reach STS/WebApi on the host) gets a token whose `iss`
+doesn't match WebApi's own `Sts:Authority` config unless that's overridden to match for the
+test run — a test-environment artifact, not a code bug; (2) the Vite dev server's file
+watcher didn't reliably pick up regenerated files on this Windows-bind-mount setup, so a
+`docker restart` of the dev-server container was needed after every regeneration of
+`generated-client.ts` (hit three separate times before the pattern was recognized); (3) while
+verifying the Monitoring screen, found and fixed a real bug: `Results.ServerSentEvents` holds
+the response — headers included — open with zero bytes sent until its wrapped
+`IAsyncEnumerable` yields a first item, so both `curl` and `fetch()` hung indefinitely against
+a fresh WebApi instance with no domain events yet. Fixed by having the SSE `Stream` local
+function (`Fohjin.DDD.WebApi/Program.cs`) yield a synthetic `EventEnvelope.Connected` marker
+the instant a subscriber attaches, forcing an immediate flush; the Vue client recognizes and
+discards it by `EventType` rather than showing it as a real event.
+
+**Known issue found, not fixed (out of scope for this phase)**: live-testing the Monitoring
+screen showed `ClientCreatedEvent`'s `AggregateId` as `Guid.Empty`. Root cause is in
+`BaseAggregateRoot<T>.Apply()` (`Fohjin.DDD.EventStore`): `domainEvent.AggregateId = Id;` runs
+*before* the event's own registered handler (which is what actually sets `Id` for a
+newly-created aggregate, e.g. `Client`'s handler does `Id = clientCreatedEvent.ClientId;`). Every
+aggregate's *creation* event is affected, not just `Client`'s — this predates Phase 6 and was
+invisible until this phase put raw event metadata in front of a real user for the first time.
+Left alone here since fixing it means changing shared event-sourcing plumbing used by every
+aggregate, which is a bigger, separately-reviewable change than a frontend phase should fold in
+unprompted.
+
+**Exit criteria — met**: every command and query shape the WinForms UI uses is reachable from
+the new Vue frontend through the WebApi, verified live end-to-end per screen (not just unit/
+integration tests against an in-memory `TestServer`): login through the real STS; create a
+client and see it in search; open, rename, move, and re-phone a client, and open a new account
+for them; deposit, withdraw, rename, and close an account, and see a transfer debit the source
+account's ledger and balance; and watch a `ClientCreatedEvent` created on a second, independent
+tab appear live on the Monitoring screen within the same second. Two new integration test
+classes (`ClientDetailsAndEditCommandsTest`, `AccountDetailsAndTransactionCommandsTest`) cover
+the new endpoints' happy/404 paths through the generated C# client, the same way Phase 2's
+test already covered client create/read — the money-transfer test only asserts the immediate,
+deterministic half of the flow (the source account's debit), since crediting the target account
+is intentionally non-deterministic in this codebase (`MoneyTransferService` randomly simulates
+internal/external/failed bank routing with a 5-second delay) and asserting on it would make the
+test flaky by design. Full solution build + test suite: 410 + 14 passed, 4 skipped, 0 failed.
 
 ### Phase 7 — Retarget WinForms
 

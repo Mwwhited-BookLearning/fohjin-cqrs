@@ -24,6 +24,7 @@ using Saunter.AsyncApiSchema.v2;
 using System.Net.ServerSentEvents;
 using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using System.Threading.Channels;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -146,7 +147,16 @@ app.MapMethods("/odata/Clients", [HttpMethods.Get, HttpMethods.Query], async (Ht
 {
     if (HttpMethods.IsQuery(httpContext.Request.Method) && httpContext.Request.HasJsonContentType())
     {
-        var body = await httpContext.Request.ReadFromJsonAsync<ODataQueryRequest>();
+        ODataQueryRequest? body;
+        try
+        {
+            body = await httpContext.Request.ReadFromJsonAsync<ODataQueryRequest>();
+        }
+        catch (JsonException ex)
+        {
+            return Results.BadRequest($"Malformed JSON body: {ex.Message}");
+        }
+
         if (!string.IsNullOrWhiteSpace(body?.Filter))
             httpContext.Request.QueryString = new QueryString($"?$filter={Uri.EscapeDataString(body.Filter)}");
     }

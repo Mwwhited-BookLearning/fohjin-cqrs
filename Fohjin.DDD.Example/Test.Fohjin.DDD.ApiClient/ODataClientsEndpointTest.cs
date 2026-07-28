@@ -86,5 +86,18 @@ public class ODataClientsEndpointTest : WebApiIntegrationTestFixture
         Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    [TestMethod]
+    public async Task QUERY_with_malformed_json_body_is_rejected_rather_than_a_500()
+    {
+        var request = new HttpRequestMessage(Query, "/odata/Clients")
+        {
+            Content = new StringContent("{not valid json", System.Text.Encoding.UTF8, "application/json"),
+        };
+
+        var response = await HttpClient.SendAsync(request);
+
+        Assert.AreEqual(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
     private record ClientRow(Guid Id, string? Name);
 }

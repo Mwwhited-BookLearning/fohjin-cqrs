@@ -4,39 +4,38 @@ using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Services.Models;
 
-namespace Fohjin.DDD.Services
+namespace Fohjin.DDD.Services;
+
+
+public class MoneyReceiveService : IReceiveMoneyTransfers
 {
+    private readonly IBus _bus;
+    private readonly IReportingRepository _reportingRepository;
 
-    public class MoneyReceiveService : IReceiveMoneyTransfers
+    public MoneyReceiveService(IBus bus, IReportingRepository reportingRepository)
     {
-        private readonly IBus _bus;
-        private readonly IReportingRepository _reportingRepository;
+        _bus = bus;
+        _reportingRepository = reportingRepository;
+    }
 
-        public MoneyReceiveService(IBus bus, IReportingRepository reportingRepository)
+    public Task Receive(MoneyTransfer moneyTransfer) =>
+        MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);
+
+    private async Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
+    {
+        try
         {
-            _bus = bus;
-            _reportingRepository = reportingRepository;
+            var account = (await _reportingRepository.GetByExampleAsync<AccountReport>(new { moneyTransfer.TargetAccount })).First();
+            _bus.Publish(new ReceiveMoneyTransferCommand(account.Id, moneyTransfer.Amount, moneyTransfer.SourceAccount));
         }
-
-        public Task Receive(MoneyTransfer moneyTransfer) =>
-            MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);
-
-        private async Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
+        catch (Exception)
         {
-            try
-            {
-                var account = (await _reportingRepository.GetByExampleAsync<AccountReport>(new { moneyTransfer.TargetAccount })).First();
-                _bus.Publish(new ReceiveMoneyTransferCommand(account.Id, moneyTransfer.Amount, moneyTransfer.SourceAccount));
-            }
-            catch (Exception)
-            {
-                RequestedAccountDoesNotExist(moneyTransfer);
-            }
+            RequestedAccountDoesNotExist(moneyTransfer);
         }
+    }
 
-        private static void RequestedAccountDoesNotExist(MoneyTransfer moneyTransfer)
-        {
-            throw new UnknownAccountException(string.Format("The requested account '{0}' is not managed by this bank", moneyTransfer.TargetAccount));
-        }
+    private static void RequestedAccountDoesNotExist(MoneyTransfer moneyTransfer)
+    {
+        throw new UnknownAccountException(string.Format("The requested account '{0}' is not managed by this bank", moneyTransfer.TargetAccount));
     }
 }

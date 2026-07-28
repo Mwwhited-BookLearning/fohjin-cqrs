@@ -4,21 +4,20 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Fohjin.DDD.Reporting
+namespace Fohjin.DDD.Reporting;
+
+public static class ServiceCollectionExtensions
 {
-    public static class ServiceCollectionExtensions
+    public const string ConnectionStringConfigKey = "Reporting:SqliteConnectionString";
+    private const string DefaultSqLiteConnectionString = "Data Source=reportingDataBase.db3";
+
+    public static T AddReportingServices<T>(this T service) where T : IServiceCollection
     {
-        public const string ConnectionStringConfigKey = "Reporting:SqliteConnectionString";
-        private const string DefaultSqLiteConnectionString = "Data Source=reportingDataBase.db3";
+        service.AddDbContextFactory<ReportingDbContext>((sp, options) =>
+            options.UseSqlite(sp.GetService<IConfiguration>()?[ConnectionStringConfigKey] ?? DefaultSqLiteConnectionString));
 
-        public static T AddReportingServices<T>(this T service) where T : IServiceCollection
-        {
-            service.AddDbContextFactory<ReportingDbContext>((sp, options) =>
-                options.UseSqlite(sp.GetService<IConfiguration>()?[ConnectionStringConfigKey] ?? DefaultSqLiteConnectionString));
+        service.TryAddTransient<IReportingRepository, SqliteReportingRepository>();
 
-            service.TryAddTransient<IReportingRepository, SqliteReportingRepository>();
-
-            return service;
-        }
+        return service;
     }
 }

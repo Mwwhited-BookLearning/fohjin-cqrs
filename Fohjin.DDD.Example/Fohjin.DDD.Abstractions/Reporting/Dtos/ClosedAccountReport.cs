@@ -1,22 +1,21 @@
 using System.Text.Json.Serialization;
 
-namespace Fohjin.DDD.Reporting.Dtos
-{
-    public record ClosedAccountReport : AccountReport
-    {
-        [JsonConstructor]
-        public ClosedAccountReport()
-        {
-        }
+namespace Fohjin.DDD.Reporting.Dtos;
 
-        public ClosedAccountReport(
-            Guid id,
-            Guid clientDetailsId, 
-            string? name, 
-            string? accountNumber
-            ) :
-            base(id, clientDetailsId, name, accountNumber)
-        {
-        }
+public record ClosedAccountReport : AccountReport
+{
+    [JsonConstructor]
+    public ClosedAccountReport()
+    {
+    }
+
+    public ClosedAccountReport(
+        Guid id,
+        Guid clientDetailsId, 
+        string? name, 
+        string? accountNumber
+        ) :
+        base(id, clientDetailsId, name, accountNumber)
+    {
     }
 }

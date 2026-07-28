@@ -1,9 +1,8 @@
 using Fohjin.DDD.Reporting.Dtos;
 
-namespace Fohjin.DDD.BankApplication.Presenters
+namespace Fohjin.DDD.BankApplication.Presenters;
+
+public interface IAccountDetailsPresenter : IPresenter
 {
-    public interface IAccountDetailsPresenter : IPresenter
-    {
-        void SetAccount(AccountReport? accountReport);
-    }
+    void SetAccount(AccountReport? accountReport);
 }

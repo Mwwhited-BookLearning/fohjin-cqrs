@@ -5,37 +5,36 @@ using Fohjin.DDD.Events.Client;
 using Fohjin.DDD.EventStore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Assign_new_bank_card
+namespace Test.Fohjin.DDD.Scenarios.Assign_new_bank_card;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_reporting_a_non_existing_bank_card_stolen : CommandTestFixture<ReportStolenBankCardCommand, ReportStolenBankCardCommandHandler, Client>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_reporting_a_non_existing_bank_card_stolen : CommandTestFixture<ReportStolenBankCardCommand, ReportStolenBankCardCommandHandler, Client>
+    private readonly Guid _bankCardId = Guid.NewGuid();
+    private readonly Guid _accountId = Guid.NewGuid();
+    private readonly Guid _clientId = Guid.NewGuid();
+
+    protected override IEnumerable<IDomainEvent> Given()
     {
-        private readonly Guid _bankCardId = Guid.NewGuid();
-        private readonly Guid _accountId = Guid.NewGuid();
-        private readonly Guid _clientId = Guid.NewGuid();
+        yield return PrepareDomainEvent.Set(new ClientCreatedEvent(_clientId, "Mark Nijhof", "Welhavens gate", "49b", "5006", "Bergen", "95009937")).ToVersion(1);
+        yield return PrepareDomainEvent.Set(new AccountToClientAssignedEvent(_accountId)).ToVersion(2);
+    }
 
-        protected override IEnumerable<IDomainEvent> Given()
-        {
-            yield return PrepareDomainEvent.Set(new ClientCreatedEvent(_clientId, "Mark Nijhof", "Welhavens gate", "49b", "5006", "Bergen", "95009937")).ToVersion(1);
-            yield return PrepareDomainEvent.Set(new AccountToClientAssignedEvent(_accountId)).ToVersion(2);
-        }
+    protected override ReportStolenBankCardCommand When()
+    {
+        return new ReportStolenBankCardCommand(_clientId, _bankCardId);
+    }
 
-        protected override ReportStolenBankCardCommand When()
-        {
-            return new ReportStolenBankCardCommand(_clientId, _bankCardId);
-        }
+    [TestMethod]
+    public void Then_a_non_existing_bank_card_is_disabled_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<NonExistingBankCardException>();
+    }
 
-        [TestMethod]
-        public void Then_a_non_existing_bank_card_is_disabled_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<NonExistingBankCardException>();
-        }
-
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The requested bank card does not exist!");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The requested bank card does not exist!");
     }
 }

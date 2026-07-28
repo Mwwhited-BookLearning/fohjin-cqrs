@@ -1,9 +1,8 @@
 ﻿using Fohjin.DDD.BankApplication.Views;
 
-namespace Test.Fohjin.DDD.Presenter
+namespace Test.Fohjin.DDD.Presenter;
+
+public interface ITestView : IView
 {
-    public interface ITestView : IView
-    {
-        event Action OnTest;
-    }
+    event Action OnTest;
 }

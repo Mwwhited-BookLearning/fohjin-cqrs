@@ -1,43 +1,42 @@
 using Fohjin.DDD.Reporting.Dtos;
 
-namespace Fohjin.DDD.BankApplication.Views
+namespace Fohjin.DDD.BankApplication.Views;
+
+public interface IAccountDetailsView : IView
 {
-    public interface IAccountDetailsView : IView
-    {
-        string? AccountNameLabel { set; }
-        string? AccountNumberLabel { set; }
-        decimal BalanceLabel { set; }
-        string? AccountName { get; set; }
+    string? AccountNameLabel { set; }
+    string? AccountNumberLabel { set; }
+    decimal BalanceLabel { set; }
+    string? AccountName { get; set; }
 
-        IEnumerable<LedgerReport>? Ledgers { get; set; }
-        IEnumerable<AccountReport>? TransferAccounts { get; set; }
-        AccountReport? GetSelectedTransferAccount();
+    IEnumerable<LedgerReport>? Ledgers { get; set; }
+    IEnumerable<AccountReport>? TransferAccounts { get; set; }
+    AccountReport? GetSelectedTransferAccount();
 
-        decimal DepositAmount { get; set; }
-        decimal WithdrawalAmount { get; set; }
-        decimal TransferAmount { get; set; }
+    decimal DepositAmount { get; set; }
+    decimal WithdrawalAmount { get; set; }
+    decimal TransferAmount { get; set; }
 
-        void EnableSaveButton();
-        void DisableSaveButton();
-        void EnableMenuButtons();
-        void DisableMenuButtons();
+    void EnableSaveButton();
+    void DisableSaveButton();
+    void EnableMenuButtons();
+    void DisableMenuButtons();
 
-        void EnableDetailsPanel();
-        void EnableAccountNameChangePanel();
-        void EnableDepositPanel();
-        void EnableWithdrawalPanel();
-        void EnableTransferPanel();
+    void EnableDetailsPanel();
+    void EnableAccountNameChangePanel();
+    void EnableDepositPanel();
+    void EnableWithdrawalPanel();
+    void EnableTransferPanel();
 
-        event Action? OnCloseTheAccount;
-        event Action? OnFormElementGotChanged;
-        event Action? OnCancel;
-        event Action? OnInitiateAccountNameChange;
-        event Action? OnInitiateMoneyDeposit;
-        event Action? OnInitiateMoneyWithdrawal;
-        event Action? OnInitiateMoneyTransfer;
-        event Action? OnChangeAccountName;
-        event Action? OnDepositMoney;
-        event Action? OnWithdrawalMoney;
-        event Action? OnTransferMoney;
-    }
+    event Action? OnCloseTheAccount;
+    event Action? OnFormElementGotChanged;
+    event Action? OnCancel;
+    event Action? OnInitiateAccountNameChange;
+    event Action? OnInitiateMoneyDeposit;
+    event Action? OnInitiateMoneyWithdrawal;
+    event Action? OnInitiateMoneyTransfer;
+    event Action? OnChangeAccountName;
+    event Action? OnDepositMoney;
+    event Action? OnWithdrawalMoney;
+    event Action? OnTransferMoney;
 }

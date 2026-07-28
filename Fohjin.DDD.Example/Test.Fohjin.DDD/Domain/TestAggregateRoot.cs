@@ -1,31 +1,30 @@
 ﻿using Fohjin.DDD.EventStore;
 using Fohjin.DDD.EventStore.Aggregate;
 
-namespace Test.Fohjin.DDD.Domain
+namespace Test.Fohjin.DDD.Domain;
+
+public class TestAggregateRoot : BaseAggregateRoot<IDomainEvent>
 {
-    public class TestAggregateRoot : BaseAggregateRoot<IDomainEvent>
+    private readonly EntityList<TestEntity, IDomainEvent> TestEntities;
+
+    public TestAggregateRoot()
     {
-        private readonly EntityList<TestEntity, IDomainEvent> TestEntities;
-
-        public TestAggregateRoot()
+        TestEntities = new EntityList<TestEntity, IDomainEvent>(this)
         {
-            TestEntities = new EntityList<TestEntity, IDomainEvent>(this)
-            {
-                new TestEntity()
-            };
-            RegisterEvent<SomethingWasDone>(x => { });
-        }
+            new TestEntity()
+        };
+        RegisterEvent<SomethingWasDone>(x => { });
+    }
 
-        public TestEntity Child { get { return TestEntities[0]; } }
+    public TestEntity Child { get { return TestEntities[0]; } }
 
-        public void DoSomethingIlligal()
-        {
-            Apply(new SomeUnregisteredEvent());
-        }
+    public void DoSomethingIlligal()
+    {
+        Apply(new SomeUnregisteredEvent());
+    }
 
-        public void DoSomething()
-        {
-            Apply(new SomethingWasDone());
-        }
+    public void DoSomething()
+    {
+        Apply(new SomethingWasDone());
     }
 }

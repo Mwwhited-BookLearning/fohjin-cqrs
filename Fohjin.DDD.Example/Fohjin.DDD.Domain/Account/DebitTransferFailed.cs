@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.Domain.Account
+﻿namespace Fohjin.DDD.Domain.Account;
+
+public class DebitTransferFailed : Ledger
 {
-    public class DebitTransferFailed : Ledger
-    {
-        public DebitTransferFailed(Amount amount, AccountNumber account) : base(amount, account) { }
-    }
+    public DebitTransferFailed(Amount amount, AccountNumber account) : base(amount, account) { }
 }

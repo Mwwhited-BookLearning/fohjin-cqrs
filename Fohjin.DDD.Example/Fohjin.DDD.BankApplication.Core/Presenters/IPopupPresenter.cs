@@ -1,7 +1,6 @@
-namespace Fohjin.DDD.BankApplication.Presenters
+namespace Fohjin.DDD.BankApplication.Presenters;
+
+public interface IPopupPresenter : IPresenter
 {
-    public interface IPopupPresenter : IPresenter
-    {
-        void CatchPossibleException(Action action);
-    }
+    void CatchPossibleException(Action action);
 }

@@ -1,8 +1,7 @@
-namespace Fohjin.DDD.BankApplication.Views
+namespace Fohjin.DDD.BankApplication.Views;
+
+public interface IView : IDisposable
 {
-    public interface IView : IDisposable
-    {
-        DialogResults ShowDialog();
-        void Close();
-    }
+    DialogResults ShowDialog();
+    void Close();
 }

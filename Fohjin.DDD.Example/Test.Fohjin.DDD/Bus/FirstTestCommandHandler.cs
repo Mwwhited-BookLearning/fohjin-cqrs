@@ -1,23 +1,22 @@
 using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Commands;
 
-namespace Test.Fohjin.DDD.Bus
+namespace Test.Fohjin.DDD.Bus;
+
+public class FirstTestCommandHandler : CommandHandlerBase<TestCommand>
 {
-    public class FirstTestCommandHandler : CommandHandlerBase<TestCommand>
+    public List<Guid> Ids;
+    public readonly SemaphoreSlim Signal = new(0);
+
+    public FirstTestCommandHandler()
     {
-        public List<Guid> Ids;
-        public readonly SemaphoreSlim Signal = new(0);
+        Ids = new List<Guid>();
+    }
 
-        public FirstTestCommandHandler()
-        {
-            Ids = new List<Guid>();
-        }
-
-        public override Task ExecuteAsync(TestCommand compensatingCommand)
-        {
-            Ids.Add(compensatingCommand.Id);
-            Signal.Release();
-            return Task.CompletedTask;
-        }
+    public override Task ExecuteAsync(TestCommand compensatingCommand)
+    {
+        Ids.Add(compensatingCommand.Id);
+        Signal.Release();
+        return Task.CompletedTask;
     }
 }

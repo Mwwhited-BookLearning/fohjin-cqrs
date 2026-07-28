@@ -10,42 +10,41 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Test.Fohjin.DDD.TestUtilities;
 
-namespace Test.Fohjin.DDD.Scenarios.Transfering_money
+namespace Test.Fohjin.DDD.Scenarios.Transfering_money;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_failing_to_transfer_money_to_an_external_account : BaseTestFixture<MoneyTransferService>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_failing_to_transfer_money_to_an_external_account : BaseTestFixture<MoneyTransferService>
+    protected override void SetupDependencies()
     {
-        protected override void SetupDependencies()
-        {
-            OnDependency<IReceiveMoneyTransfers>()
-                ?.Setup(x => x.Receive(It.IsAny<MoneyTransfer>()))
-                .Throws(new UnknownAccountException("exception message"));
+        OnDependency<IReceiveMoneyTransfers>()
+            ?.Setup(x => x.Receive(It.IsAny<MoneyTransfer>()))
+            .Throws(new UnknownAccountException("exception message"));
 
-            OnDependency<IReportingRepository>()
-                ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
-                .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
+        OnDependency<IReportingRepository>()
+            ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+            .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
 
-            // !!! This is DEMO code !!!
-            // Setup the SystemRandom class to return the value where the account is not found
-            DoNotMock?.Add(typeof(ISystemRandom), new TestSystemRandom((min, max) => 4));
-            DoNotMock?.Add(typeof(ISystemTimer), new TestSystemTimer());
-        }
+        // !!! This is DEMO code !!!
+        // Setup the SystemRandom class to return the value where the account is not found
+        DoNotMock?.Add(typeof(ISystemRandom), new TestSystemRandom((min, max) => 4));
+        DoNotMock?.Add(typeof(ISystemTimer), new TestSystemTimer());
+    }
 
-        protected override Task WhenAsync()
-        {
-            SubjectUnderTest?.Send(new MoneyTransfer("source account number", "target account number", 123.45M));
-            return Task.CompletedTask;
-        }
+    protected override Task WhenAsync()
+    {
+        SubjectUnderTest?.Send(new MoneyTransfer("source account number", "target account number", 123.45M));
+        return Task.CompletedTask;
+    }
 
-        [TestMethod]
-        public void Then_the_newly_created_account_will_be_saved()
-        {
-            OnDependency<IBus>()?.Verify(x => x.Publish(It.IsAny<MoneyTransferFailedCompensatingCommand>()));
-        }
+    [TestMethod]
+    public void Then_the_newly_created_account_will_be_saved()
+    {
+        OnDependency<IBus>()?.Verify(x => x.Publish(It.IsAny<MoneyTransferFailedCompensatingCommand>()));
+    }
 
-        protected override void Finally()
-        {
-        }
+    protected override void Finally()
+    {
     }
 }

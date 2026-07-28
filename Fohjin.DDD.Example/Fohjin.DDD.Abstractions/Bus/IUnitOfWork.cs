@@ -1,8 +1,7 @@
-﻿namespace Fohjin.DDD.Bus
+﻿namespace Fohjin.DDD.Bus;
+
+public interface IUnitOfWork
 {
-    public interface IUnitOfWork
-    {
-        Task CommitAsync();
-        void Rollback();
-    }
+    Task CommitAsync();
+    void Rollback();
 }

@@ -1,21 +1,20 @@
 using System.Text.Json.Serialization;
 
-namespace Fohjin.DDD.Reporting.Dtos
-{
-    public record ClosedAccountDetailsReport : AccountDetailsReport
-    {
-        [JsonConstructor]
-        public ClosedAccountDetailsReport(): base() { }
+namespace Fohjin.DDD.Reporting.Dtos;
 
-        public ClosedAccountDetailsReport(
-            Guid id, 
-            Guid clientId,
-            string? accountName, 
-            decimal balance, 
-            string? accountNumber
-            ) :
-            base(id, clientId, accountName, balance, accountNumber)
-        {
-        }
+public record ClosedAccountDetailsReport : AccountDetailsReport
+{
+    [JsonConstructor]
+    public ClosedAccountDetailsReport(): base() { }
+
+    public ClosedAccountDetailsReport(
+        Guid id, 
+        Guid clientId,
+        string? accountName, 
+        decimal balance, 
+        string? accountNumber
+        ) :
+        base(id, clientId, accountName, balance, accountNumber)
+    {
     }
 }

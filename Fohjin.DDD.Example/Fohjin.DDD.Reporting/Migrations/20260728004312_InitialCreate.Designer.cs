@@ -8,168 +8,167 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Fohjin.DDD.Reporting.Migrations
+namespace Fohjin.DDD.Reporting.Migrations;
+
+[DbContext(typeof(ReportingDbContext))]
+[Migration("20260728004312_InitialCreate")]
+partial class InitialCreate
 {
-    [DbContext(typeof(ReportingDbContext))]
-    [Migration("20260728004312_InitialCreate")]
-    partial class InitialCreate
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
-        {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+        modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountDetailsReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountDetailsReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountName")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountName")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountNumber")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountNumber")
+                    .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("TEXT");
+                b.Property<decimal>("Balance")
+                    .HasColumnType("TEXT");
 
-                    b.Property<Guid>("ClientReportId")
-                        .HasColumnType("TEXT");
+                b.Property<Guid>("ClientReportId")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("AccountDetailsReport", (string)null);
-                });
+                b.ToTable("AccountDetailsReport", (string)null);
+            });
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountName")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountName")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountNumber")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountNumber")
+                    .HasColumnType("TEXT");
 
-                    b.Property<Guid>("ClientDetailsReportId")
-                        .HasColumnType("TEXT");
+                b.Property<Guid>("ClientDetailsReportId")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("AccountReport", (string)null);
-                });
+                b.ToTable("AccountReport", (string)null);
+            });
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("City")
-                        .HasColumnType("TEXT");
+                b.Property<string>("City")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("ClientName")
-                        .HasColumnType("TEXT");
+                b.Property<string>("ClientName")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("PhoneNumber")
-                        .HasColumnType("TEXT");
+                b.Property<string>("PhoneNumber")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("PostalCode")
-                        .HasColumnType("TEXT");
+                b.Property<string>("PostalCode")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("Street")
-                        .HasColumnType("TEXT");
+                b.Property<string>("Street")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("StreetNumber")
-                        .HasColumnType("TEXT");
+                b.Property<string>("StreetNumber")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("ClientDetailsReport", (string)null);
-                });
+                b.ToTable("ClientDetailsReport", (string)null);
+            });
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("Name")
-                        .HasColumnType("TEXT");
+                b.Property<string>("Name")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("ClientReport", (string)null);
-                });
+                b.ToTable("ClientReport", (string)null);
+            });
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountDetailsReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountDetailsReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountName")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountName")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountNumber")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountNumber")
+                    .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Balance")
-                        .HasColumnType("TEXT");
+                b.Property<decimal>("Balance")
+                    .HasColumnType("TEXT");
 
-                    b.Property<Guid>("ClientReportId")
-                        .HasColumnType("TEXT");
+                b.Property<Guid>("ClientReportId")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("ClosedAccountDetailsReport", (string)null);
-                });
+                b.ToTable("ClosedAccountDetailsReport", (string)null);
+            });
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountName")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountName")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("AccountNumber")
-                        .HasColumnType("TEXT");
+                b.Property<string>("AccountNumber")
+                    .HasColumnType("TEXT");
 
-                    b.Property<Guid>("ClientDetailsReportId")
-                        .HasColumnType("TEXT");
+                b.Property<Guid>("ClientDetailsReportId")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("ClosedAccountReport", (string)null);
-                });
+                b.ToTable("ClosedAccountReport", (string)null);
+            });
 
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.LedgerReport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
+        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.LedgerReport", b =>
+            {
+                b.Property<Guid>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("TEXT");
 
-                    b.Property<Guid>("AccountDetailsReportId")
-                        .HasColumnType("TEXT");
+                b.Property<Guid>("AccountDetailsReportId")
+                    .HasColumnType("TEXT");
 
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
+                b.Property<string>("Action")
+                    .IsRequired()
+                    .HasColumnType("TEXT");
 
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("TEXT");
+                b.Property<decimal>("Amount")
+                    .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                b.HasKey("Id");
 
-                    b.ToTable("LedgerReport", (string)null);
-                });
+                b.ToTable("LedgerReport", (string)null);
+            });
 #pragma warning restore 612, 618
-        }
     }
 }

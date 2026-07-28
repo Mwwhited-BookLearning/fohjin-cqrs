@@ -1,8 +1,7 @@
-namespace Fohjin.DDD.Domain.Client
+namespace Fohjin.DDD.Domain.Client;
+
+public interface IBankCard
 {
-    public interface IBankCard
-    {
-        void BankCardIsReportedStolen();
-        void ClientCancelsBankCard();
-    }
+    void BankCardIsReportedStolen();
+    void ClientCancelsBankCard();
 }

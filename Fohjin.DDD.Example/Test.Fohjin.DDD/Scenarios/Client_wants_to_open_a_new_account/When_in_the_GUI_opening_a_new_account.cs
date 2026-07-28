@@ -7,39 +7,38 @@ using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account
+namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_in_the_GUI_opening_a_new_account : PresenterTestFixture<ClientDetailsPresenter>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_in_the_GUI_opening_a_new_account : PresenterTestFixture<ClientDetailsPresenter>
+    protected override void SetupDependencies()
     {
-        protected override void SetupDependencies()
-        {
-            OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
-                .ReturnsAsync(new List<ClientDetailsReport> { new ClientDetailsReport(Guid.NewGuid(), "Client Name", "street", "123", "5000", "bergen", "1234567890") });
-        }
+        OnDependency<IReportingRepository>()
+            .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
+            .ReturnsAsync(new List<ClientDetailsReport> { new ClientDetailsReport(Guid.NewGuid(), "Client Name", "street", "123", "5000", "bergen", "1234567890") });
+    }
 
-        protected override void When()
-        {
-            Presenter.SetClient(new ClientReport(Guid.NewGuid(), "Client name"));
-            Presenter.Display();
-            On<IClientDetailsView>().FireEvent(x => x.OnInitiateOpenNewAccount += delegate { });
-        }
+    protected override void When()
+    {
+        Presenter.SetClient(new ClientReport(Guid.NewGuid(), "Client name"));
+        Presenter.Display();
+        On<IClientDetailsView>().FireEvent(x => x.OnInitiateOpenNewAccount += delegate { });
+    }
 
-        [TestMethod]
-        public void Then_the_menu_buttons_will_be_disabled()
-        {
-            On<IClientDetailsView>().VerifyThat.Method(x => x.DisableAddNewAccountMenu()).WasCalled();
-            On<IClientDetailsView>().VerifyThat.Method(x => x.DisableClientHasMovedMenu()).WasCalled();
-            On<IClientDetailsView>().VerifyThat.Method(x => x.DisableNameChangedMenu()).WasCalled();
-            On<IClientDetailsView>().VerifyThat.Method(x => x.DisablePhoneNumberChangedMenu()).WasCalled();
-        }
+    [TestMethod]
+    public void Then_the_menu_buttons_will_be_disabled()
+    {
+        On<IClientDetailsView>().VerifyThat.Method(x => x.DisableAddNewAccountMenu()).WasCalled();
+        On<IClientDetailsView>().VerifyThat.Method(x => x.DisableClientHasMovedMenu()).WasCalled();
+        On<IClientDetailsView>().VerifyThat.Method(x => x.DisableNameChangedMenu()).WasCalled();
+        On<IClientDetailsView>().VerifyThat.Method(x => x.DisablePhoneNumberChangedMenu()).WasCalled();
+    }
 
-        [TestMethod]
-        public void Then_the_add_new_panel_will_be_enabled()
-        {
-            On<IClientDetailsView>().VerifyThat.Method(x => x.EnableAddNewAccountPanel()).WasCalled();
-        }
+    [TestMethod]
+    public void Then_the_add_new_panel_will_be_enabled()
+    {
+        On<IClientDetailsView>().VerifyThat.Method(x => x.EnableAddNewAccountPanel()).WasCalled();
     }
 }

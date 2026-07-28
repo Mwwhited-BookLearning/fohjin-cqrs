@@ -1,9 +1,8 @@
 
-namespace Fohjin.DDD.EventStore
+namespace Fohjin.DDD.EventStore;
+
+public interface IUnitOfWork
 {
-    public interface IUnitOfWork
-    {
-        Task CommitAsync();
-        Task RollbackAsync();
-    }
+    Task CommitAsync();
+    Task RollbackAsync();
 }

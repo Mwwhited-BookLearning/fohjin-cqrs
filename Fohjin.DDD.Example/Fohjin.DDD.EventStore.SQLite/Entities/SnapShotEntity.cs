@@ -1,9 +1,8 @@
-namespace Fohjin.DDD.EventStore.SQLite.Entities
+namespace Fohjin.DDD.EventStore.SQLite.Entities;
+
+public class SnapShotEntity
 {
-    public class SnapShotEntity
-    {
-        public Guid EventProviderId { get; set; }
-        public byte[] SnapShot { get; set; } = Array.Empty<byte>();
-        public int Version { get; set; }
-    }
+    public Guid EventProviderId { get; set; }
+    public byte[] SnapShot { get; set; } = Array.Empty<byte>();
+    public int Version { get; set; }
 }

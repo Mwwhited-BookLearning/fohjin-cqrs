@@ -7,57 +7,56 @@ using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account
+namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_in_the_GUI_canceling_to_change_account_name : PresenterTestFixture<AccountDetailsPresenter>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_in_the_GUI_canceling_to_change_account_name : PresenterTestFixture<AccountDetailsPresenter>
+    protected override void SetupDependencies()
     {
-        protected override void SetupDependencies()
-        {
-            OnDependency<IPopupPresenter>()
-                .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-                .Callback<Action>(x => x());
+        OnDependency<IPopupPresenter>()
+            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
+            .Callback<Action>(x => x());
 
-            var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
-            OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
-                .ReturnsAsync(accountDetailsReports);
+        var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
+        OnDependency<IReportingRepository>()
+            .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
+            .ReturnsAsync(accountDetailsReports);
 
-            var accountReports = new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890") };
-            OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
-                .ReturnsAsync(accountReports);
-        }
+        var accountReports = new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890") };
+        OnDependency<IReportingRepository>()
+            .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+            .ReturnsAsync(accountReports);
+    }
 
-        protected override void Given()
-        {
-            Presenter.SetAccount(new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890"));
-            Presenter.Display();
-            On<IAccountDetailsView>().FireEvent(x => x.OnInitiateMoneyWithdrawal += null);
-        }
+    protected override void Given()
+    {
+        Presenter.SetAccount(new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890"));
+        Presenter.Display();
+        On<IAccountDetailsView>().FireEvent(x => x.OnInitiateMoneyWithdrawal += null);
+    }
 
-        protected override void When()
-        {
-            On<IAccountDetailsView>().FireEvent(x => x.OnCancel += null);
-        }
+    protected override void When()
+    {
+        On<IAccountDetailsView>().FireEvent(x => x.OnCancel += null);
+    }
 
-        [TestMethod]
-        public void Then_the_save_button_will_be_disabled()
-        {
-            On<IAccountDetailsView>().VerifyThat.Method(x => x.DisableSaveButton()).WasCalled();
-        }
+    [TestMethod]
+    public void Then_the_save_button_will_be_disabled()
+    {
+        On<IAccountDetailsView>().VerifyThat.Method(x => x.DisableSaveButton()).WasCalled();
+    }
 
-        [TestMethod]
-        public void Then_the_menu_buttons_will_be_enabled()
-        {
-            On<IAccountDetailsView>().VerifyThat.Method(x => x.EnableMenuButtons()).WasCalled();
-        }
+    [TestMethod]
+    public void Then_the_menu_buttons_will_be_enabled()
+    {
+        On<IAccountDetailsView>().VerifyThat.Method(x => x.EnableMenuButtons()).WasCalled();
+    }
 
-        [TestMethod]
-        public void Then_the_details_panel_will_be_enabled()
-        {
-            On<IAccountDetailsView>().VerifyThat.Method(x => x.EnableDetailsPanel()).WasCalled();
-        }
+    [TestMethod]
+    public void Then_the_details_panel_will_be_enabled()
+    {
+        On<IAccountDetailsView>().VerifyThat.Method(x => x.EnableDetailsPanel()).WasCalled();
     }
 }

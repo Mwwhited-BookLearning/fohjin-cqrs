@@ -1,30 +1,29 @@
 using Microsoft.Extensions.Logging;
 
-namespace Fohjin.DDD.Common
+namespace Fohjin.DDD.Common;
+
+public class SystemTimer : ISystemTimer, IDisposable
 {
-    public class SystemTimer : ISystemTimer, IDisposable
+    private readonly List<Task> _timers = new();
+    private readonly ILogger _log;
+
+    public SystemTimer(
+        ILogger<SystemTimer> log)
     {
-        private readonly List<Task> _timers = new();
-        private readonly ILogger _log;
+        _log = log;
+    }
 
-        public SystemTimer(
-            ILogger<SystemTimer> log)
+    public void Dispose() =>
+        Task.WaitAll(_timers.ToArray());
+
+    public void Trigger(Func<Task> value, int @in)
+    {
+        _log.LogInformation($"Schedule Timer: {value} ({@in})");
+        _timers.Add(Task.Run(async () =>
         {
-            _log = log;
-        }
-
-        public void Dispose() =>
-            Task.WaitAll(_timers.ToArray());
-
-        public void Trigger(Func<Task> value, int @in)
-        {
-            _log.LogInformation($"Schedule Timer: {value} ({@in})");
-            _timers.Add(Task.Run(async () =>
-            {
-                await Task.Delay(@in);
-                _log.LogInformation($"Triggered Timer: {value} ({@in})");
-                await value();
-            }));
-        }
+            await Task.Delay(@in);
+            _log.LogInformation($"Triggered Timer: {value} ({@in})");
+            await value();
+        }));
     }
 }

@@ -7,50 +7,49 @@ using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account
+namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_in_the_GUI_closing_an_account : PresenterTestFixture<AccountDetailsPresenter>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_in_the_GUI_closing_an_account : PresenterTestFixture<AccountDetailsPresenter>
+    protected override void SetupDependencies()
     {
-        protected override void SetupDependencies()
-        {
-            OnDependency<IPopupPresenter>()
-                .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-                .Callback<Action>(x => x());
+        OnDependency<IPopupPresenter>()
+            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
+            .Callback<Action>(x => x());
 
-            var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
-            OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
-                .ReturnsAsync(accountDetailsReports);
+        var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
+        OnDependency<IReportingRepository>()
+            .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
+            .ReturnsAsync(accountDetailsReports);
 
-            var accountReports = new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890") };
-            OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
-                .ReturnsAsync(accountReports);
-        }
+        var accountReports = new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890") };
+        OnDependency<IReportingRepository>()
+            .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+            .ReturnsAsync(accountReports);
+    }
 
-        protected override void Given()
-        {
-            Presenter.SetAccount(new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890"));
-            Presenter.Display();
-        }
+    protected override void Given()
+    {
+        Presenter.SetAccount(new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890"));
+        Presenter.Display();
+    }
 
-        protected override void When()
-        {
-            On<IAccountDetailsView>().FireEvent(x => x.OnCloseTheAccount += null);
-        }
+    protected override void When()
+    {
+        On<IAccountDetailsView>().FireEvent(x => x.OnCloseTheAccount += null);
+    }
 
-        [TestMethod]
-        public void Then_a_close_account_command_gets_send_to_the_bus()
-        {
-            On<IBus>().VerifyThat.Method(x => x.Publish(It.IsAny<CloseAccountCommand>())).WasCalled();
-        }
+    [TestMethod]
+    public void Then_a_close_account_command_gets_send_to_the_bus()
+    {
+        On<IBus>().VerifyThat.Method(x => x.Publish(It.IsAny<CloseAccountCommand>())).WasCalled();
+    }
 
-        [TestMethod]
-        public void Then_the_view_will_be_closed()
-        {
-            On<IAccountDetailsView>().VerifyThat.Method(x => x.Close()).WasCalled();
-        }
+    [TestMethod]
+    public void Then_the_view_will_be_closed()
+    {
+        On<IAccountDetailsView>().VerifyThat.Method(x => x.Close()).WasCalled();
     }
 }

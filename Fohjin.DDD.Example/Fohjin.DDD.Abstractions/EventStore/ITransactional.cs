@@ -1,9 +1,8 @@
-namespace Fohjin.DDD.EventStore
+namespace Fohjin.DDD.EventStore;
+
+public interface ITransactional
 {
-    public interface ITransactional
-    {
-        Task BeginTransactionAsync();
-        Task CommitAsync();
-        Task RollbackAsync();
-    }
+    Task BeginTransactionAsync();
+    Task CommitAsync();
+    Task RollbackAsync();
 }

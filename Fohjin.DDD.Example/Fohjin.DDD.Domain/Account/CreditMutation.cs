@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.Domain.Account
+﻿namespace Fohjin.DDD.Domain.Account;
+
+public class CreditMutation : Ledger
 {
-    public class CreditMutation : Ledger
-    {
-        public CreditMutation(Amount amount, AccountNumber account) : base(amount, account) { }
-    }
+    public CreditMutation(Amount amount, AccountNumber account) : base(amount, account) { }
 }

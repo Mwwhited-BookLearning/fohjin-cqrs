@@ -1,11 +1,10 @@
 using Fohjin.DDD.EventStore.Storage.Memento;
 
-namespace Fohjin.DDD.EventStore.Storage
+namespace Fohjin.DDD.EventStore.Storage;
+
+public interface IEventStoreUnitOfWork<TDomainEvent> : IUnitOfWork where TDomainEvent : IDomainEvent
 {
-    public interface IEventStoreUnitOfWork<TDomainEvent> : IUnitOfWork where TDomainEvent : IDomainEvent
-    {
-        Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new();
-        void Add<TAggregate>(TAggregate aggregateRoot) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new();
-        void RegisterForTracking<TAggregate>(TAggregate aggregateRoot) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new();
-    }
+    Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new();
+    void Add<TAggregate>(TAggregate aggregateRoot) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new();
+    void RegisterForTracking<TAggregate>(TAggregate aggregateRoot) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new();
 }

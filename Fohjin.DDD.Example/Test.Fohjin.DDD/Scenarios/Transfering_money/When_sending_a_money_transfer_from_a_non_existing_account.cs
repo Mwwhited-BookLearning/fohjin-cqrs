@@ -4,27 +4,26 @@ using Fohjin.DDD.Commands;
 using Fohjin.DDD.Domain.Account;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Transfering_money
+namespace Test.Fohjin.DDD.Scenarios.Transfering_money;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_sending_a_money_transfer_from_a_non_existing_account : CommandTestFixture<SendMoneyTransferCommand, SendMoneyTransferCommandHandler, ActiveAccount>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_sending_a_money_transfer_from_a_non_existing_account : CommandTestFixture<SendMoneyTransferCommand, SendMoneyTransferCommandHandler, ActiveAccount>
+    protected override SendMoneyTransferCommand When()
     {
-        protected override SendMoneyTransferCommand When()
-        {
-            return new SendMoneyTransferCommand(Guid.NewGuid(), 10.0M, "1234567890");
-        }
+        return new SendMoneyTransferCommand(Guid.NewGuid(), 10.0M, "1234567890");
+    }
 
-        [TestMethod]
-        public void Then_a_non_existing_account_exception_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<NonExitsingAccountException>();
-        }
+    [TestMethod]
+    public void Then_a_non_existing_account_exception_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<NonExitsingAccountException>();
+    }
 
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The ActiveAccount is not created and no operations can be executed on it");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The ActiveAccount is not created and no operations can be executed on it");
     }
 }

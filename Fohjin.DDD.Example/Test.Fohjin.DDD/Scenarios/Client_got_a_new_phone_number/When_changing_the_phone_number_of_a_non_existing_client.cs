@@ -4,27 +4,26 @@ using Fohjin.DDD.Commands;
 using Fohjin.DDD.Domain.Client;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Client_got_a_new_phone_number
+namespace Test.Fohjin.DDD.Scenarios.Client_got_a_new_phone_number;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_changing_the_phone_number_of_a_non_existing_client : CommandTestFixture<ChangeClientPhoneNumberCommand, ChangeClientPhoneNumberCommandHandler, Client>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_changing_the_phone_number_of_a_non_existing_client : CommandTestFixture<ChangeClientPhoneNumberCommand, ChangeClientPhoneNumberCommandHandler, Client>
+    protected override ChangeClientPhoneNumberCommand When()
     {
-        protected override ChangeClientPhoneNumberCommand When()
-        {
-            return new ChangeClientPhoneNumberCommand(Guid.NewGuid(), "95009937");
-        }
+        return new ChangeClientPhoneNumberCommand(Guid.NewGuid(), "95009937");
+    }
 
-        [TestMethod]
-        public void Then_a_non_existing_client_exception_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<NonExistingClientException>();
-        }
+    [TestMethod]
+    public void Then_a_non_existing_client_exception_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<NonExistingClientException>();
+    }
 
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The Client is not created and no opperations can be executed on it");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The Client is not created and no opperations can be executed on it");
     }
 }

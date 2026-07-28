@@ -6,27 +6,26 @@ using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account
+namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_an_account_was_closed : EventTestFixture<AccountClosedEvent, AccountClosedEventHandler>
 {
-    [TestClass]
-    [TestCategory("unit")]
-    public class When_an_account_was_closed : EventTestFixture<AccountClosedEvent, AccountClosedEventHandler>
+    protected override AccountClosedEvent When()
     {
-        protected override AccountClosedEvent When()
-        {
-            return new AccountClosedEvent { AggregateId = Guid.NewGuid() };
-        }
+        return new AccountClosedEvent { AggregateId = Guid.NewGuid() };
+    }
 
-        [TestMethod]
-        public void Then_the_reporting_repository_will_be_used_to_update_the_account_report()
-        {
-            OnDependency<IReportingRepository>().Verify(x => x.DeleteAsync<AccountReport>(It.IsAny<object>()), Times.Once());
-        }
+    [TestMethod]
+    public void Then_the_reporting_repository_will_be_used_to_update_the_account_report()
+    {
+        OnDependency<IReportingRepository>().Verify(x => x.DeleteAsync<AccountReport>(It.IsAny<object>()), Times.Once());
+    }
 
-        [TestMethod]
-        public void Then_the_reporting_repository_will_be_used_to_update_the_account_details_report()
-        {
-            OnDependency<IReportingRepository>().Verify(x => x.DeleteAsync<AccountDetailsReport>(It.IsAny<object>()), Times.Once());
-        }
+    [TestMethod]
+    public void Then_the_reporting_repository_will_be_used_to_update_the_account_details_report()
+    {
+        OnDependency<IReportingRepository>().Verify(x => x.DeleteAsync<AccountDetailsReport>(It.IsAny<object>()), Times.Once());
     }
 }

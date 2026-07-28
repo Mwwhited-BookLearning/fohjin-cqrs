@@ -2,21 +2,20 @@ using Fohjin.DDD.Events.Account;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 
-namespace Fohjin.DDD.EventHandlers
+namespace Fohjin.DDD.EventHandlers;
+
+public class AccountNameChangedEventHandler : EventHandlerBase<AccountNameChangedEvent>
 {
-    public class AccountNameChangedEventHandler : EventHandlerBase<AccountNameChangedEvent>
+    private readonly IReportingRepository _reportingRepository;
+
+    public AccountNameChangedEventHandler(IReportingRepository reportingRepository)
     {
-        private readonly IReportingRepository _reportingRepository;
+        _reportingRepository = reportingRepository;
+    }
 
-        public AccountNameChangedEventHandler(IReportingRepository reportingRepository)
-        {
-            _reportingRepository = reportingRepository;
-        }
-
-        public override async Task ExecuteAsync(AccountNameChangedEvent theEvent)
-        {
-            await _reportingRepository.UpdateAsync<AccountReport>(new { theEvent.AccountName }, new { Id = theEvent.AggregateId });
-            await _reportingRepository.UpdateAsync<AccountDetailsReport>(new { theEvent.AccountName }, new { Id = theEvent.AggregateId });
-        }
+    public override async Task ExecuteAsync(AccountNameChangedEvent theEvent)
+    {
+        await _reportingRepository.UpdateAsync<AccountReport>(new { theEvent.AccountName }, new { Id = theEvent.AggregateId });
+        await _reportingRepository.UpdateAsync<AccountDetailsReport>(new { theEvent.AccountName }, new { Id = theEvent.AggregateId });
     }
 }

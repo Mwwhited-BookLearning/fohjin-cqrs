@@ -1,7 +1,6 @@
-namespace Fohjin.DDD.Domain.Account
+namespace Fohjin.DDD.Domain.Account;
+
+public class AccountBalanceToLowException : Exception
 {
-    public class AccountBalanceToLowException : Exception
-    {
-        public AccountBalanceToLowException(string message) : base(message) { }
-    }
+    public AccountBalanceToLowException(string message) : base(message) { }
 }

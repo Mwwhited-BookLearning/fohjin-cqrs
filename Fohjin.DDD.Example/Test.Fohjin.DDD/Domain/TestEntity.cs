@@ -1,24 +1,23 @@
 ﻿using Fohjin.DDD.EventStore;
 using Fohjin.DDD.EventStore.Aggregate;
 
-namespace Test.Fohjin.DDD.Domain
+namespace Test.Fohjin.DDD.Domain;
+
+public class TestEntity : BaseEntity<IDomainEvent>
 {
-    public class TestEntity : BaseEntity<IDomainEvent>
+    public TestEntity()
     {
-        public TestEntity()
-        {
-            RegisterEvent<SomethingElseWasDone>(x => { });
-            RegisterEvent<SomethingAbsolutelyElseWasDone>(x => { });
-        }
+        RegisterEvent<SomethingElseWasDone>(x => { });
+        RegisterEvent<SomethingAbsolutelyElseWasDone>(x => { });
+    }
 
-        public void DoSomethingElse()
-        {
-            Apply(new SomethingElseWasDone());
-        }
+    public void DoSomethingElse()
+    {
+        Apply(new SomethingElseWasDone());
+    }
 
-        public void SomethingAbsolutelyElseWasDone()
-        {
-            Apply(new SomethingAbsolutelyElseWasDone());
-        }
+    public void SomethingAbsolutelyElseWasDone()
+    {
+        Apply(new SomethingAbsolutelyElseWasDone());
     }
 }

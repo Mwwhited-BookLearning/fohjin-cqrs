@@ -3,42 +3,41 @@ using Fohjin.DDD.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Fohjin.DDD.Bus.Direct
+namespace Fohjin.DDD.Bus.Direct;
+
+// Commands only - domain events are delivered via IBus.Events (see EventSubscriptionBootstrapper)
+// instead of being routed through here.
+public class MessageRouter : IRouteMessages
 {
-    // Commands only - domain events are delivered via IBus.Events (see EventSubscriptionBootstrapper)
-    // instead of being routed through here.
-    public class MessageRouter : IRouteMessages
+    private static int _seed;
+    private readonly int _id = _seed++;
+
+    private ICommandHandlerHelper? _commandHandlerHelper;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger _log;
+
+    public MessageRouter(
+        IServiceProvider serviceProvider,
+        ILogger<MessageRouter> log
+        )
     {
-        private static int _seed;
-        private readonly int _id = _seed++;
+        _serviceProvider = serviceProvider;
+        _log = log;
+    }
 
-        private ICommandHandlerHelper? _commandHandlerHelper;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly ILogger _log;
-
-        public MessageRouter(
-            IServiceProvider serviceProvider,
-            ILogger<MessageRouter> log
-            )
+    public async Task<bool> RouteAsync(object message)
+    {
+        _log.LogInformation($"RouteAsync({{id}})> {{type}}: {{{nameof(message)}}}", _id, message.GetType(), message);
+        var handled = false;
+        if (message is ICommand command)
         {
-            _serviceProvider = serviceProvider;
-            _log = log;
+            _commandHandlerHelper ??= _serviceProvider.GetRequiredService<ICommandHandlerHelper>();
+            handled |= await _commandHandlerHelper.RouteAsync(command);
         }
 
-        public async Task<bool> RouteAsync(object message)
-        {
-            _log.LogInformation($"RouteAsync({{id}})> {{type}}: {{{nameof(message)}}}", _id, message.GetType(), message);
-            var handled = false;
-            if (message is ICommand command)
-            {
-                _commandHandlerHelper ??= _serviceProvider.GetRequiredService<ICommandHandlerHelper>();
-                handled |= await _commandHandlerHelper.RouteAsync(command);
-            }
+        if (!handled)
+            _log.LogWarning($"RouteAsync({{id}})-NotHandled> {{type}}: {{{nameof(message)}}}", _id, message.GetType(), message);
 
-            if (!handled)
-                _log.LogWarning($"RouteAsync({{id}})-NotHandled> {{type}}: {{{nameof(message)}}}", _id, message.GetType(), message);
-
-            return handled;
-        }
+        return handled;
     }
 }

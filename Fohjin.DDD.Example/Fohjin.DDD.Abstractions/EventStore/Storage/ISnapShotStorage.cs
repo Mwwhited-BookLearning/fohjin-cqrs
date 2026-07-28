@@ -1,8 +1,7 @@
-namespace Fohjin.DDD.EventStore.Storage
+namespace Fohjin.DDD.EventStore.Storage;
+
+public interface ISnapShotStorage<TDomainEvent> where TDomainEvent : IDomainEvent
 {
-    public interface ISnapShotStorage<TDomainEvent> where TDomainEvent : IDomainEvent
-    {
-        Task<ISnapShot?> GetSnapShotAsync(Guid entityId);
-        Task SaveShapShotAsync(IEventProvider<TDomainEvent> entity);
-    }
+    Task<ISnapShot?> GetSnapShotAsync(Guid entityId);
+    Task SaveShapShotAsync(IEventProvider<TDomainEvent> entity);
 }

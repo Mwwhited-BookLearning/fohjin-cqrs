@@ -1,12 +1,11 @@
 using Fohjin.DDD.Reporting.Dtos;
 
-namespace Fohjin.DDD.BankApplication.Views
+namespace Fohjin.DDD.BankApplication.Views;
+
+public interface IClientSearchFormView : IView
 {
-    public interface IClientSearchFormView : IView
-    {
-        IEnumerable<ClientReport>? Clients { get; set; }
-        ClientReport? GetSelectedClient();
-        event Action? OnCreateNewClient;
-        event Action? OnOpenSelectedClient;
-    }
+    IEnumerable<ClientReport>? Clients { get; set; }
+    ClientReport? GetSelectedClient();
+    event Action? OnCreateNewClient;
+    event Action? OnOpenSelectedClient;
 }

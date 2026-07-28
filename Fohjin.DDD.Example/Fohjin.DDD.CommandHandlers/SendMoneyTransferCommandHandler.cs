@@ -2,22 +2,21 @@ using Fohjin.DDD.Commands;
 using Fohjin.DDD.Domain.Account;
 using Fohjin.DDD.EventStore;
 
-namespace Fohjin.DDD.CommandHandlers
+namespace Fohjin.DDD.CommandHandlers;
+
+public class SendMoneyTransferCommandHandler : CommandHandlerBase<SendMoneyTransferCommand>
 {
-    public class SendMoneyTransferCommandHandler : CommandHandlerBase<SendMoneyTransferCommand>
+    private readonly IDomainRepository<IDomainEvent> _repository;
+
+    public SendMoneyTransferCommandHandler(IDomainRepository<IDomainEvent> repository)
     {
-        private readonly IDomainRepository<IDomainEvent> _repository;
+        _repository = repository;
+    }
 
-        public SendMoneyTransferCommandHandler(IDomainRepository<IDomainEvent> repository)
-        {
-            _repository = repository;
-        }
+    public override async Task ExecuteAsync(SendMoneyTransferCommand compensatingCommand)
+    {
+        var activeAccount = await _repository.GetByIdAsync<ActiveAccount>(compensatingCommand.Id);
 
-        public override async Task ExecuteAsync(SendMoneyTransferCommand compensatingCommand)
-        {
-            var activeAccount = await _repository.GetByIdAsync<ActiveAccount>(compensatingCommand.Id);
-
-            activeAccount?.SendTransferTo(new AccountNumber(compensatingCommand.AccountNumber), new Amount(compensatingCommand.Amount));
-        }
+        activeAccount?.SendTransferTo(new AccountNumber(compensatingCommand.AccountNumber), new Amount(compensatingCommand.Amount));
     }
 }

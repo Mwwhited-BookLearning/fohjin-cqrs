@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.EventStore
+﻿namespace Fohjin.DDD.EventStore;
+
+public interface IRegisterChildEntities<TDomainEvent> where TDomainEvent : IDomainEvent
 {
-    public interface IRegisterChildEntities<TDomainEvent> where TDomainEvent : IDomainEvent
-    {
-        void RegisterChildEventProvider(IEntityEventProvider<TDomainEvent> entityEventProvider);
-    }
+    void RegisterChildEventProvider(IEntityEventProvider<TDomainEvent> entityEventProvider);
 }

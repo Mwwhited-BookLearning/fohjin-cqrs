@@ -3,64 +3,63 @@ using Fohjin.DDD.Common;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 
-namespace Fohjin.DDD.BankApplication.Presenters
+namespace Fohjin.DDD.BankApplication.Presenters;
+
+public class ClientSearchFormPresenter : Presenter<IClientSearchFormView>, IClientSearchFormPresenter
 {
-    public class ClientSearchFormPresenter : Presenter<IClientSearchFormView>, IClientSearchFormPresenter
+    private readonly IClientSearchFormView _clientSearchFormView;
+    private readonly IPopupPresenter _popupPresenter;
+    private readonly IClientDetailsPresenter _clientDetailsPresenter;
+    private readonly IReportingRepository _reportingRepository;
+    private readonly ISystemTimer _systemTimer;
+
+    public ClientSearchFormPresenter(
+        IClientSearchFormView clientSearchFormView,
+        IClientDetailsPresenter clientDetailsPresenter,
+        IPopupPresenter popupPresenter,
+        IReportingRepository reportingRepository,
+        ISystemTimer systemTimer
+        ) : base(clientSearchFormView)
     {
-        private readonly IClientSearchFormView _clientSearchFormView;
-        private readonly IPopupPresenter _popupPresenter;
-        private readonly IClientDetailsPresenter _clientDetailsPresenter;
-        private readonly IReportingRepository _reportingRepository;
-        private readonly ISystemTimer _systemTimer;
+        _clientSearchFormView = clientSearchFormView;
+        _popupPresenter = popupPresenter;
+        _clientDetailsPresenter = clientDetailsPresenter;
+        _reportingRepository = reportingRepository;
+        _systemTimer = systemTimer;
+    }
 
-        public ClientSearchFormPresenter(
-            IClientSearchFormView clientSearchFormView,
-            IClientDetailsPresenter clientDetailsPresenter,
-            IPopupPresenter popupPresenter,
-            IReportingRepository reportingRepository,
-            ISystemTimer systemTimer
-            ) : base(clientSearchFormView)
-        {
-            _clientSearchFormView = clientSearchFormView;
-            _popupPresenter = popupPresenter;
-            _clientDetailsPresenter = clientDetailsPresenter;
-            _reportingRepository = reportingRepository;
-            _systemTimer = systemTimer;
-        }
+    public void CreateNewClient()
+    {
+        _clientDetailsPresenter.SetClient(null);
+        _clientDetailsPresenter.Display();
+        _systemTimer.Trigger(LoadDataAsync, 2000);
+    }
 
-        public void CreateNewClient()
+    public void OpenSelectedClient()
+    {
+        _popupPresenter.CatchPossibleException(() =>
         {
-            _clientDetailsPresenter.SetClient(null);
+            var client = _clientSearchFormView.GetSelectedClient();
+            _clientDetailsPresenter.SetClient(client);
             _clientDetailsPresenter.Display();
-            _systemTimer.Trigger(LoadDataAsync, 2000);
-        }
+        });
+    }
 
-        public void OpenSelectedClient()
+    public async void Display()
+    {
+        await LoadDataAsync();
+        try
         {
-            _popupPresenter.CatchPossibleException(() =>
-            {
-                var client = _clientSearchFormView.GetSelectedClient();
-                _clientDetailsPresenter.SetClient(client);
-                _clientDetailsPresenter.Display();
-            });
+            _clientSearchFormView.ShowDialog();
         }
+        finally
+        {
+            _clientSearchFormView.Dispose();
+        }
+    }
 
-        public async void Display()
-        {
-            await LoadDataAsync();
-            try
-            {
-                _clientSearchFormView.ShowDialog();
-            }
-            finally
-            {
-                _clientSearchFormView.Dispose();
-            }
-        }
-
-        private async Task LoadDataAsync()
-        {
-            _clientSearchFormView.Clients = await _reportingRepository.GetByExampleAsync<ClientReport>(null);
-        }
+    private async Task LoadDataAsync()
+    {
+        _clientSearchFormView.Clients = await _reportingRepository.GetByExampleAsync<ClientReport>(null);
     }
 }

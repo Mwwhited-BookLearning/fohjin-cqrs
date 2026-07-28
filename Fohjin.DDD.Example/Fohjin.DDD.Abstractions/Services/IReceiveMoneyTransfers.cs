@@ -1,9 +1,8 @@
 ﻿using Fohjin.DDD.Services.Models;
 
-namespace Fohjin.DDD.Services
+namespace Fohjin.DDD.Services;
+
+public interface IReceiveMoneyTransfers
 {
-    public interface IReceiveMoneyTransfers
-    {
-        Task Receive(MoneyTransfer moneyTransfer);
-    }
+    Task Receive(MoneyTransfer moneyTransfer);
 }

@@ -46,16 +46,22 @@ rectangle "AccountDetailsPresenter\n<size:11><<Component>></size>" <<Component>>
 rectangle "AccountDetails\n<size:11><<WinForms Form>></size>" <<Component>> as v3
 rectangle "PopupPresenter\n<size:11><<Component>></size>\nCatchPossibleException" <<Component>> as p4
 rectangle "Popup\n<size:11><<WinForms Form>></size>" <<Component>> as v4
+rectangle "MonitoringPresenter\n<size:11><<Component>></size>\nsubscribes at startup,\nlives for the app's lifetime" <<Component>> as p5
+rectangle "MonitoringForm\n<size:11><<WinForms Form,\nnon-modal>></size>" <<Component>> as v5
+rectangle "MonitoringLoggerProvider\n<size:11><<Fohjin.DDD.Common>></size>\nILoggerProvider, raises\na line per log call" <<Component>> as logProvider
 
 p1 --> v1 : hooks up via reflection
 p2 --> v2 : hooks up via reflection
 p3 --> v3 : hooks up via reflection
 p4 --> v4 : hooks up via reflection
+p5 --> v5 : hooks up via reflection
 p1 --> p2 : SetClient() + Display()
 p2 --> p3 : OpenSelectedAccount()
 p1 --> p4 : wraps command-publishing\nblocks in CatchPossibleException
 p2 --> p4 : "
 p3 --> p4 : "
+logProvider --> p5 : LineLogged event
+"IBus" --> p5 : Events (Rx)
 @enduml
 ```
 
@@ -190,6 +196,74 @@ save (no batching, unlike create).
   [OK]
 }
 @endsalt
+```
+
+**Monitoring** — a non-modal companion window, opened alongside the main window at
+startup (`MonitoringPresenter.Display()` calls `Show()`, not `ShowDialog()`, so it never
+blocks the rest of the UI). Two bounded, auto-scrolling lists: every `ILogger` call in the
+app on the left, every domain event that crosses `IBus.Events` on the right. Capped at a
+fixed entry count (oldest trimmed) so a long-running session doesn't grow memory or the
+control unboundedly.
+
+```plantuml
+@startsalt
+{
+  Monitoring
+  ==
+  {
+    Logs
+    {
+      "10:03:41.201 [Information] DirectBus: Publish: CreateClientCommand"
+      "10:03:41.205 [Information] CommandHandlerHelper: RouteAsync -> CreateClientCommandHandler"
+      "10:03:41.212 [Information] EventStoreUnitOfWork: CommitAsync"
+    }
+  } | {
+    Events
+    {
+      "10:03:41.215  ClientCreatedEvent  AggregateId=3f2a..."
+      "10:03:41.240  AccountOpenedEvent  AggregateId=91cd..."
+    }
+  }
+}
+@endsalt
+```
+
+Design notes (see the components diagram above for how the pieces connect):
+
+- `MonitoringLoggerProvider` (`Fohjin.DDD.Common`) is a custom `ILoggerProvider` registered
+  alongside the existing console/debug providers in `Program.cs` — it doesn't replace them,
+  it's a third listener. It raises a plain `event Action<string>? LineLogged` per log call
+  (not an `IObservable`, since this project only needs simple fan-out here and the
+  `Microsoft.Extensions.Logging` provider model is already the "many listeners" mechanism).
+- `MonitoringPresenter` subscribes to `LineLogged` **and** `IBus.Events` once, in its
+  constructor, so capture starts at app boot (before the main window is even shown) rather
+  than only after the user opens the pane.
+- Both subscriptions can fire from any thread — log calls happen everywhere, and
+  `IBus.Events` deliveries run on whatever thread `DirectBus`'s consumer loop happens to be
+  on (see `07-messaging-bus.md`), never guaranteed to be the UI thread. `MonitoringForm`'s
+  `AppendLogLine`/`AppendEventLine` marshal to the UI thread themselves
+  (`InvokeRequired`/`BeginInvoke`) before touching a control — the same fix already applied
+  to `SystemTimer` for the same reason.
+
+```plantuml
+@startuml
+participant "anything that logs" as Logger
+participant "MonitoringLoggerProvider" as Provider
+participant "MonitoringPresenter" as Presenter
+participant "MonitoringForm" as View
+participant "IBus" as Bus
+
+Logger -> Provider : ILogger.Log(...)\n(any thread)
+Provider -> Presenter : LineLogged(formattedLine)
+Presenter -> View : AppendLogLine(line)
+View -> View : InvokeRequired? BeginInvoke to UI thread
+View -> View : add to bounded ListBox,\nscroll to bottom
+
+Bus ->> Presenter : OnNext(domainEvent) (Rx, any thread)
+Presenter -> View : AppendEventLine(line)
+View -> View : InvokeRequired? BeginInvoke to UI thread
+View -> View : add to bounded ListBox,\nscroll to bottom
+@enduml
 ```
 
 ## Sequence: create new client, full UI-to-refresh flow

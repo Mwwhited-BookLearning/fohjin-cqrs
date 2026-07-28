@@ -6,7 +6,8 @@ using Fohjin.DDD.Domain.Mementos;
 using Fohjin.DDD.EventStore;
 using Fohjin.DDD.EventStore.SQLite;
 using Fohjin.DDD.EventStore.Storage;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -36,7 +37,7 @@ namespace Test.Fohjin.DDD.Domain.Repositories
         private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork;
 
         [TestInitialize]
-        public void SetUp()
+        public async Task SetUp()
         {
             TestContext.SetupWorkingDirectory();
             var dataBaseFile = Path.Combine(
@@ -45,16 +46,16 @@ namespace Test.Fohjin.DDD.Domain.Repositories
                 DomainDatabaseBootStrapper.DataBaseFile
                 );
 
-            new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
+            await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
 
             var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
 
-            var config = new ConfigurationBuilder()
-                .AddTupleConfiguration((DomainEventStorage.ConnectionStringConfigKey, sqliteConnectionString))
-                .Build();
+            var dbContextOptions = new DbContextOptionsBuilder<DomainEventStoreDbContext>()
+                .UseSqlite(sqliteConnectionString)
+                .Options;
 
             _domainEventStorage = new DomainEventStorage<IDomainEvent>(
-                config,
+                new PooledDbContextFactory<DomainEventStoreDbContext>(dbContextOptions),
                 new ExtendedFormatter()
                 );
 
@@ -73,28 +74,28 @@ namespace Test.Fohjin.DDD.Domain.Repositories
         }
 
         [TestMethod]
-        public void When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
+        public async Task When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            Assert.AreEqual(3, _domainEventStorage?.GetEventsSinceLastSnapShot(client.Id).Count());
-            Assert.AreEqual(3, _domainEventStorage?.GetAllEvents(client.Id).Count());
+            Assert.AreEqual(3, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(client.Id)).Count());
+            Assert.AreEqual(3, (await _domainEventStorage!.GetAllEventsAsync(client.Id)).Count());
         }
 
         [TestMethod]
-        public void When_calling_Save_it_will_reset_the_domain_events()
+        public async Task When_calling_Save_it_will_reset_the_domain_events()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
             var clientForRepository = (IEventProvider<IDomainEvent>)client;
 
@@ -102,7 +103,7 @@ namespace Test.Fohjin.DDD.Domain.Repositories
         }
 
         [TestMethod]
-        public void When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_9_events_will_not()
+        public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_9_events_will_not()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -115,13 +116,13 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            Assert.IsNull(_domainEventStorage?.GetSnapShot(client.Id));
+            Assert.IsNull((await _domainEventStorage!.GetSnapShotAsync(client.Id)));
         }
 
         [TestMethod]
-        public void When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_10_events()
+        public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_10_events()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -135,17 +136,17 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
-            _domainEventStorage?.SaveShapShot(client);
+            await _eventStoreUnitOfWork!.CommitAsync();
+            await _domainEventStorage!.SaveShapShotAsync(client);
 
-            var snapShot = _domainEventStorage?.GetSnapShot(client.Id);
+            var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
 
             Assert.IsNotNull(snapShot);
             Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
         }
 
         [TestMethod]
-        public void When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_11_events()
+        public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_11_events()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -160,17 +161,17 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
-            _domainEventStorage?.SaveShapShot(client);
+            await _eventStoreUnitOfWork!.CommitAsync();
+            await _domainEventStorage!.SaveShapShotAsync(client);
 
-            var snapShot = _domainEventStorage?.GetSnapShot(client.Id);
+            var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
 
             Assert.IsNotNull(snapShot);
             Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
         }
 
         [TestMethod]
-        public void When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot()
+        public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -184,8 +185,8 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
-            _domainEventStorage?.SaveShapShot(client);
+            await _eventStoreUnitOfWork!.CommitAsync();
+            await _domainEventStorage!.SaveShapShotAsync(client);
 
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -201,16 +202,16 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            var snapShot = _domainEventStorage?.GetSnapShot(client.Id);
+            var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
 
             Assert.IsNotNull(snapShot);
             Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
         }
 
         [TestMethod]
-        public void When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot()
+        public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -224,8 +225,8 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
-            _domainEventStorage?.SaveShapShot(client);
+            await _eventStoreUnitOfWork!.CommitAsync();
+            await _domainEventStorage!.SaveShapShotAsync(client);
 
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -238,16 +239,16 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            var snapShot = _domainEventStorage?.GetSnapShot(client.Id);
+            var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
 
             Assert.IsNotNull(snapShot);
             Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
         }
 
         [TestMethod]
-        public void When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot_verify_all_event_counts()
+        public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot_verify_all_event_counts()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -261,8 +262,8 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
-            _domainEventStorage?.SaveShapShot(client);
+            await _eventStoreUnitOfWork!.CommitAsync();
+            await _domainEventStorage!.SaveShapShotAsync(client);
 
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -275,14 +276,14 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            Assert.AreEqual(9, _domainEventStorage?.GetEventsSinceLastSnapShot(client.Id).Count());
-            Assert.AreEqual(19, _domainEventStorage?.GetAllEvents(client.Id).Count());
+            Assert.AreEqual(9, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(client.Id)).Count());
+            Assert.AreEqual(19, (await _domainEventStorage!.GetAllEventsAsync(client.Id)).Count());
         }
 
         [TestMethod]
-        public void When_calling_GetById_after_9_events_a_new_Client_will_be_populated()
+        public async Task When_calling_GetById_after_9_events_a_new_Client_will_be_populated()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -296,11 +297,11 @@ namespace Test.Fohjin.DDD.Domain.Repositories
 
             _repository?.Add(client);
 
-            _repository?.GetById<Client>(client.Id);
+            await _repository!.GetByIdAsync<Client>(client.Id);
         }
 
         [TestMethod]
-        public void When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created()
+        public async Task When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -314,13 +315,13 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("0987654321"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            _repository?.GetById<Client>(client.Id);
+            await _repository!.GetByIdAsync<Client>(client.Id);
         }
 
         [TestMethod]
-        public void When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created_11_events()
+        public async Task When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created_11_events()
         {
             var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
             client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
@@ -335,9 +336,9 @@ namespace Test.Fohjin.DDD.Domain.Repositories
             client.UpdatePhoneNumber(new PhoneNumber("0987654321"));
 
             _repository?.Add(client);
-            _eventStoreUnitOfWork?.Commit();
+            await _eventStoreUnitOfWork!.CommitAsync();
 
-            _repository?.GetById<Client>(client.Id);
+            await _repository!.GetByIdAsync<Client>(client.Id);
         }
     }
 }

@@ -6,7 +6,7 @@ namespace Fohjin.DDD.BankApplication.Views
     {
         IEnumerable<ClientReport>? Clients { get; set; }
         ClientReport? GetSelectedClient();
-        event EventAction? OnCreateNewClient;
-        event EventAction? OnOpenSelectedClient;
+        event Action? OnCreateNewClient;
+        event Action? OnOpenSelectedClient;
     }
 }

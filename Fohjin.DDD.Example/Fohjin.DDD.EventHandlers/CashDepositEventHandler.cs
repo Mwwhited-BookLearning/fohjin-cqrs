@@ -13,11 +13,10 @@ namespace Fohjin.DDD.EventHandlers
             _reportingRepository = reportingRepository;
         }
 
-        public override Task ExecuteAsync(CashDepositedEvent theEvent)
+        public override async Task ExecuteAsync(CashDepositedEvent theEvent)
         {
-            _reportingRepository.Update<AccountDetailsReport>(new { theEvent.Balance }, new { Id = theEvent.AggregateId });
-            _reportingRepository.Save(new LedgerReport(theEvent.Id, theEvent.AggregateId, "Deposit", theEvent.Amount));
-            return Task.CompletedTask;
+            await _reportingRepository.UpdateAsync<AccountDetailsReport>(new { theEvent.Balance }, new { Id = theEvent.AggregateId });
+            await _reportingRepository.SaveAsync(new LedgerReport(theEvent.Id, theEvent.AggregateId, "Deposit", theEvent.Amount));
         }
     }
 }

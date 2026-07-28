@@ -1,63 +1,30 @@
-using Fohjin.DDD.Reporting.Dtos;
-using Fohjin.DDD.Reporting.Infrastructure;
-using Microsoft.Data.Sqlite;
-using System.Data.Common;
+using Fohjin.DDD.Reporting;
+using Microsoft.EntityFrameworkCore;
 
 namespace Fohjin.DDD.BankApplication
 {
     public class ReportingDatabaseBootStrapper
     {
         public const string ReportingDataBaseFile = "reportingDataBase.db3";
-        private readonly List<Type> _dtos = new()
-        {
-            typeof(ClientReport),
-            typeof(ClientDetailsReport),
-            typeof(AccountReport),
-            typeof(AccountDetailsReport),
-            typeof(ClosedAccountReport),
-            typeof(ClosedAccountDetailsReport),
-            typeof(LedgerReport),
-        };
-        private readonly SqlCreateBuilder _sqlCreateBuilder = new();
 
-        public void ReCreateDatabaseSchema(string dataBaseFile)
+        public async Task ReCreateDatabaseSchema(string dataBaseFile)
         {
-            if (File.Exists(dataBaseFile))
-                File.Delete(dataBaseFile);
-
-            DoCreateDatabaseSchema(dataBaseFile);
+            await using var context = CreateContext(dataBaseFile);
+            await context.Database.EnsureDeletedAsync();
+            await context.Database.MigrateAsync();
         }
 
-        public void CreateDatabaseSchemaIfNeeded(string dataBaseFile)
+        public async Task CreateDatabaseSchemaIfNeeded(string dataBaseFile)
         {
-            if (File.Exists(dataBaseFile))
-                return;
-
-            DoCreateDatabaseSchema(dataBaseFile);
+            await using var context = CreateContext(dataBaseFile);
+            await context.Database.MigrateAsync();
         }
 
-        private void DoCreateDatabaseSchema(string dataBaseFile)
+        private static ReportingDbContext CreateContext(string dataBaseFile)
         {
-            //SQLiteConnection.CreateFile(dataBaseFile);
-
-            var sqLiteConnection = new SqliteConnection(string.Format("Data Source={0}", dataBaseFile));
-
-            sqLiteConnection.Open();
-
-            using (DbTransaction dbTrans = sqLiteConnection.BeginTransaction())
-            {
-                using (DbCommand sqLiteCommand = sqLiteConnection.CreateCommand())
-                {
-                    foreach (var dto in _dtos)
-                    {
-                        sqLiteCommand.CommandText = _sqlCreateBuilder.CreateSqlCreateStatementFromDto(dto);
-                        sqLiteCommand.ExecuteNonQuery();
-                    }
-                }
-                dbTrans.Commit();
-            }
-
-            sqLiteConnection.Close();
+            var optionsBuilder = new DbContextOptionsBuilder<ReportingDbContext>();
+            optionsBuilder.UseSqlite($"Data Source={dataBaseFile}");
+            return new ReportingDbContext(optionsBuilder.Options);
         }
     }
 }

@@ -13,11 +13,10 @@ public class ChangeAccountNameCommandHandler : CommandHandlerBase<ChangeAccountN
         _repository = repository;
     }
 
-    public override Task ExecuteAsync(ChangeAccountNameCommand compensatingCommand)
+    public override async Task ExecuteAsync(ChangeAccountNameCommand compensatingCommand)
     {
-        var activeAccount = _repository.GetById<ActiveAccount>(compensatingCommand.Id);
+        var activeAccount = await _repository.GetByIdAsync<ActiveAccount>(compensatingCommand.Id);
 
         activeAccount?.ChangeAccountName(new AccountName(compensatingCommand.AccountName));
-        return Task.CompletedTask;
     }
 }

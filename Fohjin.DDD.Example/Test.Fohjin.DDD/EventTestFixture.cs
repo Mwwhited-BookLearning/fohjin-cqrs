@@ -20,7 +20,7 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
     protected virtual void Finally() { }
 
     [TestInitialize]
-    public void Setup()
+    public async Task Setup()
     {
         mocks = new Dictionary<Type, object>();
         CaughtException = new ThereWasNoExceptionButOneWasExpectedException();
@@ -29,7 +29,7 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
 
         try
         {
-            EventHandler.ExecuteAsync(When()).GetAwaiter().GetResult();
+            await EventHandler.ExecuteAsync(When());
         }
         catch (Exception exception)
         {

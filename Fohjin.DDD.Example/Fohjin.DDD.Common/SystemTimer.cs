@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.Common
 {
@@ -13,17 +13,17 @@ namespace Fohjin.DDD.Common
             _log = log;
         }
 
-        public void Dispose() => 
+        public void Dispose() =>
             Task.WaitAll(_timers.ToArray());
 
-        public void Trigger(Action value, int @in)
+        public void Trigger(Func<Task> value, int @in)
         {
             _log.LogInformation($"Schedule Timer: {value} ({@in})");
             _timers.Add(Task.Run(async () =>
             {
                 await Task.Delay(@in);
                 _log.LogInformation($"Triggered Timer: {value} ({@in})");
-                value();
+                await value();
             }));
         }
     }

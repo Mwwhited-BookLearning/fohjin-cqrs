@@ -2,9 +2,9 @@ namespace Fohjin.DDD.EventStore.Storage
 {
     public interface IDomainEventStorage<TDomainEvent> : ISnapShotStorage<TDomainEvent>, ITransactional where TDomainEvent : IDomainEvent
     {
-        IEnumerable<TDomainEvent> GetAllEvents(Guid eventProviderId);
-        IEnumerable<TDomainEvent> GetEventsSinceLastSnapShot(Guid eventProviderId);
-        int GetEventCountSinceLastSnapShot(Guid eventProviderId);
-        void Save(IEventProvider<TDomainEvent> eventProvider);
+        Task<IEnumerable<TDomainEvent>> GetAllEventsAsync(Guid eventProviderId);
+        Task<IEnumerable<TDomainEvent>> GetEventsSinceLastSnapShotAsync(Guid eventProviderId);
+        Task<int> GetEventCountSinceLastSnapShotAsync(Guid eventProviderId);
+        Task SaveAsync(IEventProvider<TDomainEvent> eventProvider);
     }
 }

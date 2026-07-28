@@ -18,16 +18,16 @@ public class When_in_the_GUI_displaying_account_details : PresenterTestFixture<A
         var accountDetailsReports = new List<AccountDetailsReport> {_accountDetailsReport};
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExample<AccountDetailsReport>(It.IsAny<object>()))
-            .Returns(accountDetailsReports);
+            .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
+            .ReturnsAsync(accountDetailsReports);
 
         var accountReport1 = new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890");
         var accountReport2 = new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 2", "1234567890");
         _accountReports = new List<AccountReport> {accountReport1, accountReport2};
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
-            .Returns(_accountReports);
+            .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+            .ReturnsAsync(_accountReports);
     }
 
     protected override void When()

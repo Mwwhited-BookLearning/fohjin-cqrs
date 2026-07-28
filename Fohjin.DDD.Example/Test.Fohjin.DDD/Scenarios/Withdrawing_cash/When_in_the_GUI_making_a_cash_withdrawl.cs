@@ -19,8 +19,8 @@ namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash
 
             var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
             OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExample<AccountDetailsReport>(It.IsAny<object>()))
-                .Returns(accountDetailsReports);
+                .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
+                .ReturnsAsync(accountDetailsReports);
         }
 
         protected override void Given()

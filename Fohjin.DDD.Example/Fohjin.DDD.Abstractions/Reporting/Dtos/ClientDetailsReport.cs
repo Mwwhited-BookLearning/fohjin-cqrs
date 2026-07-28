@@ -19,7 +19,6 @@ namespace Fohjin.DDD.Reporting.Dtos
         {
         }
 
-        [SqliteConstructor]
         public ClientDetailsReport(
             Guid id,
             string? clientName,

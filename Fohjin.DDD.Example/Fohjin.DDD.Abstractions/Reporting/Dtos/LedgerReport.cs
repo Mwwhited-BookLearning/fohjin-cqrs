@@ -12,7 +12,6 @@ namespace Fohjin.DDD.Reporting.Dtos
         [JsonConstructor]
         public LedgerReport() { }
 
-        [SqliteConstructor]
         public LedgerReport(Guid id, Guid accountDetailsReportId, string action, decimal amount)
         {
             Id = id;

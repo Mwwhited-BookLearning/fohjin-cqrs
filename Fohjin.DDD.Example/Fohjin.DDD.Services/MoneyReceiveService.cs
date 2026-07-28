@@ -18,16 +18,16 @@ namespace Fohjin.DDD.Services
             _reportingRepository = reportingRepository;
         }
 
-        public void Receive(MoneyTransfer moneyTransfer)
+        public async void Receive(MoneyTransfer moneyTransfer)
         {
-            MoneyTransferIsGoingToAnInternalAccount(moneyTransfer);
+            await MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);
         }
 
-        private void MoneyTransferIsGoingToAnInternalAccount(MoneyTransfer moneyTransfer)
+        private async Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
         {
             try
             {
-                var account = _reportingRepository.GetByExample<AccountReport>(new { moneyTransfer.TargetAccount }).First();
+                var account = (await _reportingRepository.GetByExampleAsync<AccountReport>(new { moneyTransfer.TargetAccount })).First();
                 _bus.Publish(new ReceiveMoneyTransferCommand(account.Id, moneyTransfer.Amount, moneyTransfer.SourceAccount));
             }
             catch (Exception)

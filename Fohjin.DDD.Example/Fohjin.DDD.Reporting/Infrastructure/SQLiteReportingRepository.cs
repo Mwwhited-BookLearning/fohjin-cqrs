@@ -1,255 +1,131 @@
-using Microsoft.Data.Sqlite;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace Fohjin.DDD.Reporting.Infrastructure
 {
     public class SqliteReportingRepository : IReportingRepository
     {
-        private readonly string _sqLiteConnectionString;
-        private readonly ISqlSelectBuilder _sqlSelectBuilder;
-        private readonly ISqlInsertBuilder _sqlInsertBuilder;
-        private readonly ISqlUpdateBuilder _sqlUpdateBuilder;
-        private readonly ISqlDeleteBuilder _sqlDeleteBuilder;
+        private readonly IDbContextFactory<ReportingDbContext> _dbContextFactory;
 
-        public SqliteReportingRepository(string sqLiteConnectionString, ISqlSelectBuilder sqlSelectBuilder, ISqlInsertBuilder sqlInsertBuilder, ISqlUpdateBuilder sqlUpdateBuilder, ISqlDeleteBuilder sqlDeleteBuilder)
+        public SqliteReportingRepository(IDbContextFactory<ReportingDbContext> dbContextFactory)
         {
-            _sqLiteConnectionString = sqLiteConnectionString;
-            _sqlSelectBuilder = sqlSelectBuilder;
-            _sqlInsertBuilder = sqlInsertBuilder;
-            _sqlUpdateBuilder = sqlUpdateBuilder;
-            _sqlDeleteBuilder = sqlDeleteBuilder;
+            _dbContextFactory = dbContextFactory;
         }
 
-        public IEnumerable<TDto> GetByExample<TDto>(object? example) where TDto : class
+        public async Task<IEnumerable<TDto>> GetByExampleAsync<TDto>(object? example) where TDto : class
         {
-            return example == null
-                ? GetByExample<TDto>(new Dictionary<string, object?>())
-                : GetByExample<TDto>(GetPropertyInformation(example));
-        }
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
 
-        public IEnumerable<TDto> GetByExample<TDto>(IDictionary<string, object?> example) where TDto : class
-        {
-            List<TDto> dtos;
-            var dtoType = typeof(TDto);
+            var predicate = BuildPredicate<TDto>(GetPropertyInformation(example));
+            var dtos = await context.Set<TDto>().Where(predicate).ToListAsync();
 
-            using (var sqliteConnection = new SqliteConnection(_sqLiteConnectionString))
-            {
-                sqliteConnection.Open();
+            await LoadChildrenAsync(context, dtos);
 
-                using var sqliteTransaction = sqliteConnection.BeginTransaction();
-                try
-                {
-                    dtos = DoGetByExample<TDto>(sqliteTransaction, dtoType, example);
-                    GetChildren(sqliteTransaction, dtos, dtoType);
-                    sqliteTransaction.Commit();
-                }
-                catch (Exception)
-                {
-                    sqliteTransaction.Rollback();
-                    throw;
-                }
-            }
             return dtos;
         }
 
-        public void Save<TDto>(TDto dto) where TDto : class
+        public async Task SaveAsync<TDto>(TDto dto) where TDto : class
         {
-            Save<TDto>(GetPropertyInformation(dto));
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
+
+            context.Set<TDto>().Add(dto);
+            await context.SaveChangesAsync();
         }
 
-        public void Save<TDto>(IEnumerable<KeyValuePair<string, object?>> dto) where TDto : class
+        public async Task UpdateAsync<TDto>(object update, object where) where TDto : class
         {
-            var commandText = _sqlInsertBuilder.CreateSqlInsertStatementFromDto<TDto>();
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
 
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
+            var predicate = BuildPredicate<TDto>(GetPropertyInformation(where));
+            var matches = await context.Set<TDto>().Where(predicate).ToListAsync();
 
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
+            foreach (var (name, value) in GetPropertyInformation(update))
             {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                AddParameters(sqliteCommand, dto);
-                sqliteCommand.ExecuteNonQuery();
-                sqliteTransaction.Commit();
+                var property = typeof(TDto).GetProperty(name)
+                    ?? throw new ApplicationException($"{typeof(TDto)} has no property named {name}");
+
+                foreach (var match in matches)
+                    property.SetValue(match, value);
             }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
+
+            await context.SaveChangesAsync();
         }
 
-        public void Update<TDto>(object update, object where) where TDto : class
+        public async Task DeleteAsync<TDto>(object example) where TDto : class
         {
-            var commandText = _sqlUpdateBuilder.GetUpdateString<TDto>(update, where);
+            await using var context = await _dbContextFactory.CreateDbContextAsync();
 
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
+            var predicate = BuildPredicate<TDto>(GetPropertyInformation(example));
+            var matches = await context.Set<TDto>().Where(predicate).ToListAsync();
 
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
-            {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                AddUpdateParameters(sqliteCommand, GetPropertyInformation(update));
-                AddParameters(sqliteCommand, GetPropertyInformation(where));
-                sqliteCommand.ExecuteNonQuery();
-                sqliteTransaction.Commit();
-            }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
+            context.Set<TDto>().RemoveRange(matches);
+            await context.SaveChangesAsync();
         }
 
-        public void Delete<TDto>(object example) where TDto : class
+        // Child collections (e.g. ClientDetailsReport.Accounts, AccountDetailsReport.Ledgers) aren't
+        // modeled as EF navigations (see ReportingDbContext) - they're loaded here with a follow-up
+        // query per the same "{ParentTypeName}Id" convention the original ADO.NET implementation used.
+        private async Task LoadChildrenAsync<TDto>(ReportingDbContext context, List<TDto> dtos) where TDto : class
         {
-            Delete<TDto>(GetPropertyInformation(example));
-        }
+            var idProperty = typeof(TDto).GetProperty("Id");
+            if (idProperty == null)
+                return;
 
-        public void Delete<TDto>(IEnumerable<KeyValuePair<string, object?>> example) where TDto : class
-        {
-            var commandText = _sqlDeleteBuilder.CreateSqlDeleteStatementFromDto<TDto>(example);
-
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
-
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
+            foreach (var property in typeof(TDto).GetProperties().Where(IsChildCollection))
             {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                AddParameters(sqliteCommand, example);
-                sqliteCommand.ExecuteNonQuery();
-                sqliteTransaction.Commit();
-            }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
-        }
+                var childDtoType = property.PropertyType.GetGenericArguments().First();
+                var fkPropertyName = $"{typeof(TDto).Name}Id";
 
-        private void GetChildren<TDto>(SqliteTransaction sqliteTransaction, IEnumerable<TDto> dtos, Type dtoType) where TDto : class
-        {
-            foreach (var property in dtoType.GetProperties().Where(WhereGeneric))
-            {
                 foreach (var dto in dtos)
                 {
-                    var childDtoType = property.PropertyType.GetGenericArguments().First();
+                    var parentId = idProperty.GetValue(dto);
+                    if (parentId == null)
+                        continue;
 
-                    var childDtos = GetType()
-                        .GetMethod("DoGetByExample", BindingFlags.NonPublic | BindingFlags.Instance)
-                        ?.MakeGenericMethod(childDtoType)
-                        .Invoke(this, new[] { sqliteTransaction, childDtoType, CreateSelectObject(dto) as object });
+                    var task = (Task)GetType()
+                        .GetMethod(nameof(GetChildrenOfTypeAsync), BindingFlags.NonPublic | BindingFlags.Static)!
+                        .MakeGenericMethod(childDtoType)
+                        .Invoke(this, new object[] { context, fkPropertyName, parentId })!;
 
-                    property.SetValue(dto, childDtos, Array.Empty<object>());
+                    await task;
+                    var children = task.GetType().GetProperty(nameof(Task<object>.Result))!.GetValue(task);
+                    property.SetValue(dto, children);
                 }
             }
         }
 
-        private static IEnumerable<KeyValuePair<string, object>> CreateSelectObject<TDto>(TDto parentDto)
+        private static async Task<List<TChild>> GetChildrenOfTypeAsync<TChild>(ReportingDbContext context, string fkPropertyName, object parentId) where TChild : class
         {
-            if (parentDto == null)
-                yield break;
-
-            var columnName = $"{parentDto.GetType().Name}Id";
-            var columnValue = parentDto.GetType().GetProperty("Id")?.GetValue(parentDto, Array.Empty<object>());
-
-            if (columnValue == null)
-                yield break;
-
-            yield return KeyValuePair.Create(columnName, columnValue);
+            var predicate = BuildPredicate<TChild>(new Dictionary<string, object?> { [fkPropertyName] = parentId });
+            return await context.Set<TChild>().Where(predicate).ToListAsync();
         }
 
-        private List<TDto> DoGetByExample<TDto>(SqliteTransaction sqliteTransaction, Type dtoType, IEnumerable<KeyValuePair<string, object?>>? example) where TDto : class
+        private static Expression<Func<TDto, bool>> BuildPredicate<TDto>(IReadOnlyDictionary<string, object?> example)
         {
-            var dtos = new List<TDto>();
-            var commandText = _sqlSelectBuilder.CreateSqlSelectStatementFromDto<TDto>(example);
+            var parameter = Expression.Parameter(typeof(TDto), "x");
+            Expression body = Expression.Constant(true);
 
-            using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-            AddParameters(sqliteCommand, example);
-
-            using var sqLiteDataReader = sqliteCommand.ExecuteReader();
-
-            var dtoConstructor = dtoType.GetConstructors()
-                    .Where(c => c.GetCustomAttribute<SqliteConstructorAttribute>() != null)
-                    .FirstOrDefault() ?? throw new ApplicationException($"must label ctor for sqlite");
-
-            while (sqLiteDataReader.Read())
+            foreach (var (key, value) in example)
             {
-                dtos.Add(BuildDto<TDto>(dtoType, dtoConstructor, sqLiteDataReader));
-            }
-            return dtos;
-        }
-
-        private static TDto BuildDto<TDto>(Type dtoType, ConstructorInfo dtoConstructor, IDataRecord sqLiteDataReader) where TDto : class
-        {
-            var parameters = dtoConstructor.GetParameters();
-            var parameterNames = dtoConstructor.GetParameters().Select(p => p.Name?.ToUpper()).ToArray();
-            var constructorArguments = new object?[parameters.Length];
-
-            foreach (var property in dtoType.GetProperties().Where(Where))
-            {
-                var index = Array.IndexOf(parameterNames, property.Name.ToUpper());
-                if (index == -1)
-                    continue;
-
-                var value = sqLiteDataReader[property.Name];
-
-                var converter = TypeDescriptor.GetConverter(parameters[index].ParameterType);
-                if (converter.CanConvertFrom(value.GetType()))
-                {
-                    constructorArguments[index] = converter.ConvertFrom(value);
-                }
-                else
-                {
-                    converter = TypeDescriptor.GetConverter(value.GetType());
-                    if (converter.CanConvertTo(parameters[index].ParameterType))
-                    {
-                        constructorArguments[index] = converter.ConvertTo(value, parameters[index].ParameterType);
-                    }
-                    else
-                    {
-                        if (parameters[index].ParameterType == typeof(decimal))
-                        {
-                            constructorArguments[index] = Convert.ToDecimal(value);
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"Type conversion not supported {value.GetType()} -> {parameters[index].ParameterType}");
-                        }
-                    }
-                }
+                var property = Expression.Property(parameter, key);
+                var constant = Expression.Constant(value, property.Type);
+                body = Expression.AndAlso(body, Expression.Equal(property, constant));
             }
 
-            return (TDto)dtoConstructor.Invoke(constructorArguments);
+            return Expression.Lambda<Func<TDto, bool>>(body, parameter);
         }
 
-        private static Dictionary<string, object?> GetPropertyInformation(object example) =>
-            example.GetType().GetProperties()
-                .Where(Where)
-                .ToDictionary(x => x.Name, x => x.GetValue(example, Array.Empty<object>()));
-
-        private static void AddParameters(SqliteCommand sqliteCommand, IEnumerable<KeyValuePair<string, object?>>? example)
+        private static Dictionary<string, object?> GetPropertyInformation(object? example)
         {
             if (example == null)
-                return;
-            foreach (var item in example)
-                sqliteCommand.Parameters.Add(new SqliteParameter($"{@item.Key.ToLower()}", item.Value));
+                return new Dictionary<string, object?>();
+
+            return example.GetType().GetProperties()
+                .Where(p => p.GetMethod?.IsStatic != true)
+                .ToDictionary(p => p.Name, p => p.GetValue(example));
         }
 
-        private static void AddUpdateParameters(SqliteCommand sqliteCommand, IEnumerable<KeyValuePair<string, object?>> example)
-        {
-            if (example == null)
-                return;
-            foreach (var item in example)
-                sqliteCommand.Parameters.Add(new SqliteParameter($"@update_{item.Key.ToLower()}", item.Value));
-        }
-
-        private static bool Where(PropertyInfo propertyInfo) => !propertyInfo.PropertyType.IsGenericType;
-        private static bool WhereGeneric(PropertyInfo propertyInfo) => propertyInfo.PropertyType.IsGenericType;
+        private static bool IsChildCollection(PropertyInfo propertyInfo) => propertyInfo.PropertyType.IsGenericType;
     }
 }

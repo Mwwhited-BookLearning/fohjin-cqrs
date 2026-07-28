@@ -7,7 +7,6 @@ namespace Fohjin.DDD.Reporting.Dtos
         [JsonConstructor]
         public ClosedAccountDetailsReport(): base() { }
 
-        [SqliteConstructor]
         public ClosedAccountDetailsReport(
             Guid id, 
             Guid clientId,

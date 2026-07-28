@@ -16,7 +16,6 @@ public record AccountDetailsReport
     {
     }
 
-    [SqliteConstructor]
     public AccountDetailsReport(
         Guid id,
         Guid clientReportId,

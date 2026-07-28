@@ -1,4 +1,4 @@
-﻿using Fohjin.DDD.Reporting;
+using Fohjin.DDD.Reporting;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.TestUtilities.Tools
@@ -18,29 +18,33 @@ namespace Test.Fohjin.DDD.TestUtilities.Tools
         }
 
 
-        public void Delete<TDto>(object example) where TDto : class
+        public Task DeleteAsync<TDto>(object example) where TDto : class
         {
             _testContext.AddResults(typeof(TDto).Name + "-delete", example);
+            return Task.CompletedTask;
         }
 
-        public IEnumerable<TDto> GetByExample<TDto>(object? example) where TDto : class
+        public Task<IEnumerable<TDto>> GetByExampleAsync<TDto>(object? example) where TDto : class
         {
             if (example == null)
-                yield break;
+                return Task.FromResult(Enumerable.Empty<TDto>());
 
             _testContext.AddResults(typeof(TDto).Name + "-getby", example);
-            yield return (TDto)typeof(TDto).BuildObject(_serviceProvider);
+            var results = new List<TDto> { (TDto)typeof(TDto).BuildObject(_serviceProvider) };
+            return Task.FromResult<IEnumerable<TDto>>(results);
         }
 
-        public void Save<TDto>(TDto dto) where TDto : class
+        public Task SaveAsync<TDto>(TDto dto) where TDto : class
         {
             _testContext.AddResults(typeof(TDto).Name, dto);
+            return Task.CompletedTask;
         }
 
-        public void Update<TDto>(object update, object where) where TDto : class
+        public Task UpdateAsync<TDto>(object update, object where) where TDto : class
         {
             _testContext.AddResults(typeof(TDto).Name + "-update", update);
             _testContext.AddResults(typeof(TDto).Name + "-where", where);
+            return Task.CompletedTask;
         }
     }
 }

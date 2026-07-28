@@ -19,11 +19,11 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<ClosedAccountReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<ClosedAccountReport>()))
             .Callback<ClosedAccountReport>(a => SaveClosedAccountReportObject = a);
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<ClosedAccountDetailsReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<ClosedAccountDetailsReport>()))
             .Callback<ClosedAccountDetailsReport>(a => SaveClosedAccountDetailsReportObject = a);
     }
 
@@ -48,7 +48,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_closed_account_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<ClosedAccountReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<ClosedAccountReport>()));
     }
 
     [TestMethod]
@@ -62,7 +62,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_closed_account_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<ClosedAccountDetailsReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<ClosedAccountDetailsReport>()));
     }
 
     [TestMethod]
@@ -78,6 +78,6 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_four_ledger_reports()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<LedgerReport>()), Times.Exactly(5));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<LedgerReport>()), Times.Exactly(5));
     }
 }

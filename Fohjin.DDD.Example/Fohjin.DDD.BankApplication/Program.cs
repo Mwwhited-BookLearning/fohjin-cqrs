@@ -21,7 +21,7 @@ namespace Fohjin.DDD.BankApplication
         /// The main entry point for the application.
         /// </summary>
         [STAThread]
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             var configBuilder = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
@@ -52,8 +52,8 @@ namespace Fohjin.DDD.BankApplication
                 .AddDddServices()
                 .AddBankApplicationServices()
                 ;
-            var service = services.BuildServiceProvider()
-                .BootStrapApplication()
+            var service = await services.BuildServiceProvider()
+                .BootStrapApplicationAsync()
                 ;
 
             var clientSearchFormPresenter = service.GetRequiredService<IClientSearchFormPresenter>();

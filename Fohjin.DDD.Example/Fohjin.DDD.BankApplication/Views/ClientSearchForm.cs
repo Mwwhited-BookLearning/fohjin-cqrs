@@ -14,8 +14,8 @@ namespace Fohjin.DDD.BankApplication.Views
             RegisterCLientEvents();
         }
 
-        public event EventAction? OnCreateNewClient;
-        public event EventAction? OnOpenSelectedClient;
+        public event Action? OnCreateNewClient;
+        public event Action? OnOpenSelectedClient;
 
         private void RegisterCLientEvents()
         {

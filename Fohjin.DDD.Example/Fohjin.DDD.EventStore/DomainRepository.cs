@@ -21,11 +21,11 @@ namespace Fohjin.DDD.EventStore
             _log = log;
         }
 
-        public TAggregate? GetById<TAggregate>(Guid id)
+        public async Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id)
             where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()
         {
-            _log.LogInformation($"{nameof(GetById)}({{{nameof(id)}}})", id);
-            return RegisterForTracking(_identityMap.GetById<TAggregate>(id)) ?? _eventStoreUnitOfWork.GetById<TAggregate>(id);
+            _log.LogInformation($"{nameof(GetByIdAsync)}({{{nameof(id)}}})", id);
+            return RegisterForTracking(_identityMap.GetById<TAggregate>(id)) ?? await _eventStoreUnitOfWork.GetByIdAsync<TAggregate>(id);
         }
 
         public void Add<TAggregate>(TAggregate aggregateRoot) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()

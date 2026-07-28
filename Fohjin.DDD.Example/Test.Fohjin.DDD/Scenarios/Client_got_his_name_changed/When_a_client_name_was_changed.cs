@@ -19,11 +19,11 @@ namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed
         protected override void SetupDependencies()
         {
             OnDependency<IReportingRepository>()
-                ?.Setup(x => x.Update<ClientReport>(It.IsAny<object>(), It.IsAny<object>()))
+                ?.Setup(x => x.UpdateAsync<ClientReport>(It.IsAny<object>(), It.IsAny<object>()))
                 .Callback<object, object>((u, w) => { UpdateClientObject = u; WhereClientObject = w; });
 
             OnDependency<IReportingRepository>()
-                ?.Setup(x => x.Update<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
+                ?.Setup(x => x.UpdateAsync<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
                 .Callback<object, object>((u, w) => { UpdateClientDetailsObject = u; WhereClientDetailsObject = w; });
         }
 
@@ -37,7 +37,7 @@ namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed
         [TestMethod]
         public void Then_the_reporting_repository_will_be_used_to_update_the_client_report()
         {
-            OnDependency<IReportingRepository>().Verify(x => x.Update<ClientReport>(It.IsAny<object>(), It.IsAny<object>()));
+            OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<ClientReport>(It.IsAny<object>(), It.IsAny<object>()));
         }
 
         [TestMethod]
@@ -50,7 +50,7 @@ namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed
         [TestMethod]
         public void Then_the_reporting_repository_will_be_used_to_update_the_client_details_report()
         {
-            OnDependency<IReportingRepository>().Verify(x => x.Update<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
+            OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
         }
 
         [TestMethod]

@@ -12,7 +12,7 @@ namespace Test.Fohjin.DDD.Scenarios.Receiving_money_transfer
         protected override void SetupDependencies()
         {
             OnDependency<IReportingRepository>()
-                ?.Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
+                ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
                 .Throws(new Exception("account not found"));
         }
 

@@ -60,7 +60,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
     protected virtual void Finally() { }
 
     [TestInitialize]
-    public void Setup()
+    public async Task Setup()
     {
         mocks = new Dictionary<Type, object>();
         DoNotMock = new Dictionary<Type, object>();
@@ -74,7 +74,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
 
         try
         {
-            WhenAsync();
+            await WhenAsync();
         }
         catch (Exception exception)
         {

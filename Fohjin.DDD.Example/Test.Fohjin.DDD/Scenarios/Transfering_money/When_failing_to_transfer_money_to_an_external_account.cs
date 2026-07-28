@@ -21,8 +21,8 @@ namespace Test.Fohjin.DDD.Scenarios.Transfering_money
                 .Throws(new UnknownAccountException("exception message"));
 
             OnDependency<IReportingRepository>()
-                ?.Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
-                .Returns(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
+                ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+                .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
         }
 
         protected override void Given()

@@ -16,7 +16,7 @@ namespace Fohjin.DDD.EventStore.Storage
         private readonly ILogger _log;
 
         public EventStoreUnitOfWork(
-            IDomainEventStorage<TDomainEvent> domainEventStorage, 
+            IDomainEventStorage<TDomainEvent> domainEventStorage,
             IIdentityMap<TDomainEvent> identityMap,
             IBus bus,
             ILogger<EventStoreUnitOfWork<TDomainEvent>> log
@@ -28,13 +28,13 @@ namespace Fohjin.DDD.EventStore.Storage
             _log = log;
         }
 
-        public TAggregate? GetById<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()
+        public async Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()
         {
-            _log.LogInformation($"{nameof(GetById)}({{{nameof(id)}}})", id);
+            _log.LogInformation($"{nameof(GetByIdAsync)}({{{nameof(id)}}})", id);
             var aggregateRoot = new TAggregate();
 
-            LoadSnapShotIfExists(id, aggregateRoot);
-            LoadRemainingHistoryEvents(id, aggregateRoot);
+            await LoadSnapShotIfExistsAsync(id, aggregateRoot);
+            await LoadRemainingHistoryEventsAsync(id, aggregateRoot);
             RegisterForTracking(aggregateRoot);
 
             return aggregateRoot;
@@ -53,28 +53,28 @@ namespace Fohjin.DDD.EventStore.Storage
             _identityMap.Add(aggregateRoot);
         }
 
-        public void Commit()
+        public async Task CommitAsync()
         {
-            _log.LogInformation($"{nameof(Commit)}");
-            _domainEventStorage.BeginTransaction();
+            _log.LogInformation($"{nameof(CommitAsync)}");
+            await _domainEventStorage.BeginTransactionAsync();
 
             foreach (var eventProvider in _eventProviders)
             {
-                _domainEventStorage.Save(eventProvider);
+                await _domainEventStorage.SaveAsync(eventProvider);
                 _bus.Publish(eventProvider.GetChanges().Select(x => (object)x));
                 eventProvider.Clear();
             }
             _eventProviders.Clear();
 
-            _bus.CommitAsync();
-            _domainEventStorage.Commit();
+            await _bus.CommitAsync();
+            await _domainEventStorage.CommitAsync();
         }
 
-        public void Rollback()
+        public async Task RollbackAsync()
         {
-            _log.LogInformation($"{nameof(Rollback)}");
+            _log.LogInformation($"{nameof(RollbackAsync)}");
             _bus.Rollback();
-            _domainEventStorage.Rollback();
+            await _domainEventStorage.RollbackAsync();
             foreach (var eventProvider in _eventProviders)
             {
                 _identityMap.Remove(eventProvider.GetType(), eventProvider.Id);
@@ -82,27 +82,27 @@ namespace Fohjin.DDD.EventStore.Storage
             _eventProviders.Clear();
         }
 
-        private void LoadSnapShotIfExists(Guid id, IOriginator aggregateRoot)
+        private async Task LoadSnapShotIfExistsAsync(Guid id, IOriginator aggregateRoot)
         {
-            _log.LogInformation($"{nameof(LoadSnapShotIfExists)}({{{nameof(id)}}}, {{{nameof(aggregateRoot)}}})", id, aggregateRoot);
-            var snapShot = _domainEventStorage.GetSnapShot(id);
+            _log.LogInformation($"{nameof(LoadSnapShotIfExistsAsync)}({{{nameof(id)}}}, {{{nameof(aggregateRoot)}}})", id, aggregateRoot);
+            var snapShot = await _domainEventStorage.GetSnapShotAsync(id);
             if (snapShot == null)
                 return;
 
             aggregateRoot.SetMemento(snapShot.Memento);
         }
 
-        private void LoadRemainingHistoryEvents(Guid id, IEventProvider<TDomainEvent> aggregateRoot)
+        private async Task LoadRemainingHistoryEventsAsync(Guid id, IEventProvider<TDomainEvent> aggregateRoot)
         {
-            _log.LogInformation($"{nameof(LoadRemainingHistoryEvents)}({{{nameof(id)}}}, {{{nameof(aggregateRoot)}}})", id, aggregateRoot);
-            var events = _domainEventStorage.GetEventsSinceLastSnapShot(id);
+            _log.LogInformation($"{nameof(LoadRemainingHistoryEventsAsync)}({{{nameof(id)}}}, {{{nameof(aggregateRoot)}}})", id, aggregateRoot);
+            var events = await _domainEventStorage.GetEventsSinceLastSnapShotAsync(id);
             if (events.Any())
             {
                 aggregateRoot.LoadFromHistory(events);
                 return;
             }
 
-            aggregateRoot.LoadFromHistory(_domainEventStorage.GetAllEvents(id));
+            aggregateRoot.LoadFromHistory(await _domainEventStorage.GetAllEventsAsync(id));
         }
     }
 }

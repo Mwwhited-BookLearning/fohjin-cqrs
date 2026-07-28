@@ -13,23 +13,21 @@ namespace Fohjin.DDD.EventHandlers
             _reportingRepository = reportingRepository;
         }
 
-        public override Task ExecuteAsync(ClosedAccountCreatedEvent theEvent)
+        public override async Task ExecuteAsync(ClosedAccountCreatedEvent theEvent)
         {
             var closedAccount = new ClosedAccountReport(theEvent.AccountId, theEvent.ClientId, theEvent.AccountName, theEvent.AccountNumber);
             var closedAccountDetails = new ClosedAccountDetailsReport(theEvent.AccountId, theEvent.ClientId, theEvent.AccountName, 0, theEvent.AccountNumber);
 
-            _reportingRepository.Save(closedAccount);
-            _reportingRepository.Save(closedAccountDetails);
+            await _reportingRepository.SaveAsync(closedAccount);
+            await _reportingRepository.SaveAsync(closedAccountDetails);
 
             foreach (var ledger in theEvent.Ledgers)
             {
                 var split = ledger.Value.Split('|');
                 var amount = Convert.ToDecimal(split[0]);
                 var account = split.Length > 1 ? split[1] : string.Empty;
-                _reportingRepository.Save(new LedgerReport(Guid.NewGuid(), theEvent.AccountId, GetDescription(ledger.Key, account), amount));
+                await _reportingRepository.SaveAsync(new LedgerReport(Guid.NewGuid(), theEvent.AccountId, GetDescription(ledger.Key, account), amount));
             }
-
-            return Task.CompletedTask;
         }
 
         private static string GetDescription(string transferType, string accountNumber)

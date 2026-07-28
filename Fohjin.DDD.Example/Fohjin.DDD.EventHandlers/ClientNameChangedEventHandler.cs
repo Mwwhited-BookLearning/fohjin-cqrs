@@ -13,12 +13,10 @@ namespace Fohjin.DDD.EventHandlers
             _reportingRepository = reportingRepository;
         }
 
-        public override Task ExecuteAsync(ClientNameChangedEvent theEvent)
+        public override async Task ExecuteAsync(ClientNameChangedEvent theEvent)
         {
-            _reportingRepository.Update<ClientReport>(new { Name = theEvent.ClientName }, new { Id = theEvent.AggregateId });
-            _reportingRepository.Update<ClientDetailsReport>(new { theEvent.ClientName }, new { Id = theEvent.AggregateId });
-
-            return Task.CompletedTask;
+            await _reportingRepository.UpdateAsync<ClientReport>(new { Name = theEvent.ClientName }, new { Id = theEvent.AggregateId });
+            await _reportingRepository.UpdateAsync<ClientDetailsReport>(new { theEvent.ClientName }, new { Id = theEvent.AggregateId });
         }
     }
 }

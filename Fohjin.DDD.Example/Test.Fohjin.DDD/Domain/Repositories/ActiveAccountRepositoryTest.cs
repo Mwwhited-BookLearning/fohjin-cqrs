@@ -6,7 +6,8 @@ using Fohjin.DDD.Domain.Mementos;
 using Fohjin.DDD.EventStore;
 using Fohjin.DDD.EventStore.SQLite;
 using Fohjin.DDD.EventStore.Storage;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -36,7 +37,7 @@ public class ActiveAccountRepositoryTest
     private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork;
 
     [TestInitialize]
-    public void SetUp()
+    public async Task SetUp()
     {
         TestContext.SetupWorkingDirectory();
         var dataBaseFile = Path.Combine(
@@ -45,16 +46,16 @@ public class ActiveAccountRepositoryTest
             DomainDatabaseBootStrapper.DataBaseFile
             );
 
-        new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
+        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
 
         var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
 
-        var config = new ConfigurationBuilder()
-            .AddTupleConfiguration((DomainEventStorage.ConnectionStringConfigKey, sqliteConnectionString))
-            .Build();
+        var dbContextOptions = new DbContextOptionsBuilder<DomainEventStoreDbContext>()
+            .UseSqlite(sqliteConnectionString)
+            .Options;
 
         _domainEventStorage = new DomainEventStorage<IDomainEvent>(
-            config,
+            new PooledDbContextFactory<DomainEventStoreDbContext>(dbContextOptions),
             new ExtendedFormatter()
             );
 
@@ -73,28 +74,28 @@ public class ActiveAccountRepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
+    public async Task When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        Assert.AreEqual(3, _domainEventStorage?.GetEventsSinceLastSnapShot(activeAccount.Id).Count());
-        Assert.AreEqual(3, _domainEventStorage?.GetAllEvents(activeAccount.Id).Count());
+        Assert.AreEqual(3, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(activeAccount.Id)).Count());
+        Assert.AreEqual(3, (await _domainEventStorage!.GetAllEventsAsync(activeAccount.Id)).Count());
     }
 
     [TestMethod]
-    public void When_calling_Save_it_will_reset_the_domain_events()
+    public async Task When_calling_Save_it_will_reset_the_domain_events()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
         var activeAccountForRepository = (IEventProvider<IDomainEvent>)activeAccount;
 
@@ -102,7 +103,7 @@ public class ActiveAccountRepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_9_events_will_not()
+    public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_9_events_will_not()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -115,13 +116,13 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        Assert.IsNull(_domainEventStorage?.GetSnapShot(activeAccount.Id));
+        Assert.IsNull((await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id)));
     }
 
     [TestMethod]
-    public void When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_10_events()
+    public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_10_events()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -135,17 +136,17 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
-        _domainEventStorage?.SaveShapShot(activeAccount);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(activeAccount);
 
-        var snapShot = _domainEventStorage?.GetSnapShot(activeAccount.Id);
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id));
 
         Assert.IsNotNull(snapShot);
         Assert.IsInstanceOfType<ActiveAccountMemento>(snapShot.Memento);
     }
 
     [TestMethod]
-    public void When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_11_events()
+    public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_11_events()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -160,17 +161,17 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
-        _domainEventStorage?.SaveShapShot(activeAccount);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(activeAccount);
 
-        var snapShot = _domainEventStorage?.GetSnapShot(activeAccount.Id);
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id));
 
         Assert.IsNotNull(snapShot);
         Assert.IsInstanceOfType<ActiveAccountMemento>(snapShot?.Memento);
     }
 
     [TestMethod]
-    public void When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot()
+    public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -184,8 +185,8 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
-        _domainEventStorage?.SaveShapShot(activeAccount);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(activeAccount);
 
         activeAccount.Deposit(new Amount(1));
         activeAccount.Deposit(new Amount(1));
@@ -201,16 +202,16 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        var snapShot = _domainEventStorage?.GetSnapShot(activeAccount.Id);
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id));
 
         Assert.IsNotNull(snapShot);
         Assert.IsInstanceOfType<ActiveAccountMemento>(snapShot?.Memento);
     }
 
     [TestMethod]
-    public void When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot()
+    public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -224,8 +225,8 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
-        _domainEventStorage?.SaveShapShot(activeAccount);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(activeAccount);
 
         activeAccount.Deposit(new Amount(1));
         activeAccount.Deposit(new Amount(1));
@@ -238,16 +239,16 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        var snapShot = _domainEventStorage?.GetSnapShot(activeAccount.Id);
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id));
 
         Assert.IsNotNull(snapShot);
         Assert.IsInstanceOfType<ActiveAccountMemento>(snapShot?.Memento);
     }
 
     [TestMethod]
-    public void When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot_verify_all_event_counts()
+    public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot_verify_all_event_counts()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -261,8 +262,8 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
-        _domainEventStorage?.SaveShapShot(activeAccount);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(activeAccount);
 
         activeAccount.Deposit(new Amount(1));
         activeAccount.Deposit(new Amount(1));
@@ -275,15 +276,15 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(1));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
 
-        Assert.AreEqual(9, _domainEventStorage?.GetEventsSinceLastSnapShot(activeAccount.Id).Count());
-        Assert.AreEqual(19, _domainEventStorage?.GetAllEvents(activeAccount.Id).Count());
+        Assert.AreEqual(9, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(activeAccount.Id)).Count());
+        Assert.AreEqual(19, (await _domainEventStorage!.GetAllEventsAsync(activeAccount.Id)).Count());
     }
 
     [TestMethod]
-    public void When_calling_GetById_after_9_events_a_new_ActiveAcount_will_be_populated()
+    public async Task When_calling_GetById_after_9_events_a_new_ActiveAcount_will_be_populated()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -296,9 +297,9 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(8));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        var sut = _repository?.GetById<ActiveAccount>(activeAccount.Id);
+        var sut = (await _repository!.GetByIdAsync<ActiveAccount>(activeAccount.Id));
 
         try
         {
@@ -316,7 +317,7 @@ public class ActiveAccountRepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created()
+    public async Task When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -330,9 +331,9 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(9));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        var sut = _repository?.GetById<ActiveAccount>(activeAccount.Id);
+        var sut = (await _repository!.GetByIdAsync<ActiveAccount>(activeAccount.Id));
 
         try
         {
@@ -350,7 +351,7 @@ public class ActiveAccountRepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created_11_events()
+    public async Task When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created_11_events()
     {
         var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
         activeAccount.Deposit(new Amount(1));
@@ -365,9 +366,9 @@ public class ActiveAccountRepositoryTest
         activeAccount.Deposit(new Amount(10));
 
         _repository?.Add(activeAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        var sut = _repository?.GetById<ActiveAccount>(activeAccount.Id);
+        var sut = (await _repository!.GetByIdAsync<ActiveAccount>(activeAccount.Id));
 
         try
         {

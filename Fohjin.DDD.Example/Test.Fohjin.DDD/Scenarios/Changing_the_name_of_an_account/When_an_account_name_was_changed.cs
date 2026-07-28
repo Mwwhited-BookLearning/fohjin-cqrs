@@ -18,11 +18,11 @@ public class When_an_account_name_was_changed : EventTestFixture<AccountNameChan
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.Update<AccountReport>(It.IsAny<object>(), It.IsAny<object>()))
+            ?.Setup(x => x.UpdateAsync<AccountReport>(It.IsAny<object>(), It.IsAny<object>()))
             .Callback<object, object>((u, w) => { UpdateAccountObject = u; WhereAccountObject = w; });
 
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.Update<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
+            ?.Setup(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
             .Callback<object, object>((u, w) => { UpdateAccountDetailsObject = u; WhereAccountDetailsObject = w; });
     }
 
@@ -36,7 +36,7 @@ public class When_an_account_name_was_changed : EventTestFixture<AccountNameChan
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_client_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Update<AccountReport>(It.IsAny<object>(), It.IsAny<object>()));
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<AccountReport>(It.IsAny<object>(), It.IsAny<object>()));
     }
 
     [TestMethod]
@@ -49,7 +49,7 @@ public class When_an_account_name_was_changed : EventTestFixture<AccountNameChan
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_client_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Update<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
     }
 
     [TestMethod]

@@ -32,7 +32,7 @@ namespace Fohjin.DDD.BankApplication.Presenters
         {
             _clientDetailsPresenter.SetClient(null);
             _clientDetailsPresenter.Display();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         }
 
         public void OpenSelectedClient()
@@ -45,9 +45,9 @@ namespace Fohjin.DDD.BankApplication.Presenters
             });
         }
 
-        public void Display()
+        public async void Display()
         {
-            LoadData();
+            await LoadDataAsync();
             try
             {
                 _clientSearchFormView.ShowDialog();
@@ -58,9 +58,9 @@ namespace Fohjin.DDD.BankApplication.Presenters
             }
         }
 
-        private void LoadData()
+        private async Task LoadDataAsync()
         {
-            _clientSearchFormView.Clients = _reportingRepository.GetByExample<ClientReport>(null);
+            _clientSearchFormView.Clients = await _reportingRepository.GetByExampleAsync<ClientReport>(null);
         }
     }
 }

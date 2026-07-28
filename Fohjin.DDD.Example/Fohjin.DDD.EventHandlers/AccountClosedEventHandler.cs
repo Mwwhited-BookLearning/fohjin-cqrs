@@ -13,11 +13,10 @@ namespace Fohjin.DDD.EventHandlers
             _reportingRepository = reportingRepository;
         }
 
-        public override Task ExecuteAsync(AccountClosedEvent theEvent)
+        public override async Task ExecuteAsync(AccountClosedEvent theEvent)
         {
-            _reportingRepository.Delete<AccountReport>(new { Id = theEvent.AggregateId });
-            _reportingRepository.Delete<AccountDetailsReport>(new { Id = theEvent.AggregateId });
-            return Task.CompletedTask;
+            await _reportingRepository.DeleteAsync<AccountReport>(new { Id = theEvent.AggregateId });
+            await _reportingRepository.DeleteAsync<AccountDetailsReport>(new { Id = theEvent.AggregateId });
         }
     }
 }

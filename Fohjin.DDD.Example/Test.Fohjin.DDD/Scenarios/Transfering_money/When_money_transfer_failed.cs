@@ -17,11 +17,11 @@ public class When_money_transfer_failed : EventTestFixture<MoneyTransferFailedEv
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Update<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
+            .Setup(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
             .Callback<object, object>((u, w) => { UpdateAccountDetailsObject = u; WhereAccountDetailsObject = w; });
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<LedgerReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<LedgerReport>()))
             .Callback<LedgerReport>(l => { LedgerReportObject = l; });
     }
 
@@ -34,7 +34,7 @@ public class When_money_transfer_failed : EventTestFixture<MoneyTransferFailedEv
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_account_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Update<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
     }
 
     [TestMethod]
@@ -47,7 +47,7 @@ public class When_money_transfer_failed : EventTestFixture<MoneyTransferFailedEv
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_ledger_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<LedgerReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<LedgerReport>()));
     }
 
     [TestMethod]

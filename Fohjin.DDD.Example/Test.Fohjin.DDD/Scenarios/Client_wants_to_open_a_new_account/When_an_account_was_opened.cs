@@ -17,11 +17,11 @@ public class When_an_account_was_opened : EventTestFixture<AccountOpenedEvent, A
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<AccountReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<AccountReport>()))
             .Callback<AccountReport>(a => SaveAccountReportObject = a);
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<AccountDetailsReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<AccountDetailsReport>()))
             .Callback<AccountDetailsReport>(a => SaveAccountDetailsReportObject = a);
     }
 
@@ -35,7 +35,7 @@ public class When_an_account_was_opened : EventTestFixture<AccountOpenedEvent, A
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_account_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<AccountReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<AccountReport>()));
     }
 
     [TestMethod]
@@ -50,7 +50,7 @@ public class When_an_account_was_opened : EventTestFixture<AccountOpenedEvent, A
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_account_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<AccountDetailsReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<AccountDetailsReport>()));
     }
 
     [TestMethod]

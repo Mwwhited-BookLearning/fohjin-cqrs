@@ -12,7 +12,6 @@ namespace Fohjin.DDD.Reporting.Dtos
         [JsonConstructor]
         public AccountReport() { }
 
-        [SqliteConstructor]
         public AccountReport(
             Guid id,
             Guid clientDetailsReportId,

@@ -1,5 +1,5 @@
-using Microsoft.Data.Sqlite;
-using System.Data.Common;
+using Fohjin.DDD.EventStore.SQLite;
+using Microsoft.EntityFrameworkCore;
 
 namespace Fohjin.DDD.BankApplication
 {
@@ -7,72 +7,24 @@ namespace Fohjin.DDD.BankApplication
     {
         public const string DataBaseFile = "domainDataBase.db3";
 
-        public void ReCreateDatabaseSchema(string dataBaseFile)
+        public async Task ReCreateDatabaseSchema(string dataBaseFile)
         {
-            if (File.Exists(dataBaseFile))
-                File.Delete(dataBaseFile);
-
-            DoCreateDatabaseSchema(dataBaseFile);
+            await using var context = CreateContext(dataBaseFile);
+            await context.Database.EnsureDeletedAsync();
+            await context.Database.MigrateAsync();
         }
 
-        public void CreateDatabaseSchemaIfNeeded(string dataBaseFile)
+        public async Task CreateDatabaseSchemaIfNeeded(string dataBaseFile)
         {
-            if (File.Exists(dataBaseFile))
-                return;
-
-            DoCreateDatabaseSchema(dataBaseFile);
+            await using var context = CreateContext(dataBaseFile);
+            await context.Database.MigrateAsync();
         }
 
-        private static void DoCreateDatabaseSchema(string dataBaseFile)
+        private static DomainEventStoreDbContext CreateContext(string dataBaseFile)
         {
-            //SqliteConnection.CreateFile(dataBaseFile);
-
-            var sqLiteConnection = new SqliteConnection(string.Format("Data Source={0}", dataBaseFile));
-
-            sqLiteConnection.Open();
-
-            using (DbTransaction dbTrans = sqLiteConnection.BeginTransaction())
-            {
-                using (DbCommand sqLiteCommand = sqLiteConnection.CreateCommand())
-                {
-                    const string eventProvidersTables = @"
-                        CREATE TABLE EventProviders
-                        (
-                            [EventProviderId] [uniqueidentifier] primary key,
-                            [Type] [nvarchar(250)] not null,
-                            [Version] [int] not null
-                        );
-                        ";
-                    sqLiteCommand.CommandText = eventProvidersTables;
-                    sqLiteCommand.ExecuteNonQuery();
-
-                    const string eventsTables = @"
-                        CREATE TABLE Events
-                        (
-                            [Id] [uniqueidentifier] primary key,
-                            [EventProviderId] [uniqueidentifier] not null,
-                            [Event] [binary] not null,
-                            [Version] [int] not null
-                        );
-                        ";
-                    sqLiteCommand.CommandText = eventsTables;
-                    sqLiteCommand.ExecuteNonQuery();
-
-                    const string snapshotsTables = @"
-                        CREATE TABLE SnapShots
-                        (
-                            [EventProviderId] [uniqueidentifier] primary key,
-                            [SnapShot] [binary] not null,
-                            [Version] [int] not null
-                        );
-                        ";
-                    sqLiteCommand.CommandText = snapshotsTables;
-                    sqLiteCommand.ExecuteNonQuery();
-                }
-                dbTrans.Commit();
-            }
-
-            sqLiteConnection.Close();
+            var optionsBuilder = new DbContextOptionsBuilder<DomainEventStoreDbContext>();
+            optionsBuilder.UseSqlite($"Data Source={dataBaseFile}");
+            return new DomainEventStoreDbContext(optionsBuilder.Options);
         }
     }
 }

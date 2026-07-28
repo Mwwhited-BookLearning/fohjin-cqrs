@@ -16,11 +16,11 @@ public class When_the_new_client_was_created : EventTestFixture<ClientCreatedEve
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<ClientReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<ClientReport>()))
             .Callback<ClientReport>(a => SaveClientObject = a);
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<ClientDetailsReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<ClientDetailsReport>()))
             .Callback<ClientDetailsReport>(a => SaveClientDetailsObject = a);
     }
 
@@ -33,7 +33,7 @@ public class When_the_new_client_was_created : EventTestFixture<ClientCreatedEve
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_client_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<ClientReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<ClientReport>()));
     }
 
     [TestMethod]
@@ -46,7 +46,7 @@ public class When_the_new_client_was_created : EventTestFixture<ClientCreatedEve
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_client_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<ClientDetailsReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<ClientDetailsReport>()));
     }
 
     [TestMethod]

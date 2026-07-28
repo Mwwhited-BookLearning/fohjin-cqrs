@@ -27,13 +27,13 @@ namespace Fohjin.DDD.CommandHandlers
             try
             {
                 await commandHandler.ExecuteAsync(command);
-                _log.LogInformation($"{nameof(ExecuteAsync)}-{nameof(_unitOfWork.Commit)}> {{{nameof(command)}}}, {{{nameof(commandHandler)}}}", command, commandHandler);
-                _unitOfWork.Commit();
+                _log.LogInformation($"{nameof(ExecuteAsync)}-{nameof(_unitOfWork.CommitAsync)}> {{{nameof(command)}}}, {{{nameof(commandHandler)}}}", command, commandHandler);
+                await _unitOfWork.CommitAsync();
             }
             catch (Exception ex)
             {
-                _log.LogError($"{nameof(ExecuteAsync)}-{nameof(_unitOfWork.Rollback)}> {{{nameof(command)}}}, {{{nameof(commandHandler)}}}-{{{nameof(ex.Message)}}}", command, commandHandler, ex.Message);
-                _unitOfWork.Rollback();
+                _log.LogError($"{nameof(ExecuteAsync)}-{nameof(_unitOfWork.RollbackAsync)}> {{{nameof(command)}}}, {{{nameof(commandHandler)}}}-{{{nameof(ex.Message)}}}", command, commandHandler, ex.Message);
+                await _unitOfWork.RollbackAsync();
                 throw;
             }
         }

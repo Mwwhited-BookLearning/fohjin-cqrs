@@ -20,8 +20,8 @@ namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed
             _clientDetailsReport = new ClientDetailsReport(_clientId, "Client Name", "Street", "123", "5000", "Bergen", "1234567890");
             _clientDetailsReports = new List<ClientDetailsReport> { _clientDetailsReport };
             OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExample<ClientDetailsReport>(It.IsAny<object>()))
-                .Returns(_clientDetailsReports);
+                .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
+                .ReturnsAsync(_clientDetailsReports);
         }
 
         protected override void Given()

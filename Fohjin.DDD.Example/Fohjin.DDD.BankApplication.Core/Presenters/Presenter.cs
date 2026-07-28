@@ -42,7 +42,7 @@ namespace Fohjin.DDD.BankApplication.Presenters
 
         private void WireUpTheEventAndEventHandler(TView view, EventInfo eventInfo, MethodInfo methodInfo)
         {
-            var newDelegate = Delegate.CreateDelegate(typeof(EventAction), this, methodInfo);
+            var newDelegate = Delegate.CreateDelegate(typeof(Action), this, methodInfo);
             eventInfo.AddEventHandler(view, newDelegate);
         }
 

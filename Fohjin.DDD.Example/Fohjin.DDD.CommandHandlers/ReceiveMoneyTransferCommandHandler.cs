@@ -13,13 +13,11 @@ namespace Fohjin.DDD.CommandHandlers
             _repository = repository;
         }
 
-        public override Task ExecuteAsync(ReceiveMoneyTransferCommand compensatingCommand)
+        public override async Task ExecuteAsync(ReceiveMoneyTransferCommand compensatingCommand)
         {
-            var activeAccount = _repository.GetById<ActiveAccount>(compensatingCommand.Id);
+            var activeAccount = await _repository.GetByIdAsync<ActiveAccount>(compensatingCommand.Id);
 
             activeAccount?.ReceiveTransferFrom(new AccountNumber(compensatingCommand.AccountNumber), new Amount(compensatingCommand.Amount));
-
-            return Task.CompletedTask;
         }
     }
 }

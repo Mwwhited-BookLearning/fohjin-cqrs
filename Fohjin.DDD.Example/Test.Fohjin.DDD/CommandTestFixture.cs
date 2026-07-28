@@ -28,7 +28,7 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
     protected abstract TCommand When();
 
     [TestInitialize]
-    public void  Setup()
+    public async Task Setup()
     {
         mocks = new Dictionary<Type, object>();
         CaughtException = new ThereWasNoExceptionButOneWasExpectedException();
@@ -40,7 +40,7 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
         SetupDependencies();
         try
         {
-             CommandHandler.ExecuteAsync(When()).GetAwaiter().GetResult();
+             await CommandHandler.ExecuteAsync(When());
             PublishedEvents = AggregateRoot.GetChanges();
         }
         catch (Exception exception)
@@ -67,7 +67,7 @@ public abstract class CommandTestFixture<TCommand, TCommandHandler, TAggregateRo
             if (parameter.ParameterType == typeof(IDomainRepository<IDomainEvent>))
             {
                 var repositoryMock = new Mock<IDomainRepository<IDomainEvent>>();
-                repositoryMock.Setup(x => x.GetById<TAggregateRoot>(It.IsAny<Guid>())).Returns(AggregateRoot);
+                repositoryMock.Setup(x => x.GetByIdAsync<TAggregateRoot>(It.IsAny<Guid>())).ReturnsAsync(AggregateRoot);
                 repositoryMock.Setup(x => x.Add(It.IsAny<TAggregateRoot>())).Callback<TAggregateRoot>(x => AggregateRoot = x);
                 mocks?.Add(parameter.ParameterType, repositoryMock);
                 continue;

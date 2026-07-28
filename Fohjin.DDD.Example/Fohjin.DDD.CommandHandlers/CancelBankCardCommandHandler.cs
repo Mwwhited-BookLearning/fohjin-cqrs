@@ -13,13 +13,12 @@ public class CancelBankCardCommandHandler : CommandHandlerBase<CancelBankCardCom
         _repository = repository;
     }
 
-    public override Task ExecuteAsync(CancelBankCardCommand cancelReportStolenBankCardCommand)
+    public override async Task ExecuteAsync(CancelBankCardCommand cancelReportStolenBankCardCommand)
     {
-        var client = _repository.GetById<Client>(cancelReportStolenBankCardCommand.Id);
+        var client = await _repository.GetByIdAsync<Client>(cancelReportStolenBankCardCommand.Id);
         var bankCard = client?.GetBankCard(cancelReportStolenBankCardCommand.BankCardId);
         bankCard?.ClientCancelsBankCard();
         if (client != null)
             _repository.Add(client);
-        return Task.CompletedTask;
     }
 }

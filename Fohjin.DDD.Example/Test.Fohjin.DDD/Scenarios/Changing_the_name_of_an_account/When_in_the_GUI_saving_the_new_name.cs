@@ -21,13 +21,13 @@ namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account
 
             var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
             OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExample<AccountDetailsReport>(It.IsAny<object>()))
-                .Returns(accountDetailsReports);
+                .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
+                .ReturnsAsync(accountDetailsReports);
 
             var accountReports = new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890") };
             OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
-                .Returns(accountReports);
+                .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+                .ReturnsAsync(accountReports);
         }
 
         protected override void Given()

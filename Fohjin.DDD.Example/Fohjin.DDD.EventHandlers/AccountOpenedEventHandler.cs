@@ -13,13 +13,12 @@ namespace Fohjin.DDD.EventHandlers
             _reportingRepository = reportingRepository;
         }
 
-        public override Task ExecuteAsync(AccountOpenedEvent theEvent)
+        public override async Task ExecuteAsync(AccountOpenedEvent theEvent)
         {
             var account = new AccountReport(theEvent.AccountId, theEvent.ClientId, theEvent.AccountName, theEvent.AccountNumber);
             var accountDetails = new AccountDetailsReport(theEvent.AccountId, theEvent.ClientId, theEvent.AccountName, 0.0M, theEvent.AccountNumber);
-            _reportingRepository.Save(account);
-            _reportingRepository.Save(accountDetails);
-            return Task.CompletedTask;
+            await _reportingRepository.SaveAsync(account);
+            await _reportingRepository.SaveAsync(accountDetails);
         }
     }
 }

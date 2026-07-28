@@ -14,8 +14,8 @@ namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account
         protected override void SetupDependencies()
         {
             OnDependency<IReportingRepository>()
-                .Setup(x => x.GetByExample<ClientDetailsReport>(It.IsAny<object>()))
-                .Returns(new List<ClientDetailsReport> { new ClientDetailsReport(Guid.NewGuid(), "Client Name", "street", "123", "5000", "bergen", "1234567890") });
+                .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
+                .ReturnsAsync(new List<ClientDetailsReport> { new ClientDetailsReport(Guid.NewGuid(), "Client Name", "street", "123", "5000", "bergen", "1234567890") });
         }
 
         protected override void When()

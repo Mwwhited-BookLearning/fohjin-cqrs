@@ -22,7 +22,7 @@ namespace Fohjin.DDD.Bus.Direct
             _serviceProvider = serviceProvider;
             _log = log;
             _postCommitQueue = postCommitQueue;
-            _postCommitQueue.PopAsync(DoPublishAsync).GetAwaiter().GetResult();
+            _ = _postCommitQueue.PopAsync(DoPublishAsync);
         }
 
         public void Publish(object message)

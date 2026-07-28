@@ -1,6 +1,9 @@
 using Fohjin.DDD.BankApplication;
+using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Reporting.Infrastructure;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Test.Fohjin.DDD.TestUtilities;
 
@@ -14,7 +17,7 @@ public class RepositoryTest
     private SqliteReportingRepository? _repository;
 
     [TestInitialize]
-    public void SetUp()
+    public async Task SetUp()
     {
         TestContext.SetupWorkingDirectory();
         var dataBaseFile = Path.Combine(
@@ -23,30 +26,34 @@ public class RepositoryTest
             DomainDatabaseBootStrapper.DataBaseFile
             );
 
-        new ReportingDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
+        await new ReportingDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
 
         var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
 
-        _repository = new SqliteReportingRepository(sqliteConnectionString, new SqlSelectBuilder(), new SqlInsertBuilder(), new SqlUpdateBuilder(), new SqlDeleteBuilder());
+        var dbContextOptions = new DbContextOptionsBuilder<ReportingDbContext>()
+            .UseSqlite(sqliteConnectionString)
+            .Options;
+
+        _repository = new SqliteReportingRepository(new PooledDbContextFactory<ReportingDbContext>(dbContextOptions));
     }
 
     [TestMethod]
-    public void Will_be_able_to_save_and_retrieve_a_client_dto()
+    public async Task Will_be_able_to_save_and_retrieve_a_client_dto()
     {
         var clientDto = new ClientReport(Guid.NewGuid(), "Mark Nijhof");
-        _repository?.Save(clientDto);
-        var sut = _repository?.GetByExample<ClientReport>(new { Name = "Mark Nijhof" }).FirstOrDefault();
+        await _repository!.SaveAsync(clientDto);
+        var sut = (await _repository.GetByExampleAsync<ClientReport>(new { Name = "Mark Nijhof" })).FirstOrDefault();
 
         Assert.AreEqual(clientDto.Id, sut?.Id);
         Assert.AreEqual(clientDto.Name, sut?.Name);
     }
 
     [TestMethod]
-    public void Will_be_able_to_save_and_retrieve_a_client_details_dto()
+    public async Task Will_be_able_to_save_and_retrieve_a_client_details_dto()
     {
         var clientDetailsDto = new ClientDetailsReport(Guid.NewGuid(), "Mark Nijhof", "Street", "123", "5006", "Bergen", "123456789");
-        _repository?.Save(clientDetailsDto);
-        var sut = _repository?.GetByExample<ClientDetailsReport>(new { ClientName = "Mark Nijhof" }).FirstOrDefault();
+        await _repository!.SaveAsync(clientDetailsDto);
+        var sut = (await _repository.GetByExampleAsync<ClientDetailsReport>(new { ClientName = "Mark Nijhof" })).FirstOrDefault();
 
         Assert.AreEqual(clientDetailsDto.Id, sut?.Id);
         Assert.AreEqual(clientDetailsDto.ClientName, sut?.ClientName);
@@ -58,11 +65,11 @@ public class RepositoryTest
     }
 
     [TestMethod]
-    public void Will_be_able_to_save_and_retrieve_an_account_dto()
+    public async Task Will_be_able_to_save_and_retrieve_an_account_dto()
     {
         var accountDto = new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account Name", "1234567890");
-        _repository?.Save(accountDto);
-        var sut = _repository?.GetByExample<AccountReport>(new { AccountName = "Account Name" }).FirstOrDefault();
+        await _repository!.SaveAsync(accountDto);
+        var sut = (await _repository.GetByExampleAsync<AccountReport>(new { AccountName = "Account Name" })).FirstOrDefault();
 
         Assert.AreEqual(accountDto.Id, sut?.Id);
         Assert.AreEqual(accountDto.ClientDetailsReportId, sut?.ClientDetailsReportId);
@@ -71,11 +78,11 @@ public class RepositoryTest
     }
 
     [TestMethod]
-    public void Will_be_able_to_save_and_retrieve_an_account_details_dto()
+    public async Task Will_be_able_to_save_and_retrieve_an_account_details_dto()
     {
         var accountDetailsDto = new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account Name", 10.5M, "1234567890");
-        _repository?.Save(accountDetailsDto);
-        var sut = _repository?.GetByExample<AccountDetailsReport>(new { AccountName = "Account Name" }).FirstOrDefault();
+        await _repository!.SaveAsync(accountDetailsDto);
+        var sut = (await _repository.GetByExampleAsync<AccountDetailsReport>(new { AccountName = "Account Name" })).FirstOrDefault();
 
         Assert.AreEqual(accountDetailsDto.Id, sut?.Id);
         Assert.AreEqual(accountDetailsDto.ClientReportId, sut?.ClientReportId);
@@ -85,11 +92,11 @@ public class RepositoryTest
     }
 
     [TestMethod]
-    public void Will_be_able_to_save_and_retrieve_a_ledger_dto()
+    public async Task Will_be_able_to_save_and_retrieve_a_ledger_dto()
     {
         var ledgerDto = new LedgerReport(Guid.NewGuid(), Guid.NewGuid(), "Action", 12.3M);
-        _repository?.Save(ledgerDto);
-        var sut = _repository?.GetByExample<LedgerReport>(new { Action = "Action", Amount = 12.3M }).FirstOrDefault();
+        await _repository!.SaveAsync(ledgerDto);
+        var sut = (await _repository.GetByExampleAsync<LedgerReport>(new { Action = "Action", Amount = 12.3M })).FirstOrDefault();
 
         Assert.AreEqual(ledgerDto.Id, sut?.Id);
         Assert.AreEqual(ledgerDto.AccountDetailsReportId, sut?.AccountDetailsReportId);
@@ -98,26 +105,26 @@ public class RepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_GetByExample_it_will_return_a_list_with_dtos_matching_the_example()
+    public async Task When_calling_GetByExample_it_will_return_a_list_with_dtos_matching_the_example()
     {
-        _repository?.Save(new ClientReport(Guid.NewGuid(), "Mark Nijhof"));
-        _repository?.Save(new ClientReport(Guid.NewGuid(), "Mark Nijhof"));
-        var sut = _repository?.GetByExample<ClientReport>(new { Name = "Mark Nijhof" });
+        await _repository!.SaveAsync(new ClientReport(Guid.NewGuid(), "Mark Nijhof"));
+        await _repository.SaveAsync(new ClientReport(Guid.NewGuid(), "Mark Nijhof"));
+        var sut = await _repository.GetByExampleAsync<ClientReport>(new { Name = "Mark Nijhof" });
 
         Assert.AreEqual(2, sut?.Count());
     }
 
     [TestMethod]
-    public void When_calling_GetByExample_it_will_return_a_list_with_dtos_matching_the_example_inclusing_child_objects()
+    public async Task When_calling_GetByExample_it_will_return_a_list_with_dtos_matching_the_example_inclusing_child_objects()
     {
         var AccountId = Guid.NewGuid();
-        _repository?.Save(new AccountDetailsReport(AccountId, Guid.NewGuid(), "Account Name", 10.5M, "1234567890"));
+        await _repository!.SaveAsync(new AccountDetailsReport(AccountId, Guid.NewGuid(), "Account Name", 10.5M, "1234567890"));
 
-        _repository?.Save(new LedgerReport(Guid.NewGuid(), AccountId, "Action 1", 12.3M));
-        _repository?.Save(new LedgerReport(Guid.NewGuid(), AccountId, "Action 2", 24.6M));
-        _repository?.Save(new LedgerReport(Guid.NewGuid(), Guid.NewGuid(), "Action 3", 96.3M));
+        await _repository.SaveAsync(new LedgerReport(Guid.NewGuid(), AccountId, "Action 1", 12.3M));
+        await _repository.SaveAsync(new LedgerReport(Guid.NewGuid(), AccountId, "Action 2", 24.6M));
+        await _repository.SaveAsync(new LedgerReport(Guid.NewGuid(), Guid.NewGuid(), "Action 3", 96.3M));
 
-        var sut = _repository?.GetByExample<AccountDetailsReport>(new { AccountName = "Account Name" }).FirstOrDefault();
+        var sut = (await _repository.GetByExampleAsync<AccountDetailsReport>(new { AccountName = "Account Name" })).FirstOrDefault();
 
         Assert.AreEqual(2, sut?.Ledgers.Count());
         Assert.AreEqual("Action 1", sut?.Ledgers.First().Action);
@@ -127,28 +134,28 @@ public class RepositoryTest
     }
 
     [TestMethod]
-    public void Will_be_able_to_update_an_already_saved_dto()
+    public async Task Will_be_able_to_update_an_already_saved_dto()
     {
         Guid guid = Guid.NewGuid();
-        _repository?.Save(new ClientReport(guid, "Mark Nijhof"));
+        await _repository!.SaveAsync(new ClientReport(guid, "Mark Nijhof"));
 
-        _repository?.Update<ClientReport>(new { Name = "Mark Albert Nijhof" }, new { Id = guid });
+        await _repository.UpdateAsync<ClientReport>(new { Name = "Mark Albert Nijhof" }, new { Id = guid });
 
-        var sut = _repository?.GetByExample<ClientReport>(new { Id = guid });
+        var sut = await _repository.GetByExampleAsync<ClientReport>(new { Id = guid });
 
         Assert.AreEqual(1, sut?.Count());
         Assert.AreEqual("Mark Albert Nijhof", sut?.First().Name);
     }
 
     [TestMethod]
-    public void Will_be_able_to_delete_an_already_saved_dto()
+    public async Task Will_be_able_to_delete_an_already_saved_dto()
     {
         Guid guid = Guid.NewGuid();
-        _repository?.Save(new ClientReport(guid, "Mark Nijhof"));
+        await _repository!.SaveAsync(new ClientReport(guid, "Mark Nijhof"));
 
-        _repository?.Delete<ClientReport>(new { Id = guid });
+        await _repository.DeleteAsync<ClientReport>(new { Id = guid });
 
-        var sut = _repository?.GetByExample<ClientReport>(new { Id = guid });
+        var sut = await _repository.GetByExampleAsync<ClientReport>(new { Id = guid });
 
         Assert.AreEqual(0, sut?.Count());
     }

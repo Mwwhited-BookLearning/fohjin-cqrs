@@ -13,12 +13,11 @@ namespace Fohjin.DDD.CommandHandlers
             _repository = repository;
         }
 
-        public override Task ExecuteAsync(ClientIsMovingCommand compensatingCommand)
+        public override async Task ExecuteAsync(ClientIsMovingCommand compensatingCommand)
         {
-            var client = _repository.GetById<Client>(compensatingCommand.Id);
+            var client = await _repository.GetByIdAsync<Client>(compensatingCommand.Id);
 
             client?.ClientMoved(new Address(compensatingCommand.Street, compensatingCommand.StreetNumber, compensatingCommand.PostalCode, compensatingCommand.City));
-            return Task.CompletedTask;
         }
     }
 }

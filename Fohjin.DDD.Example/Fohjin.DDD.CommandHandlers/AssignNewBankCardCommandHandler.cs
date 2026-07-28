@@ -13,13 +13,12 @@ namespace Fohjin.DDD.CommandHandlers
             _repository = repository;
         }
 
-        public override Task ExecuteAsync(AssignNewBankCardCommand assignNewCancelReportStolenBankCardCommand)
+        public override async Task ExecuteAsync(AssignNewBankCardCommand assignNewCancelReportStolenBankCardCommand)
         {
-            var client = _repository.GetById<Client>(assignNewCancelReportStolenBankCardCommand.Id);
+            var client = await _repository.GetByIdAsync<Client>(assignNewCancelReportStolenBankCardCommand.Id);
             client?.AssignNewBankCardForAccount(assignNewCancelReportStolenBankCardCommand.AccountId);
             if (client != null)
                 _repository.Add(client);
-            return Task.CompletedTask;
         }
     }
 }

@@ -13,15 +13,14 @@ namespace Fohjin.DDD.CommandHandlers
             _repository = repository;
         }
 
-        public override Task ExecuteAsync(CloseAccountCommand compensatingCommand)
+        public override async Task ExecuteAsync(CloseAccountCommand compensatingCommand)
         {
-            var activeAccount = _repository.GetById<ActiveAccount>(compensatingCommand.Id);
+            var activeAccount = await _repository.GetByIdAsync<ActiveAccount>(compensatingCommand.Id);
 
             var closedAccount = activeAccount?.Close();
 
             if (closedAccount != null)
                 _repository.Add(closedAccount);
-            return Task.CompletedTask;
         }
     }
 }

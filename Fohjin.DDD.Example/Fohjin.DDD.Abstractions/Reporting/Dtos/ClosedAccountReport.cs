@@ -9,7 +9,6 @@ namespace Fohjin.DDD.Reporting.Dtos
         {
         }
 
-        [SqliteConstructor]
         public ClosedAccountReport(
             Guid id,
             Guid clientDetailsId, 

@@ -14,17 +14,17 @@ namespace Fohjin.DDD.BankApplication.Views
             RegisterClientEvents();
         }
 
-        public event EventAction? OnOpenSelectedAccount;
-        public event EventAction? OnFormElementGotChanged;
-        public event EventAction? OnCancel;
-        public event EventAction? OnSaveNewClientName;
-        public event EventAction? OnSaveNewPhoneNumber;
-        public event EventAction? OnSaveNewAddress;
-        public event EventAction? OnInitiateClientHasMoved;
-        public event EventAction? OnInitiateClientNameChange;
-        public event EventAction? OnInitiateClientPhoneNumberChanged;
-        public event EventAction? OnInitiateOpenNewAccount;
-        public event EventAction? OnCreateNewAccount;
+        public event Action? OnOpenSelectedAccount;
+        public event Action? OnFormElementGotChanged;
+        public event Action? OnCancel;
+        public event Action? OnSaveNewClientName;
+        public event Action? OnSaveNewPhoneNumber;
+        public event Action? OnSaveNewAddress;
+        public event Action? OnInitiateClientHasMoved;
+        public event Action? OnInitiateClientNameChange;
+        public event Action? OnInitiateClientPhoneNumberChanged;
+        public event Action? OnInitiateOpenNewAccount;
+        public event Action? OnCreateNewAccount;
 
         private void RegisterClientEvents()
         {

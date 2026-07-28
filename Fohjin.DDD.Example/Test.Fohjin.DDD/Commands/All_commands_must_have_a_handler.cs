@@ -20,15 +20,19 @@ namespace Test.Fohjin.DDD.Commands
         {
             Assert.IsNotNull(handlerType, "No handlers exist");
 
+            var hasFixup = SyntheticFixtures.TryBuildConsistentCommand(commandType, out var fixedCommand, out var fixedRepository);
+
             var services = new ServiceCollection()
                 .AddLogging(log => log.AddConsole().SetMinimumLevel(LogLevel.Information))
                 .AddSingleton(_ => TestContext)
                 .AddSingleton(typeof(IDomainRepository<>), typeof(TestDomainRepository<>))
                 .AddCommonServices()
                 ;
+            if (hasFixup)
+                services.AddSingleton(fixedRepository!);
             var serviceProvider = services.BuildServiceProvider();
 
-            var command = (ICommand)commandType.GetNonDefaultValue(serviceProvider);
+            var command = hasFixup ? fixedCommand : (ICommand)commandType.GetNonDefaultValue(serviceProvider);
 
             var instance = (ICommandHandler)ActivatorUtilities.CreateInstance(serviceProvider, handlerType);
             if (command != null)

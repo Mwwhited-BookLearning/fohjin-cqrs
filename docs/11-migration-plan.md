@@ -160,13 +160,13 @@ endpoint either: that's wired through OData's controller/attribute-routing conve
 which this phase deliberately didn't add (staying minimal-API-only, consistent with the rest
 of the app) in favor of the shared-delegate design above.
 
-**Exit criteria — met**: `Test.Fohjin.DDD.ApiClient/ODataClientsEndpointTest.cs` (3 new tests)
-proves `GET ?$filter=...` and `QUERY` with the same filter in the body return identical
-client sets; that a bodyless `QUERY` behaves like "no filter" rather than crashing (a real bug
-hit and fixed during manual verification — the handler unconditionally tried to parse a JSON
-body that might not exist); and that `$select` is rejected with 400 rather than the
-`InvalidCastException` it threw before validation was added. Full solution build + test
-suite: 410 + 4 passed, 4 skipped, 0 failed.
+**Exit criteria — met**: `Test.Fohjin.DDD.ApiClient/ODataClientsEndpointTest.cs` (3 tests,
+later 4 — see the bug-fix pass below) proves `GET ?$filter=...` and `QUERY` with the same
+filter in the body return identical client sets; that a bodyless `QUERY` behaves like "no
+filter" rather than crashing (a real bug hit and fixed during manual verification — the
+handler unconditionally tried to parse a JSON body that might not exist); and that `$select`
+is rejected with 400 rather than the `InvalidCastException` it threw before validation was
+added. Full solution build + test suite: 410 + 4 passed, 4 skipped, 0 failed.
 
 ### Phase 4 — SSE event stream + AsyncAPI (done)
 
@@ -272,6 +272,22 @@ scheme swapped into every other WebApi integration test's `WebApiIntegrationTest
 generated client, ...), not authentication, and adding `.RequireAuthorization()` had broken
 all of them by returning 401 instead of their expected responses until this was in place.
 Full solution build + test suite: 410 + 9 passed, 4 skipped, 0 failed.
+
+### Bug-fix pass across Phases 1–5 (done)
+
+Not a phase — a deliberate sweep after Phase 4 landed, to check behavior *outside* the exact
+scenarios each phase's own verification already covered: malformed JSON bodies (both
+`QUERY /odata/Clients` and `POST /api/clients`), invalid `$filter` syntax on both
+`/odata/Clients` and `/api/events`, a nonexistent client id, and a malformed guid in a route.
+One real gap found: `QUERY /odata/Clients` parses its filter from the request body by hand
+(`ReadFromJsonAsync` inside the handler, not a bound parameter), which bypassed the automatic
+bad-JSON-to-400 conversion `POST /api/clients` gets for free via normal minimal-API model
+binding — a malformed body threw an unhandled `JsonException` straight through to a 500.
+Fixed with a targeted try/catch, plus a regression test
+(`QUERY_with_malformed_json_body_is_rejected_rather_than_a_500`, the 4th test in
+`ODataClientsEndpointTest.cs`). Everything else in the sweep was already correct. Full
+solution build + test suite: 410 + 5 passed, 4 skipped, 0 failed (before Phase 5 added its
+own tests on top).
 
 ### Phase 6 — Vue frontend
 

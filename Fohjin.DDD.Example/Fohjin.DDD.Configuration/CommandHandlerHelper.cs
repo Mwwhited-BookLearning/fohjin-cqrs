@@ -41,6 +41,10 @@ namespace Fohjin.DDD.Configuration
         {
             _log.LogInformation($"RouteAsync> {{type}}: {{{nameof(message)}}}", message.GetType(), message);
             var targetHandler = typeof(ICommandHandler<>).MakeGenericType(message.GetType());
+            _log.LogInformation($"DEBUG total handlers registered: {_handlers.Count()}: {string.Join(",", _handlers.Select(h => h.GetType().Name))}");
+            _log.LogInformation($"DEBUG targetHandler: {targetHandler}");
+            foreach (var h in _handlers)
+                _log.LogInformation($"DEBUG {h.GetType().Name} assignable: {h.GetType().IsAssignableTo(targetHandler)} interfaces: {string.Join(",", h.GetType().GetInterfaces().Select(i => i.ToString()))}");
             var selectedHandlers = _handlers.Where(i => i.GetType().IsAssignableTo(targetHandler));
 
             if (!selectedHandlers.Any())

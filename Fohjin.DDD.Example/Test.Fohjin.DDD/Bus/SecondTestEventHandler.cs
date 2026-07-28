@@ -1,4 +1,4 @@
-﻿using Fohjin.DDD.EventHandlers;
+using Fohjin.DDD.EventHandlers;
 using Fohjin.DDD.EventStore;
 
 namespace Test.Fohjin.DDD.Bus
@@ -6,6 +6,7 @@ namespace Test.Fohjin.DDD.Bus
     public class SecondTestEventHandler : IEventHandler<TestEvent>
     {
         public List<Guid> Ids;
+        public readonly SemaphoreSlim Signal = new(0);
 
         public SecondTestEventHandler()
         {
@@ -15,6 +16,7 @@ namespace Test.Fohjin.DDD.Bus
         public Task ExecuteAsync(TestEvent command)
         {
             Ids.Add(command.Id);
+            Signal.Release();
             return Task.CompletedTask;
         }
 

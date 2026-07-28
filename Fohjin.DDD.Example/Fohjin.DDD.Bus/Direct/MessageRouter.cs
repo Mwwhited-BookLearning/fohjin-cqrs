@@ -1,19 +1,18 @@
-﻿using Fohjin.DDD.CommandHandlers;
+using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Commands;
-using Fohjin.DDD.Configuration;
-using Fohjin.DDD.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.Bus.Direct
 {
+    // Commands only - domain events are delivered via IBus.Events (see EventSubscriptionBootstrapper)
+    // instead of being routed through here.
     public class MessageRouter : IRouteMessages
     {
         private static int _seed;
         private readonly int _id = _seed++;
 
         private ICommandHandlerHelper? _commandHandlerHelper;
-        private IEventHandlerHelper? _eventHandlerHelper;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger _log;
 
@@ -34,11 +33,6 @@ namespace Fohjin.DDD.Bus.Direct
             {
                 _commandHandlerHelper ??= _serviceProvider.GetRequiredService<ICommandHandlerHelper>();
                 handled |= await _commandHandlerHelper.RouteAsync(command);
-            }
-            if (message is IDomainEvent @event)
-            {
-                _eventHandlerHelper ??= _serviceProvider.GetRequiredService<IEventHandlerHelper>();
-                handled |= await _eventHandlerHelper.RouteAsync(@event);
             }
 
             if (!handled)

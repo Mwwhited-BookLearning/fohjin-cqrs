@@ -1,4 +1,4 @@
-﻿using Fohjin.DDD.Bus.Direct;
+using Fohjin.DDD.Bus.Direct;
 using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Bus;
 
+[TestClass]
 public class When_a_single_command_gets_published_to_the_bus_containing_multiple_command_handlers : BaseTestFixture<DirectBus>
 {
     private FirstTestCommandHandler _handler;
@@ -19,11 +20,12 @@ public class When_a_single_command_gets_published_to_the_bus_containing_multiple
         Services.AddConfigurationServices()
             .AddTransient<ICommandHandler>(_ => _handler)
             .AddTransient<ICommandHandler>(_ => _secondHandler)
+            .AddTransient(typeof(ITransactionHandler<,>), typeof(TransactionHandler<,>))
+            .AddSingleton<IRouteMessages, MessageRouter>()
             ;
-        ;
 
-        var messageRouter = new MessageRouter(this.Provider, this.Logger<MessageRouter>());
-        DoNotMock?.Add(typeof(IRouteMessages), messageRouter);
+        DoNotMock?.Add(typeof(IServiceProvider), this.Provider);
+        DoNotMock?.Add(typeof(IQueue), new InMemoryQueue(this.Logger<InMemoryQueue>()));
     }
 
     protected override void Given()
@@ -37,6 +39,8 @@ public class When_a_single_command_gets_published_to_the_bus_containing_multiple
             return;
         SubjectUnderTest.Publish(new List<object> { _command });
         await SubjectUnderTest.CommitAsync();
+        await _handler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
+        await _secondHandler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [TestMethod]

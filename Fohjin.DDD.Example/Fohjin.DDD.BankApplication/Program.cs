@@ -52,8 +52,9 @@ namespace Fohjin.DDD.BankApplication
                 .AddDddServices()
                 .AddBankApplicationServices()
                 ;
-            var service = await services.BuildServiceProvider()
-                .BootStrapApplicationAsync()
+            var service = (await services.BuildServiceProvider()
+                .BootStrapApplicationAsync())
+                .SubscribeEventHandlers()
                 ;
 
             var clientSearchFormPresenter = service.GetRequiredService<IClientSearchFormPresenter>();

@@ -1,12 +1,10 @@
-﻿using Fohjin.DDD.Bus.Direct;
-using Fohjin.DDD.Configuration;
-using Fohjin.DDD.EventHandlers;
-using Microsoft.Extensions.DependencyInjection;
+using Fohjin.DDD.Bus.Direct;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-
+using System.Reactive.Linq;
 
 namespace Test.Fohjin.DDD.Bus
 {
+    [TestClass]
     public class When_multiple_events_gets_published_to_the_bus_containing_multiple_event_handlers : BaseTestFixture<DirectBus>
     {
         private FirstTestEventHandler _handler;
@@ -18,19 +16,15 @@ namespace Test.Fohjin.DDD.Bus
         {
             _handler = new FirstTestEventHandler();
             _secondHandler = new SecondTestEventHandler();
-            Services.AddConfigurationServices()
-                .AddTransient<IEventHandler>(_ => _handler)
-                .AddTransient<IEventHandler>(_ => _secondHandler)
-                ;
-
-            var messageRouter = new MessageRouter(this.Provider, this.Logger<MessageRouter>());
-            DoNotMock?.Add(typeof(IRouteMessages), messageRouter);
+            DoNotMock?.Add(typeof(IQueue), new InMemoryQueue(this.Logger<InMemoryQueue>()));
         }
 
         protected override void Given()
         {
             _event = new TestEvent();
             _otherEvent = new TestEvent();
+            SubjectUnderTest.Events.OfType<TestEvent>().Subscribe(async e => await _handler.ExecuteAsync(e));
+            SubjectUnderTest.Events.OfType<TestEvent>().Subscribe(async e => await _secondHandler.ExecuteAsync(e));
         }
 
         protected override async Task WhenAsync()
@@ -40,6 +34,10 @@ namespace Test.Fohjin.DDD.Bus
 
             SubjectUnderTest.Publish(new List<object> { _event, _otherEvent });
             await SubjectUnderTest.CommitAsync();
+            await _handler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
+            await _handler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
+            await _secondHandler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
+            await _secondHandler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
         }
 
         [TestMethod]

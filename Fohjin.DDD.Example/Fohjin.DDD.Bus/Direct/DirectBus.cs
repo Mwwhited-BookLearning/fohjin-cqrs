@@ -1,6 +1,9 @@
+using Fohjin.DDD.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 
 namespace Fohjin.DDD.Bus.Direct
 {
@@ -12,6 +15,7 @@ namespace Fohjin.DDD.Bus.Direct
 
         private readonly ConcurrentQueue<object> _preCommitQueue = new();
         private readonly IQueue _postCommitQueue;
+        private readonly Subject<IDomainEvent> _events = new();
 
         public DirectBus(
             IServiceProvider serviceProvider,
@@ -24,6 +28,8 @@ namespace Fohjin.DDD.Bus.Direct
             _postCommitQueue = postCommitQueue;
             _ = _postCommitQueue.PopAsync(DoPublishAsync);
         }
+
+        public IObservable<IDomainEvent> Events => _events.AsObservable();
 
         public void Publish(object message)
         {
@@ -38,14 +44,19 @@ namespace Fohjin.DDD.Bus.Direct
                 _preCommitQueue.Enqueue(message);
         }
 
-        public async Task CommitAsync()
+        public Task CommitAsync()
         {
             _log.LogInformation($"{nameof(CommitAsync)}");
 
+            // Fire-and-forget: hand each message to the post-commit queue without waiting for it
+            // to be dispatched. Command handling and event-stream delivery both happen detached
+            // from this call, so callers stop blocking on the outcome of what they published.
             while (_preCommitQueue.TryDequeue(out var @obj))
             {
-                await _postCommitQueue.PutAsync(@obj);
+                _ = _postCommitQueue.PutAsync(@obj);
             }
+
+            return Task.CompletedTask;
         }
 
         public void Rollback()
@@ -57,10 +68,23 @@ namespace Fohjin.DDD.Bus.Direct
         private async Task DoPublishAsync(object message)
         {
             _log.LogInformation($"{nameof(DoPublishAsync)}: {{{nameof(message)}}}", message);
-            _routeMessages ??= _serviceProvider.GetRequiredService<IRouteMessages>();
             try
             {
-                await _routeMessages.RouteAsync(message);
+                if (message is IDomainEvent domainEvent)
+                {
+                    _events.OnNext(domainEvent);
+                }
+                else
+                {
+                    _routeMessages ??= _serviceProvider.GetRequiredService<IRouteMessages>();
+                    await _routeMessages.RouteAsync(message);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Nothing awaits this method anymore now that CommitAsync is fire-and-forget, so an
+                // unhandled exception here would otherwise be lost as an unobserved task exception.
+                _log.LogError(ex, $"{nameof(DoPublishAsync)}-Failed: {{type}}: {{{nameof(message)}}}", message.GetType(), message);
             }
             finally
             {

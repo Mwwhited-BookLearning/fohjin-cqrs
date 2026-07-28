@@ -3,20 +3,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.TestUtilities.Tools;
 
-public class TestDomainRepository<TDomainEvent> : IDomainRepository<TDomainEvent>
+public class TestDomainRepository<TDomainEvent>(
+    TestContext testContext,
+    IServiceProvider serviceProvider
+        ) : IDomainRepository<TDomainEvent>
      where TDomainEvent : IDomainEvent
 {
-    private readonly TestContext _testContext;
-    private readonly IServiceProvider _serviceProvider;
-
-    public TestDomainRepository(
-        TestContext testContext,
-        IServiceProvider serviceProvider
-        )
-    {
-        _testContext = testContext;
-        _serviceProvider = serviceProvider;
-    }
+    private readonly TestContext _testContext = testContext;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     void IDomainRepository<TDomainEvent>.Add<TAggregate>(TAggregate aggregateRoot)
     {

@@ -12,18 +12,12 @@ public static class DomainEventStorageConfig
     public const string ConnectionStringConfigKey = "DomainEventStorage:SqliteConnectionString";
 }
 
-public class DomainEventStorage<TDomainEvent> : IDomainEventStorage<TDomainEvent> where TDomainEvent : IDomainEvent
+public class DomainEventStorage<TDomainEvent>(IDbContextFactory<DomainEventStoreDbContext> dbContextFactory, IExtendedFormatter formatter) : IDomainEventStorage<TDomainEvent> where TDomainEvent : IDomainEvent
 {
-    private readonly IDbContextFactory<DomainEventStoreDbContext> _dbContextFactory;
-    private readonly IExtendedFormatter _formatter;
+    private readonly IDbContextFactory<DomainEventStoreDbContext> _dbContextFactory = dbContextFactory;
+    private readonly IExtendedFormatter _formatter = formatter;
     private DomainEventStoreDbContext? _transactionalContext;
     private IDbContextTransaction? _transaction;
-
-    public DomainEventStorage(IDbContextFactory<DomainEventStoreDbContext> dbContextFactory, IExtendedFormatter formatter)
-    {
-        _dbContextFactory = dbContextFactory;
-        _formatter = formatter;
-    }
 
     public Task<IEnumerable<TDomainEvent>> GetAllEventsAsync(Guid eventProviderId) =>
         WithContextAsync(async context =>

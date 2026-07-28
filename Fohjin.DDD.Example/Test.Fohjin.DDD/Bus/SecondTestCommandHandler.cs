@@ -10,7 +10,7 @@ public class SecondTestCommandHandler : CommandHandlerBase<TestCommand>
 
     public SecondTestCommandHandler()
     {
-        Ids = new List<Guid>();
+        Ids = [];
     }
 
     public override Task ExecuteAsync(TestCommand compensatingCommand)

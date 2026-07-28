@@ -3,7 +3,9 @@ using System.Collections.Concurrent;
 
 namespace Fohjin.DDD.Bus.Direct;
 
-public class InMemoryQueue : IQueue
+public class InMemoryQueue(
+    ILogger<InMemoryQueue> log
+        ) : IQueue
 {
     private static int _seed;
     private readonly int _id = _seed++;
@@ -11,14 +13,7 @@ public class InMemoryQueue : IQueue
     private readonly ConcurrentQueue<object> _itemQueue = new();
     private readonly ConcurrentQueue<Func<object, Task>> _listenerQueue = new();
 
-    private readonly ILogger _log;
-
-    public InMemoryQueue(
-        ILogger<InMemoryQueue> log
-        )
-    {
-        _log = log;
-    }
+    private readonly ILogger _log = log;
 
     public async Task PutAsync(object item)
     {

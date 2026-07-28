@@ -64,18 +64,13 @@ public abstract class PresenterTestFixture<TPresenter>
     private static object CreateMock(Type type)
     {
         var constructorInfo = typeof(Mock<>).MakeGenericType(type).GetConstructors().First();
-        return constructorInfo.Invoke(new object[] { });
+        return constructorInfo.Invoke([]);
     }
 }
 
-public class MockDsl<TType> where TType : class
+public class MockDsl<TType>(IDictionary<Type, object> mocks) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-
-    public MockDsl(IDictionary<Type, object> mocks)
-    {
-        _mocks = mocks;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
 
     public ValueSetter<TType, TProperty> ValueFor<TProperty>(Expression<Func<TType, TProperty>> selector)
     {
@@ -94,14 +89,9 @@ public class MockDsl<TType> where TType : class
     public Verifier<TType> VerifyThat { get { return new Verifier<TType>(_mocks); } }
 }
 
-public class Verifier<TType> where TType : class
+public class Verifier<TType>(IDictionary<Type, object> mocks) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-
-    public Verifier(IDictionary<Type, object> mocks)
-    {
-        _mocks = mocks;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
 
     public void ValueIsSetFor(Action<TType> selector)
     {
@@ -118,16 +108,10 @@ public class Verifier<TType> where TType : class
     }
 }
 
-public class MethodVerifier<TType> where TType : class
+public class MethodVerifier<TType>(IDictionary<Type, object> mocks, Expression<Action<TType>> fieldSelector) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-    private readonly Expression<Action<TType>> _fieldSelector;
-
-    public MethodVerifier(IDictionary<Type, object> mocks, Expression<Action<TType>> fieldSelector)
-    {
-        _mocks = mocks;
-        _fieldSelector = fieldSelector;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
+    private readonly Expression<Action<TType>> _fieldSelector = fieldSelector;
 
     public void WasCalled()
     {
@@ -139,16 +123,10 @@ public class MethodVerifier<TType> where TType : class
     }
 }
 
-public class ValueSetter<TType, TProperty> where TType : class
+public class ValueSetter<TType, TProperty>(IDictionary<Type, object> mocks, Expression<Func<TType, TProperty>> fieldSelector) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-    private readonly Expression<Func<TType, TProperty>> _fieldSelector;
-
-    public ValueSetter(IDictionary<Type, object> mocks, Expression<Func<TType, TProperty>> fieldSelector)
-    {
-        _mocks = mocks;
-        _fieldSelector = fieldSelector;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
+    private readonly Expression<Func<TType, TProperty>> _fieldSelector = fieldSelector;
 
     public void IsSetTo(TProperty value)
     {

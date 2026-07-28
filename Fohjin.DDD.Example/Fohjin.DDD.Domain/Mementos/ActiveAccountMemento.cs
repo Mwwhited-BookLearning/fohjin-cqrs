@@ -36,7 +36,7 @@ public record ActiveAccountMemento : IMemento
         AccountNumber = accountNumber;
         Balance = balance;
         Closed = closed;
-        Ledgers = new List<KeyValuePair<string, string>>();
+        Ledgers = [];
         ledgers.ForEach(x => Ledgers.Add(new KeyValuePair<string, string>(x.GetType().Name, string.Format("{0}|{1}", ((decimal)x.Amount), x.Account.Number))));
     }
 }

@@ -1,8 +1,5 @@
 ﻿namespace Fohjin.DDD.EventStore.SQLite;
 
-public class ConcurrencyViolationException : Exception
+public class ConcurrencyViolationException(string? message) : Exception(message)
 {
-    public ConcurrencyViolationException(string? message) : base(message)
-    {
-    }
 }

@@ -20,13 +20,10 @@ namespace Test.Fohjin.DDD.Domain.Repositories;
 [TestCategory("unit")]
 public class clientRepositoryTest
 {
-    private readonly IServiceCollection _services = new ServiceCollection()
-        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information))
-        ;
-    public IServiceCollection Services => _services;
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-    private IServiceProvider _provider;
-    public IServiceProvider Provider => _provider ??= _services.BuildServiceProvider();
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 

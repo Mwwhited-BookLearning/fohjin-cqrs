@@ -2,16 +2,11 @@ using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.Common;
 
-public class SystemTimer : ISystemTimer, IDisposable
+public class SystemTimer(
+    ILogger<SystemTimer> log) : ISystemTimer, IDisposable
 {
     private readonly List<Task> _timers = new();
-    private readonly ILogger _log;
-
-    public SystemTimer(
-        ILogger<SystemTimer> log)
-    {
-        _log = log;
-    }
+    private readonly ILogger _log = log;
 
     public void Dispose() =>
         Task.WaitAll([.. _timers]);

@@ -3,20 +3,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.TestUtilities.Tools;
 
-public class TestReportingRepository : IReportingRepository
+public class TestReportingRepository(
+    TestContext testContext,
+    IServiceProvider serviceProvider
+        ) : IReportingRepository
 {
-    private readonly TestContext _testContext;
-    private readonly IServiceProvider _serviceProvider;
-
-    public TestReportingRepository(
-        TestContext testContext,
-        IServiceProvider serviceProvider
-        )
-    {
-        _testContext = testContext;
-        _serviceProvider = serviceProvider;
-    }
-
+    private readonly TestContext _testContext = testContext;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     public Task DeleteAsync<TDto>(object example) where TDto : class
     {

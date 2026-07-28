@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fohjin.DDD.Reporting;
 
-public class ReportingDbContext : DbContext
+public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : DbContext(options)
 {
-    public ReportingDbContext(DbContextOptions<ReportingDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<ClientReport> ClientReports => Set<ClientReport>();
     public DbSet<ClientDetailsReport> ClientDetailsReports => Set<ClientDetailsReport>();
     public DbSet<AccountReport> AccountReports => Set<AccountReport>();

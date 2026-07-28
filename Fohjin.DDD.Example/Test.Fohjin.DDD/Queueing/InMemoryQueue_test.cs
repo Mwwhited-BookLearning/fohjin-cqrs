@@ -9,17 +9,13 @@ namespace Test.Fohjin.DDD.Queueing;
 [TestCategory("unit")]
 public class InMemoryQueue_test
 {
-    private readonly IServiceCollection _services = new ServiceCollection()
-        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information))
-        ;
-    public IServiceCollection Services => _services;
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-    private IServiceProvider _provider;
-    public IServiceProvider Provider => _provider ??= _services.BuildServiceProvider();
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
 
-    private ILogger<InMemoryQueue> _logger;
     public ILogger<InMemoryQueue> Logger =>
-        _logger ??= Provider.GetRequiredService<ILogger<InMemoryQueue>>();
+        field ??= Provider.GetRequiredService<ILogger<InMemoryQueue>>();
 
     [TestMethod]
     public async Task When_adding_items_to_the_queue_they_can_later_be_retrieved_from_the_queue()

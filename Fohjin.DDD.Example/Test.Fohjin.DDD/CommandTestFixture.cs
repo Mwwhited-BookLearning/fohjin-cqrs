@@ -97,14 +97,9 @@ public class PrepareDomainEvent
     }
 }
 
-public class EventVersionSetter
+public class EventVersionSetter(IDomainEvent domainEvent)
 {
-    private readonly IDomainEvent _domainEvent;
-
-    public EventVersionSetter(IDomainEvent domainEvent)
-    {
-        _domainEvent = domainEvent;
-    }
+    private readonly IDomainEvent _domainEvent = domainEvent;
 
     public IDomainEvent ToVersion(int version)
     {

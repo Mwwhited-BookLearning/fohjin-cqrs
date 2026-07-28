@@ -2,15 +2,10 @@
 
 namespace Test.Fohjin.DDD.TestUtilities;
 
-public class TestSystemRandom : ISystemRandom
+public class TestSystemRandom(
+     Func<int, int, int> rand) : ISystemRandom
 {
-    private readonly Func<int, int, int> _rand;
-
-    public TestSystemRandom(
-         Func<int, int, int> rand)
-    {
-        _rand = rand;
-    }
+    private readonly Func<int, int, int> _rand = rand;
 
     public int Next(int start, int end) => _rand(start, end);
 }

@@ -2,14 +2,10 @@
 
 namespace Test.Fohjin.DDD.TestUtilities;
 
-public class TestSystemDateTime : ISystemDateTime
+public class TestSystemDateTime(
+     DateTimeOffset now) : ISystemDateTime
 {
-    private readonly DateTimeOffset _now;
+    private readonly DateTimeOffset _now = now;
 
-    public TestSystemDateTime(
-         DateTimeOffset now)
-    {
-        _now = now;
-    }
     public DateTimeOffset Now() => _now;
 }

@@ -4,16 +4,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.TestUtilities.Tools;
 
-public class TestSendMoneyTransfer : ISendMoneyTransfer
+public class TestSendMoneyTransfer(
+    TestContext testContext
+        ) : ISendMoneyTransfer
 {
-    private readonly TestContext _testContext;
-
-    public TestSendMoneyTransfer(
-        TestContext testContext
-        )
-    {
-        _testContext = testContext;
-    }
+    private readonly TestContext _testContext = testContext;
 
     public void Send(MoneyTransfer moneyTransfer)
     {

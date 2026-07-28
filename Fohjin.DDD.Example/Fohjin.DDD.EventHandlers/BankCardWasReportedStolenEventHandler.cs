@@ -3,14 +3,9 @@ using Fohjin.DDD.Reporting;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class BankCardWasReportedStolenEventHandler : EventHandlerBase<BankCardWasReportedStolenEvent>
+public class BankCardWasReportedStolenEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<BankCardWasReportedStolenEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public BankCardWasReportedStolenEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override Task ExecuteAsync(BankCardWasReportedStolenEvent theEvent) =>
         Task.CompletedTask;

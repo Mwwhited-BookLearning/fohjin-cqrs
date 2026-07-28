@@ -7,32 +7,21 @@ using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
-public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountDetailsPresenter
+public class AccountDetailsPresenter(
+    IAccountDetailsView accountDetailsView,
+    IPopupPresenter popupPresenter,
+    IBus bus,
+    IReportingRepository reportingRepository,
+    ISystemTimer systemTimer) : Presenter<IAccountDetailsView>(accountDetailsView), IAccountDetailsPresenter
 {
-    private int _editStep;
+    private int _editStep = 0;
     private AccountReport? _accountReport;
     private AccountDetailsReport _accountDetailsReport = AccountDetailsReport.New;
-    private readonly IAccountDetailsView _accountDetailsView;
-    private readonly IPopupPresenter _popupPresenter;
-    private readonly IBus _bus;
-    private readonly IReportingRepository _reportingRepository;
-    private readonly ISystemTimer _systemTimer;
-
-    public AccountDetailsPresenter(
-        IAccountDetailsView accountDetailsView,
-        IPopupPresenter popupPresenter,
-        IBus bus,
-        IReportingRepository reportingRepository,
-        ISystemTimer systemTimer)
-        : base(accountDetailsView)
-    {
-        _editStep = 0;
-        _accountDetailsView = accountDetailsView;
-        _popupPresenter = popupPresenter;
-        _bus = bus;
-        _reportingRepository = reportingRepository;
-        _systemTimer = systemTimer;
-    }
+    private readonly IAccountDetailsView _accountDetailsView = accountDetailsView;
+    private readonly IPopupPresenter _popupPresenter = popupPresenter;
+    private readonly IBus _bus = bus;
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
+    private readonly ISystemTimer _systemTimer = systemTimer;
 
     public async void Display()
     {

@@ -1,6 +1,5 @@
 namespace Fohjin.DDD.EventStore.Aggregate;
 
-public class UnregisteredDomainEventException : Exception
+public class UnregisteredDomainEventException(string message) : Exception(message)
 {
-    public UnregisteredDomainEventException(string message) : base(message) { }
 }

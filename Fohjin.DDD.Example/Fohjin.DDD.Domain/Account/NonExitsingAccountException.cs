@@ -1,6 +1,5 @@
 namespace Fohjin.DDD.Domain.Account;
 
-public class NonExitsingAccountException : Exception
+public class NonExitsingAccountException(string message) : Exception(message)
 {
-    public NonExitsingAccountException(string message) : base(message) { }
 }

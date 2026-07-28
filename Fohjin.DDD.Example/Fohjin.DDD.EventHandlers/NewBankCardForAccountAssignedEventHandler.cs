@@ -3,14 +3,9 @@ using Fohjin.DDD.Reporting;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class NewBankCardForAccountAssignedEventHandler : EventHandlerBase<NewBankCardForAccountAsignedEvent>
+public class NewBankCardForAccountAssignedEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<NewBankCardForAccountAsignedEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public NewBankCardForAccountAssignedEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override Task ExecuteAsync(NewBankCardForAccountAsignedEvent theEvent) =>
         Task.CompletedTask;

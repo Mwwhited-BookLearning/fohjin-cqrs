@@ -3,14 +3,9 @@ using Fohjin.DDD.Reporting;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class BankCardWasCanceledByClientEventHandler : EventHandlerBase<BankCardWasCanceledByClientEvent>
+public class BankCardWasCanceledByClientEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<BankCardWasCanceledByClientEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public BankCardWasCanceledByClientEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override Task ExecuteAsync(BankCardWasCanceledByClientEvent theEvent) =>
         Task.CompletedTask;

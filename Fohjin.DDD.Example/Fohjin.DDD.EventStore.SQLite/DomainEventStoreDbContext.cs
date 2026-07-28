@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fohjin.DDD.EventStore.SQLite;
 
-public class DomainEventStoreDbContext : DbContext
+public class DomainEventStoreDbContext(DbContextOptions<DomainEventStoreDbContext> options) : DbContext(options)
 {
-    public DomainEventStoreDbContext(DbContextOptions<DomainEventStoreDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<EventProviderEntity> EventProviders => Set<EventProviderEntity>();
     public DbSet<EventRecordEntity> Events => Set<EventRecordEntity>();
     public DbSet<SnapShotEntity> SnapShots => Set<SnapShotEntity>();

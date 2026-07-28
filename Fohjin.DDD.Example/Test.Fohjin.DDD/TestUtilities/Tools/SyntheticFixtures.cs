@@ -72,11 +72,9 @@ public static class SyntheticFixtures
         return account;
     }
 
-    private class SingleAggregateRepository : IDomainRepository<IDomainEvent>
+    private class SingleAggregateRepository(object aggregate) : IDomainRepository<IDomainEvent>
     {
-        private readonly object _aggregate;
-
-        public SingleAggregateRepository(object aggregate) => _aggregate = aggregate;
+        private readonly object _aggregate = aggregate;
 
         public Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<IDomainEvent>, new() =>
             Task.FromResult(_aggregate as TAggregate);

@@ -22,14 +22,10 @@ namespace Test.Fohjin.DDD.Domain.Repositories;
 public class ClosedAccountRepositoryTest
 {
     public TestContext TestContext { get; set; } = null!;
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-    private readonly IServiceCollection _services = new ServiceCollection()
-        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information))
-        ;
-    public IServiceCollection Services => _services;
-
-    private IServiceProvider _provider;
-    public IServiceProvider Provider => _provider ??= _services.BuildServiceProvider();
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 

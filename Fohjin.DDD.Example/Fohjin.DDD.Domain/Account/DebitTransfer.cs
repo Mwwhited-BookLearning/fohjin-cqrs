@@ -1,6 +1,5 @@
 ﻿namespace Fohjin.DDD.Domain.Account;
 
-public class DebitTransfer : Ledger
+public class DebitTransfer(Amount amount, AccountNumber account) : Ledger(amount, account)
 {
-    public DebitTransfer(Amount amount, AccountNumber account) : base(amount, account) { }
 }

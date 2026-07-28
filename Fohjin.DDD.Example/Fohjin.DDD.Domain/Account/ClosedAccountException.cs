@@ -1,6 +1,5 @@
 namespace Fohjin.DDD.Domain.Account;
 
-public class ClosedAccountException : Exception
+public class ClosedAccountException(string message) : Exception(message)
 {
-    public ClosedAccountException(string message) : base(message) { }
 }

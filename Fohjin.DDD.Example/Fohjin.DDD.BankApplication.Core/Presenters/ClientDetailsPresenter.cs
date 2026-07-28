@@ -7,40 +7,26 @@ using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
-public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDetailsPresenter
+public class ClientDetailsPresenter(
+    IClientDetailsView clientDetailsView,
+    IAccountDetailsPresenter accountDetailsPresenter,
+    IPopupPresenter popupPresenter,
+    IBus bus,
+    IReportingRepository reportingRepository,
+    ISystemTimer systemTimer
+        ) : Presenter<IClientDetailsView>(clientDetailsView), IClientDetailsPresenter
 {
-    private bool _createNewProcess;
-    private bool _addNewAccountProcess;
-    private int _editStep;
+    private bool _createNewProcess = false;
+    private bool _addNewAccountProcess = false;
+    private int _editStep = 0;
     private ClientReport? _clientReport;
     private ClientDetailsReport _clientDetailsReport = new();
-    private readonly IClientDetailsView _clientDetailsView;
-    private readonly IAccountDetailsPresenter _accountDetailsPresenter;
-    private readonly IPopupPresenter _popupPresenter;
-    private readonly IBus _bus;
-    private readonly IReportingRepository _reportingRepository;
-    private readonly ISystemTimer _systemTimer;
-
-    public ClientDetailsPresenter(
-        IClientDetailsView clientDetailsView,
-        IAccountDetailsPresenter accountDetailsPresenter,
-        IPopupPresenter popupPresenter,
-        IBus bus,
-        IReportingRepository reportingRepository,
-        ISystemTimer systemTimer
-        )
-        : base(clientDetailsView)
-    {
-        _editStep = 0;
-        _createNewProcess = false;
-        _addNewAccountProcess = false;
-        _clientDetailsView = clientDetailsView;
-        _accountDetailsPresenter = accountDetailsPresenter;
-        _popupPresenter = popupPresenter;
-        _bus = bus;
-        _reportingRepository = reportingRepository;
-        _systemTimer = systemTimer;
-    }
+    private readonly IClientDetailsView _clientDetailsView = clientDetailsView;
+    private readonly IAccountDetailsPresenter _accountDetailsPresenter = accountDetailsPresenter;
+    private readonly IPopupPresenter _popupPresenter = popupPresenter;
+    private readonly IBus _bus = bus;
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
+    private readonly ISystemTimer _systemTimer = systemTimer;
 
     public async void Display()
     {

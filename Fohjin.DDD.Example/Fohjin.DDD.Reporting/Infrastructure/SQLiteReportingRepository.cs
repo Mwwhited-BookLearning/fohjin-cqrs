@@ -4,14 +4,9 @@ using System.Reflection;
 
 namespace Fohjin.DDD.Reporting.Infrastructure;
 
-public class SqliteReportingRepository : IReportingRepository
+public class SqliteReportingRepository(IDbContextFactory<ReportingDbContext> dbContextFactory) : IReportingRepository
 {
-    private readonly IDbContextFactory<ReportingDbContext> _dbContextFactory;
-
-    public SqliteReportingRepository(IDbContextFactory<ReportingDbContext> dbContextFactory)
-    {
-        _dbContextFactory = dbContextFactory;
-    }
+    private readonly IDbContextFactory<ReportingDbContext> _dbContextFactory = dbContextFactory;
 
     public async Task<IEnumerable<TDto>> GetByExampleAsync<TDto>(object? example) where TDto : class
     {
@@ -86,7 +81,7 @@ public class SqliteReportingRepository : IReportingRepository
                 var task = (Task)GetType()
                     .GetMethod(nameof(GetChildrenOfTypeAsync), BindingFlags.NonPublic | BindingFlags.Static)!
                     .MakeGenericMethod(childDtoType)
-                    .Invoke(this, new object[] { context, fkPropertyName, parentId })!;
+                    .Invoke(this, [context, fkPropertyName, parentId])!;
 
                 await task;
                 var children = task.GetType().GetProperty(nameof(Task<object>.Result))!.GetValue(task);

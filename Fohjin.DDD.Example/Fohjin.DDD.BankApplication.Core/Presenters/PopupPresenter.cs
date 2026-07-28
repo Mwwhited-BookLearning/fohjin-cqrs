@@ -2,14 +2,9 @@ using Fohjin.DDD.BankApplication.Views;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
-public class PopupPresenter : Presenter<IPopupView>, IPopupPresenter
+public class PopupPresenter(IPopupView popupView) : Presenter<IPopupView>(popupView), IPopupPresenter
 {
-    private readonly IPopupView _popupView;
-
-    public PopupPresenter(IPopupView popupView) : base(popupView)
-    {
-        _popupView = popupView;
-    }
+    private readonly IPopupView _popupView = popupView;
 
     public void CatchPossibleException(System.Action action)
     {

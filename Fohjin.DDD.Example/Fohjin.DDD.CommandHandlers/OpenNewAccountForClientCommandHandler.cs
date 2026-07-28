@@ -5,19 +5,13 @@ using Fohjin.DDD.EventStore;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class OpenNewAccountForClientCommandHandler : CommandHandlerBase<OpenNewAccountForClientCommand>
+public class OpenNewAccountForClientCommandHandler(
+    IDomainRepository<IDomainEvent> repository,
+    ISystemHash systemHash
+        ) : CommandHandlerBase<OpenNewAccountForClientCommand>
 {
-    private readonly IDomainRepository<IDomainEvent> _repository;
-    private readonly ISystemHash _systemHash;
-
-    public OpenNewAccountForClientCommandHandler(
-        IDomainRepository<IDomainEvent> repository,
-        ISystemHash systemHash
-        )
-    {
-        _repository = repository;
-        _systemHash = systemHash;
-    }
+    private readonly IDomainRepository<IDomainEvent> _repository = repository;
+    private readonly ISystemHash _systemHash = systemHash;
 
     public override async Task ExecuteAsync(OpenNewAccountForClientCommand compensatingCommand)
     {

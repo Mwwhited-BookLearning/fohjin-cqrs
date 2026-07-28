@@ -69,7 +69,7 @@ public static class TypeExtensions
         {
             var list = type?.GetDefaultConstructorInfo()?.Invoke([]);
             var item = type?.GetGenericArguments()[0].GetNonDefaultValue(serviceProvider);
-            type?.GetMethod("Add")?.Invoke(list, new object?[] { item });
+            type?.GetMethod("Add")?.Invoke(list, [item]);
             return list;
         }
         else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
@@ -122,7 +122,7 @@ public static class TypeExtensions
             if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 var list = property.GetValue(instance, []);
-                var value = list.GetType().GetProperty("Item").GetValue(list, new object[] { 0 });
+                var value = list.GetType().GetProperty("Item").GetValue(list, [0]);
                 value.GetType().EnsureNotDefault(value);
             }
             else

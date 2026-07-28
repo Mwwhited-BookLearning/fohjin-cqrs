@@ -40,14 +40,10 @@ public abstract class BaseTestFixture
 public abstract class BaseTestFixture<TSubjectUnderTest>
 {
     public TestContext TestContext { get; set; } = null!;
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-    private readonly IServiceCollection _services = new ServiceCollection()
-        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information))
-        ;
-    public IServiceCollection Services => _services;
-
-    private IServiceProvider _provider;
-    public IServiceProvider Provider => _provider ??= _services.BuildServiceProvider();
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 
@@ -97,7 +93,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
     {
         var constructorInfo = typeof(TSubjectUnderTest).GetConstructors().First();
 
-        var parameters = new List<object>();
+        List<object> parameters = [];
         foreach (var mock in mocks ?? Enumerable.Empty<KeyValuePair<Type, object>>())
         {
             if (DoNotMock == null )
@@ -128,7 +124,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
     private static object CreateMock(Type type)
     {
         var constructorInfo = typeof(Mock<>).MakeGenericType(type).GetConstructors().First();
-        return constructorInfo.Invoke(new object[] { });
+        return constructorInfo.Invoke([]);
     }
 }
 

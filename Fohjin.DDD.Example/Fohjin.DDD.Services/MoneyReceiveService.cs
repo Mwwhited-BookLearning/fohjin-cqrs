@@ -7,16 +7,10 @@ using Fohjin.DDD.Services.Models;
 namespace Fohjin.DDD.Services;
 
 
-public class MoneyReceiveService : IReceiveMoneyTransfers
+public class MoneyReceiveService(IBus bus, IReportingRepository reportingRepository) : IReceiveMoneyTransfers
 {
-    private readonly IBus _bus;
-    private readonly IReportingRepository _reportingRepository;
-
-    public MoneyReceiveService(IBus bus, IReportingRepository reportingRepository)
-    {
-        _bus = bus;
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IBus _bus = bus;
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public Task Receive(MoneyTransfer moneyTransfer) =>
         MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);

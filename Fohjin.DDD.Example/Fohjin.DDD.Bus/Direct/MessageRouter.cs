@@ -7,23 +7,17 @@ namespace Fohjin.DDD.Bus.Direct;
 
 // Commands only - domain events are delivered via IBus.Events (see EventSubscriptionBootstrapper)
 // instead of being routed through here.
-public class MessageRouter : IRouteMessages
+public class MessageRouter(
+    IServiceProvider serviceProvider,
+    ILogger<MessageRouter> log
+        ) : IRouteMessages
 {
     private static int _seed;
     private readonly int _id = _seed++;
 
     private ICommandHandlerHelper? _commandHandlerHelper;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger _log;
-
-    public MessageRouter(
-        IServiceProvider serviceProvider,
-        ILogger<MessageRouter> log
-        )
-    {
-        _serviceProvider = serviceProvider;
-        _log = log;
-    }
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly ILogger _log = log;
 
     public async Task<bool> RouteAsync(object message)
     {

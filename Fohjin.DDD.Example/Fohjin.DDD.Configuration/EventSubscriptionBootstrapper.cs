@@ -27,7 +27,7 @@ public static class EventSubscriptionBootstrapper
                 .First(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEventHandler<>))
                 .GetGenericArguments()[0];
 
-            SubscribeMethod.MakeGenericMethod(eventType).Invoke(null, new object[] { bus.Events, handler, log });
+            SubscribeMethod.MakeGenericMethod(eventType).Invoke(null, [bus.Events, handler, log]);
         }
 
         return serviceProvider;

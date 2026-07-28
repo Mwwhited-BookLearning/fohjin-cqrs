@@ -4,14 +4,9 @@ using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class CashDepositEventHandler : EventHandlerBase<CashDepositedEvent>
+public class CashDepositEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<CashDepositedEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public CashDepositEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override async Task ExecuteAsync(CashDepositedEvent theEvent)
     {

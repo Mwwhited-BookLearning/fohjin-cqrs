@@ -54,7 +54,7 @@ public partial class InitialCreate : Migration
         migrationBuilder.CreateIndex(
             name: "IX_Events_EventProviderId_Version",
             table: "Events",
-            columns: new[] { "EventProviderId", "Version" });
+            columns: ["EventProviderId", "Version"]);
     }
 
     /// <inheritdoc />

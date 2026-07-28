@@ -4,14 +4,9 @@ using Fohjin.DDD.EventStore;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class MoneyTransferFailedCompensatingCommandHandler : CommandHandlerBase<MoneyTransferFailedCompensatingCommand>
+public class MoneyTransferFailedCompensatingCommandHandler(IDomainRepository<IDomainEvent> repository) : CommandHandlerBase<MoneyTransferFailedCompensatingCommand>
 {
-    private readonly IDomainRepository<IDomainEvent> _repository;
-
-    public MoneyTransferFailedCompensatingCommandHandler(IDomainRepository<IDomainEvent> repository)
-    {
-        _repository = repository;
-    }
+    private readonly IDomainRepository<IDomainEvent> _repository = repository;
 
     public override async Task ExecuteAsync(MoneyTransferFailedCompensatingCommand compensatingCommand)
     {

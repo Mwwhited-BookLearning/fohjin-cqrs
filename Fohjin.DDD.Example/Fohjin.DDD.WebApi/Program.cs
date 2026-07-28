@@ -11,12 +11,20 @@ using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Services;
 using Fohjin.DDD.WebApi.OData;
+using Fohjin.DDD.WebApi.Sse;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Query.Validator;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OData;
 using Microsoft.OData.Edm;
+using Saunter;
+using Saunter.AsyncApiSchema.v2;
+using System.Net.ServerSentEvents;
+using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -50,12 +58,35 @@ builder.Services
 // silently ignored; ODataValidationSettings.AllowedQueryOptions below (set to just these two)
 // is what turns "silently wrong" into a clear 400 instead.
 var edmModel = ODataModel.Build();
-builder.Services.AddSingleton(edmModel);
+builder.Services.AddKeyedSingleton<IEdmModel>("odata", edmModel);
 builder.Services.AddControllers().AddOData(options => options
     .AddRouteComponents("odata", edmModel)
     .Filter().OrderBy().SetMaxTop(100));
 
+// Phase 4: the SSE event stream gets its own, separate EDM model (over EventEnvelope, not any
+// reporting DTO). Both are IEdmModel, so they're registered as KEYED singletons ("odata" /
+// "sse") rather than two plain AddSingleton<IEdmModel> calls - the latter would leave the
+// service container with two IEdmModel registrations and no way to tell them apart, so
+// whichever handler resolves IEdmModel by DI parameter binding gets whichever was registered
+// last, silently breaking the other endpoint. Bit us during manual testing before these
+// endpoints had their own automated coverage.
+builder.Services.AddKeyedSingleton<IEdmModel>("sse", SseEdmModel.Build());
+
+// Saunter documents the /api/events message catalog as AsyncAPI - see
+// Fohjin.DDD.WebApi/AsyncApi/DomainEventsAsyncApi.cs and docs/supporting/asyncapi-saunter.md.
+builder.Services.AddAsyncApiSchemaGeneration(options =>
+{
+    options.AssemblyMarkerTypes = [typeof(Program)];
+    options.AsyncApi = new AsyncApiDocument
+    {
+        Info = new Info("Fohjin.DDD domain events", "1.0.0"),
+    };
+});
+
 var app = builder.Build();
+
+app.MapAsyncApiDocuments();
+app.MapAsyncApiUi();
 
 await app.Services.BootStrapApplicationAsync();
 app.Services.SubscribeEventHandlers();
@@ -111,7 +142,7 @@ app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository reposi
 // instead. Routing them to the same delegate, rather than two independently-written ones, is
 // what guarantees identical results for identical filters: there's only one code path applying
 // the OData query options.
-app.MapMethods("/odata/Clients", [HttpMethods.Get, HttpMethods.Query], async (HttpContext httpContext, IDbContextFactory<ReportingDbContext> dbContextFactory, IEdmModel edmModel) =>
+app.MapMethods("/odata/Clients", [HttpMethods.Get, HttpMethods.Query], async (HttpContext httpContext, IDbContextFactory<ReportingDbContext> dbContextFactory, [FromKeyedServices("odata")] IEdmModel edmModel) =>
 {
     if (HttpMethods.IsQuery(httpContext.Request.Method) && httpContext.Request.HasJsonContentType())
     {
@@ -136,6 +167,53 @@ app.MapMethods("/odata/Clients", [HttpMethods.Get, HttpMethods.Query], async (Ht
 })
 .WithName("QueryClients")
 .Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK)
+.Produces<string>(StatusCodes.Status400BadRequest);
+
+// Phase 4: live domain events over Server-Sent Events (native System.Net.ServerSentEvents,
+// .NET 10). Every event DirectBus.Events (Fohjin.DDD.Bus/Direct/DirectBus.cs) publishes gets
+// wrapped in an EventEnvelope and, if it matches the connection's $filter, written to a channel
+// that Results.ServerSentEvents streams out. Resolves Phase 4's "full Microsoft.OData.UriParser
+// vs. a hand-rolled filter grammar" decision in favor of the former: the same
+// ODataQueryOptions/EDM-model machinery Phase 3 built for /odata/Clients is reused here,
+// just ApplyTo'd against a one-item queryable per incoming event instead of a DbSet - one
+// filter engine for the whole API, not two.
+app.MapGet("/api/events", (HttpContext httpContext, IBus bus, [FromKeyedServices("sse")] IEdmModel sseEdmModel) =>
+{
+    var queryOptions = new ODataQueryOptions<EventEnvelope>(new ODataQueryContext(sseEdmModel, typeof(EventEnvelope), path: null), httpContext.Request);
+    try
+    {
+        queryOptions.Validate(new ODataValidationSettings { AllowedQueryOptions = AllowedQueryOptions.Filter });
+    }
+    catch (ODataException ex)
+    {
+        return Results.BadRequest(ex.Message);
+    }
+
+    bool Matches(EventEnvelope envelope) =>
+        queryOptions.Filter is null || queryOptions.ApplyTo(new[] { envelope }.AsQueryable()).Cast<EventEnvelope>().Any();
+
+    return Results.ServerSentEvents(Stream(bus, Matches, httpContext.RequestAborted));
+
+    static async IAsyncEnumerable<SseItem<EventEnvelope>> Stream(IBus bus, Func<EventEnvelope, bool> matches, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var channel = Channel.CreateUnbounded<EventEnvelope>();
+        using var subscription = bus.Events
+            .Select(EventEnvelope.From)
+            .Where(matches)
+            .Subscribe(envelope => channel.Writer.TryWrite(envelope));
+
+        try
+        {
+            await foreach (var envelope in channel.Reader.ReadAllAsync(cancellationToken))
+                yield return new SseItem<EventEnvelope>(envelope, envelope.EventType);
+        }
+        finally
+        {
+            channel.Writer.TryComplete();
+        }
+    }
+})
+.WithName("StreamEvents")
 .Produces<string>(StatusCodes.Status400BadRequest);
 
 app.Run();

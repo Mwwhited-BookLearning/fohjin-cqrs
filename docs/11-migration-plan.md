@@ -168,22 +168,55 @@ body that might not exist); and that `$select` is rejected with 400 rather than 
 `InvalidCastException` it threw before validation was added. Full solution build + test
 suite: 410 + 4 passed, 4 skipped, 0 failed.
 
-### Phase 4 — SSE event stream + AsyncAPI
+### Phase 4 — SSE event stream + AsyncAPI (done)
 
-New endpoint subscribing to `bus.Events` (already `IObservable<IDomainEvent>`, docs `07`)
-and pushing matches over Server-Sent Events (native `System.Net.ServerSentEvents` in .NET
-10), filterable by an OData-style expression so a client can track just the event
-types/aggregates it cares about. Wire Saunter to document the channel/message catalog as
-AsyncAPI (`docs/supporting/asyncapi-saunter.md`).
+`GET /api/events` (`Fohjin.DDD.WebApi/Program.cs`) subscribes to `bus.Events`
+(`IObservable<IDomainEvent>`, docs `07`), wraps each one in an `EventEnvelope`
+(`Fohjin.DDD.WebApi/Sse/EventEnvelope.cs`) and streams matches over native
+`System.Net.ServerSentEvents`/`Results.ServerSentEvents`. `IDomainEvent` itself has no
+event-type or timestamp field (just `Id`/`AggregateId`/`Version`), so `EventEnvelope` adds
+`EventType` (the concrete event's class name) and `OccurredAt` — the latter is genuinely
+synthesized when the envelope is built, not read from anywhere, since no timestamp exists
+anywhere in the event/aggregate/store/bus pipeline today; that's a real gap, not an oversight,
+and it's called out in code rather than quietly implied. A pre-existing quirk this surfaced:
+freshly-created aggregates' `AggregateId`/`Version` come through as `Guid.Empty`/`0` on their
+creation event, because `BaseAggregateRoot.Apply` stamps them from the aggregate's own `Id`,
+which isn't set until after the event is constructed — the same flavor of gap Phase 1 found
+with `CreateClientCommand.Id`, left alone here for the same reason (out of this migration's
+scope, not a regression this phase introduced).
 
-**Decision needed during this phase**: full `Microsoft.OData.UriParser` filter semantics
-against event records, or a simpler hand-rolled filter grammar — full OData parsing may be
-overkill for what's realistically a handful of fields (event type, aggregate id, version,
-timestamp).
+**Decision resolved**: full `Microsoft.OData.UriParser` semantics, not a hand-rolled grammar —
+reusing exactly the `ODataQueryOptions`/EDM-model machinery Phase 3 already built and proved
+out for `/odata/Clients` (`Fohjin.DDD.WebApi/Sse/SseEdmModel.cs`), just `ApplyTo`'d against a
+one-item `IQueryable<EventEnvelope>` per incoming event instead of a `DbSet` per HTTP request.
+One filter engine for the whole API beat maintaining two. This needed its own keyed DI
+registration (`AddKeyedSingleton<IEdmModel>("odata"/"sse", ...)` +
+`[FromKeyedServices(...)]` on each handler) rather than two plain `AddSingleton<IEdmModel>`
+calls — the latter silently broke `/odata/Clients` in the other direction, since two
+unkeyed registrations of the same service type just means whichever handler resolves
+`IEdmModel` by DI parameter gets whichever model was registered last, not necessarily its own.
 
-**Exit criteria**: a browser `EventSource` (or `curl --no-buffer`) connected to the stream
-receives live events as commands are issued elsewhere in the running system, filtered
-correctly.
+Saunter documents the message catalog as AsyncAPI (`Fohjin.DDD.WebApi/AsyncApi/DomainEventsAsyncApi.cs`,
+`docs/supporting/asyncapi-saunter.md`) as one channel/one subscribe operation, message type
+`EventEnvelope` — not 17 operations, one per concrete domain event type, which is what was
+tried first: Saunter only allows one subscribe operation per channel key, and 17 also would
+have described a shape that's never really on the wire (clients always receive an
+`EventEnvelope`, whose `Payload` is the polymorphic `IDomainEvent`, not a bare domain event).
+
+**Exit criteria — met**: verified live end-to-end (server actually running, real HTTP, real
+SQLite) with `curl --no-buffer` — connecting with `$filter=EventType eq 'ClientCreatedEvent'`
+receives a `ClientCreatedEvent` the moment `POST /api/clients` is called elsewhere against the
+same running instance; the identical setup with `$filter=EventType eq 'CashDepositedEvent'`
+correctly receives nothing for that same `ClientCreatedEvent`. Not backed by an automated
+test, unlike every other exit criterion in this plan: `WebApplicationFactory`'s in-memory
+`TestServer` transport doesn't deliver a long-lived streaming response incrementally to the
+test's `HttpClient` the way a real socket does (confirmed by trying both `TestServer` and a
+`WithWebHostBuilder(b => b.UseKestrel(...))`-configured real Kestrel listener under the same
+factory — both produced a `499` with no data ever received), so a test written the obvious
+way just hangs to its own timeout. Automating this is left for later rather than shipping a
+flaky or misleading test; the manual verification is real, reproducible, and documented here
+in enough detail to redo. Full solution build + test suite otherwise unaffected: 410 + 4
+passed, 4 skipped, 0 failed.
 
 ### Phase 5 — OAuth/OIDC via the OpenIddict dev STS
 
@@ -253,12 +286,10 @@ container topology (they currently describe the pre-migration, single-process sh
 
 ## What this plan still doesn't decide yet
 
-Three of the four originally-deferred decisions are now resolved (dev-STS login UX,
-desktop OIDC flow, database choice — see Phases 5, 7, 8 above). One remains open:
-
-- **Phase 4** — full `Microsoft.OData.UriParser` filter semantics against event records,
-  or a simpler hand-rolled filter grammar. Still scoped to land during Phase 4 itself, once
-  the SSE endpoint exists to make the decision against.
+All four originally-deferred decisions are now resolved: dev-STS login UX, desktop OIDC
+flow, and database choice (Phases 5, 7, 8), and Phase 4's OData-vs-hand-rolled filter
+grammar question (full `Microsoft.OData.UriParser` semantics, reusing Phase 3's machinery —
+see Phase 4 above). Nothing left deferred.
 
 ## Modernization pass alongside this migration
 
@@ -296,8 +327,8 @@ contract and would throw `InvalidCastException` instead of returning null.
 
 ## Suggested next step
 
-Start Phase 4. Phases 1–3 proved the core architectural bet, the codegen loop, and the OData
-query surface — the next slice is the SSE event stream over `bus.Events`, plus the one
-still-open design decision from that phase (full `Microsoft.OData.UriParser` semantics vs. a
-simpler hand-rolled grammar for filtering the stream), before OIDC and the frontends land on
-top.
+Start Phase 5. Phases 1–4 proved the core architectural bet, the codegen loop, the OData
+query surface, and live event streaming — every originally-deferred design decision is
+resolved, and every phase since 4 (OIDC, both frontends, hosting, decommissioning) has its
+approach already decided. Phase 5 is real auth: the OpenIddict dev STS, so the API stops
+being wide open before either frontend gets built against it.

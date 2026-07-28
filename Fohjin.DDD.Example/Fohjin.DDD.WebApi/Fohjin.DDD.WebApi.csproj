@@ -9,6 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OData" Version="9.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Saunter" Version="0.13.0" />
+    <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>

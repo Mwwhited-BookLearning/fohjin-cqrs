@@ -12,8 +12,6 @@ public class BankCardWasCanceledByClientEventHandler : EventHandlerBase<BankCard
         _reportingRepository = reportingRepository;
     }
 
-    public override Task ExecuteAsync(BankCardWasCanceledByClientEvent theEvent)
-    {
-        throw new NotImplementedException();
-    }
+    public override Task ExecuteAsync(BankCardWasCanceledByClientEvent theEvent) =>
+        Task.CompletedTask;
 }

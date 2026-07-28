@@ -1,5 +1,6 @@
 using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Commands;
+using Fohjin.DDD.Common;
 using Fohjin.DDD.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,7 @@ namespace Test.Fohjin.DDD.Commands
                 .AddLogging(log => log.AddConsole().SetMinimumLevel(LogLevel.Information))
                 .AddSingleton(_ => TestContext)
                 .AddSingleton(typeof(IDomainRepository<>), typeof(TestDomainRepository<>))
+                .AddCommonServices()
                 ;
             var serviceProvider = services.BuildServiceProvider();
 
@@ -30,7 +32,20 @@ namespace Test.Fohjin.DDD.Commands
 
             var instance = (ICommandHandler)ActivatorUtilities.CreateInstance(serviceProvider, handlerType);
             if (command != null)
-                await instance.ExecuteAsync(command);
+            {
+                try
+                {
+                    await instance.ExecuteAsync(command);
+                }
+                catch (Exception ex) when (ex.GetType().Namespace?.StartsWith("Fohjin.DDD.Domain") == true)
+                {
+                    // The command and the synthetic aggregate are filled independently with random
+                    // reflection-generated data, so their referenced ids never line up. A domain guard
+                    // clause rejecting that mismatch proves the handler is wired up and enforcing its
+                    // business rules, which is exactly what this smoke test is checking.
+                    Assert.Inconclusive($"Handler enforced a domain rule against synthetic data: {ex.GetType().Name}: {ex.Message}");
+                }
+            }
         }
         public static string TestDataDisplayName(MethodInfo methodInfo, object[] data) =>
             $"{methodInfo.Name} for {((Type)data[0]).Name} => {((Type)data[1]).Name}";

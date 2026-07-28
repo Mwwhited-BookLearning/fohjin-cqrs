@@ -25,7 +25,7 @@ namespace Fohjin.DDD.EventHandlers
             {
                 var split = ledger.Value.Split('|');
                 var amount = Convert.ToDecimal(split[0]);
-                var account = split[1];
+                var account = split.Length > 1 ? split[1] : string.Empty;
                 _reportingRepository.Save(new LedgerReport(Guid.NewGuid(), theEvent.AccountId, GetDescription(ledger.Key, account), amount));
             }
 
@@ -49,7 +49,7 @@ namespace Fohjin.DDD.EventHandlers
             if (transferType == "CreditTransferFailed")
                 return string.Format("Transfer to {0} failed", accountNumber);
 
-            throw new Exception(string.Format("Transfer type '{0}' is not implemented", transferType));
+            throw new UnsupportedTransferTypeException(transferType);
         }
     }
 }

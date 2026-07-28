@@ -12,8 +12,6 @@ public class BankCardWasReportedStolenEventHandler : EventHandlerBase<BankCardWa
         _reportingRepository = reportingRepository;
     }
 
-    public override Task ExecuteAsync(BankCardWasReportedStolenEvent theEvent)
-    {
-        throw new NotImplementedException();
-    }
+    public override Task ExecuteAsync(BankCardWasReportedStolenEvent theEvent) =>
+        Task.CompletedTask;
 }

@@ -18,7 +18,7 @@ public class SystemTimer : ISystemTimer, IDisposable
 
     public void Trigger(Func<Task> value, int @in)
     {
-        _log.LogInformation($"Schedule Timer: {value} ({@in})");
+        _log.LogInformation("Schedule Timer: {value} ({in})", value, @in);
 
         // Trigger is called from the UI thread (a button click, a saved form), so capture its
         // SynchronizationContext now - Task.Run below drops onto the thread pool with none, and
@@ -28,7 +28,7 @@ public class SystemTimer : ISystemTimer, IDisposable
         _timers.Add(Task.Run(async () =>
         {
             await Task.Delay(@in);
-            _log.LogInformation($"Triggered Timer: {value} ({@in})");
+            _log.LogInformation("Triggered Timer: {value} ({in})", value, @in);
 
             if (uiContext == null)
             {

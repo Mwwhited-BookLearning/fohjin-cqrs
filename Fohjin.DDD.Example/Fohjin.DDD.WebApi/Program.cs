@@ -382,6 +382,11 @@ app.MapGet("/api/events", (HttpContext httpContext, IBus bus, [FromKeyedServices
             .Where(matches)
             .Subscribe(envelope => channel.Writer.TryWrite(envelope));
 
+        // See EventEnvelope.Connected: without this, Results.ServerSentEvents holds the
+        // response (headers included) open with zero bytes sent until the first real domain
+        // event arrives, which could be never.
+        yield return new SseItem<EventEnvelope>(EventEnvelope.Connected, EventEnvelope.Connected.EventType);
+
         try
         {
             await foreach (var envelope in channel.Reader.ReadAllAsync(cancellationToken))

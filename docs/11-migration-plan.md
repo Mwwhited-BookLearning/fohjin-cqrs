@@ -208,11 +208,28 @@ desktop OIDC flow, database choice — see Phases 5, 7, 8 above). One remains op
 
 Also requested, not phase-gated (doesn't block or depend on any phase above, so it's
 happening now rather than waiting): push the existing codebase as far toward C# 12+ idioms
-as it reasonably goes — file-scoped namespaces everywhere, primary constructors on
-constructor-injected classes, collection expressions, positional records where a type's
-shape allows it, and an actual nullable-annotation pass rather than `<Nullable>enable</Nullable>`
-with no annotations behind it. See the commit(s) tagged "C# 12 modernization" for what
-changed and why anything was left as-is.
+as it reasonably goes.
+
+Done: file-scoped namespaces and primary constructors solution-wide (via `.editorconfig` +
+`dotnet format style`, verified against the full test suite), collection expressions for
+the remaining `new List<T>()` sites the analyzer didn't catch, and positional records for
+`CommandBase` and all 15 commands (verified against `SerializationTests.cs`'s real
+JSON-to-disk-and-back round trip for every one of them — collapsing each command's
+`[JsonConstructor]`-marked parameterless ctor + value ctor pair into a single positional
+ctor changes how `System.Text.Json` picks a constructor, so this needed the round-trip
+proof, not just a green build).
+
+**Deliberately not done**: domain events (`DomainEvent`-derived) and reporting DTOs stay as
+regular records with explicit bodies, not positional. Both have properties that are
+legitimately mutated *after* construction by framework machinery (`BaseAggregateRoot.Apply`
+sets `AggregateId`/`Version` post-construction; `SqliteReportingRepository.UpdateAsync`
+reflects a property setter onto an existing instance) — positional records model immutable
+data, so forcing that shape here would fight the feature rather than use it. Commands never
+have this problem (`init`-only, truly immutable end to end), which is exactly why they were
+a clean fit and these two are not.
+
+Still open: the nullable-annotation pass (properties are still bare `string` despite
+`<Nullable>enable</Nullable>` everywhere) — larger, more judgment-heavy, not done yet.
 
 ## Suggested next step
 

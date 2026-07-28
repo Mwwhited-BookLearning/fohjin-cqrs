@@ -218,23 +218,60 @@ flaky or misleading test; the manual verification is real, reproducible, and doc
 in enough detail to redo. Full solution build + test suite otherwise unaffected: 410 + 4
 passed, 4 skipped, 0 failed.
 
-### Phase 5 — OAuth/OIDC via the OpenIddict dev STS
+### Phase 5 — OAuth/OIDC via the OpenIddict dev STS (done)
 
-New `Fohjin.DDD.Sts` project (OpenIddict, authorization-code + PKCE — needed by both the
-future Vue SPA and the WinForms desktop client). One seeded dev client, one seeded test
-user. WebAPI adds `AddAuthentication().AddJwtBearer(o => o.Authority = <config>)` and
-`[Authorize]` on command/query/SSE endpoints — the authority URL must come from
-configuration, never a hardcoded OpenIddict-specific type, so a real IdP is a config
-change later (`docs/supporting/oidc-sts-openiddict-vs-duende.md`).
+New `Fohjin.DDD.Sts` project: OpenIddict (`OpenIddict.AspNetCore`/`OpenIddict.EntityFrameworkCore`
+7.x) as an MVC app, adapted from the OpenIddict team's own Velusia sample
+(github.com/openiddict/openiddict-samples) rather than written from scratch against
+OpenIddict's low-level API — `AuthorizationController` handles `~/connect/authorize` and
+`~/connect/token`, ASP.NET Core Identity (EF Core + SQLite, same per-DbContext-SQLite-file
+convention as the rest of this solution) provides the user store and the actual login
+screen via `AddDefaultUI()`. One seeded client (`dev-client`, `ClientTypes.Public`,
+`ConsentTypes.Implicit` so a caller only ever sees the login screen, PKCE required via
+`Requirements.Features.ProofKeyForCodeExchange`) and one seeded user
+(`dev@fohjin.local`), created idempotently at startup. `Fohjin.DDD.WebApi` adds
+`AddAuthentication().AddJwtBearer(o => o.Authority = config["Sts:Authority"])` and
+`.RequireAuthorization()` on `/api/clients` (all three routes), `/odata/Clients`, and
+`/api/events` — confirmed via `grep -r OpenIddict` across every project except
+`Fohjin.DDD.Sts` itself that the only hit is a comment, not a type/package reference,
+matching `docs/supporting/oidc-sts-openiddict-vs-duende.md`'s "real IdP swap-in is a config
+change" requirement.
 
-**Decided**: preconfigured/seeded accounts (no interactive registration), still going
-through a real (if minimal) login screen and a genuine authorization-code + PKCE exchange
-— "simple for testing" means simple *credentials*, not a shortcut that skips the actual
-OIDC flow, so what gets exercised in dev matches what a real IdP swap-in would do.
+Two adjustments the OIDC spec/OpenIddict defaults forced, both dev-appropriate rather than
+compromises: `DisableAccessTokenEncryption()` on the STS (OpenIddict encrypts access tokens
+by default — a JWE a plain `AddJwtBearer` can't decrypt without also referencing OpenIddict's
+own validation packages, which is exactly the coupling this phase avoids) and
+`DisableTransportSecurityRequirement()` (OpenIddict requires HTTPS by default; nothing in
+this solution has a TLS cert configured, matching the plain-HTTP dev convention everywhere
+else). Audience validation is off on the API side (`TokenValidationParameters.ValidateAudience
+= false`) — the dev STS doesn't stamp a matching `aud` without extra per-scope resource
+configuration, and issuer + signature validation via discovery is enough to reject anything
+not issued by the configured `Authority`.
 
-**Exit criteria**: unauthenticated requests are rejected; a token obtained from the dev STS
-is accepted; swapping `Authority` to a different OIDC-compliant issuer requires no code
-change.
+**Decided** (already reflected above): preconfigured/seeded accounts, still going through a
+real login screen and a genuine authorization-code + PKCE exchange - confirmed by actually
+driving that exact flow with curl (cookie jar across requests, real antiforgery token
+extracted from the rendered login HTML, real password POST), not a shortcut.
+
+**Exit criteria — met**, verified live end-to-end: `GET /api/clients`/`/odata/Clients`/`GET
+/api/events` all return 401 with no token. A full authorization-code + PKCE round trip
+against the real running STS - unauthenticated `GET /connect/authorize` → redirect to
+`/Identity/Account/Login` → POST real credentials → redirect back through `/connect/authorize`
+→ redirect to the client's `redirect_uri` with `?code=...` → `POST /connect/token` exchanges
+it for a real signed JWT - and that token is accepted by all three endpoints (200/202)
+against the separately-running `Fohjin.DDD.WebApi` process. `Authority` swap-with-no-code-
+-change holds structurally (config-driven, zero OpenIddict types outside `Fohjin.DDD.Sts`).
+Not backed by an automated test that exercises a live STS, for the same category of reason
+as Phase 4's SSE gap: driving the real login-form/redirect chain end-to-end needs two
+real-network-bound hosts (STS + API) rather than one in-memory `TestServer`, which is a
+bigger lift than this phase's verification needed given the flow was already proven live.
+What *is* automated: `AuthenticationRequiredTest` (4 tests, real `AddJwtBearer` wiring,
+confirms all four routes reject an absent token) and a `TestAuthHandler` always-succeeds
+scheme swapped into every other WebApi integration test's `WebApiIntegrationTestFixture` (via
+`ConfigureTestServices`) - those tests exercise endpoint *behavior* (OData filtering, the
+generated client, ...), not authentication, and adding `.RequireAuthorization()` had broken
+all of them by returning 401 instead of their expected responses until this was in place.
+Full solution build + test suite: 410 + 9 passed, 4 skipped, 0 failed.
 
 ### Phase 6 — Vue frontend
 
@@ -327,8 +364,8 @@ contract and would throw `InvalidCastException` instead of returning null.
 
 ## Suggested next step
 
-Start Phase 5. Phases 1–4 proved the core architectural bet, the codegen loop, the OData
-query surface, and live event streaming — every originally-deferred design decision is
-resolved, and every phase since 4 (OIDC, both frontends, hosting, decommissioning) has its
-approach already decided. Phase 5 is real auth: the OpenIddict dev STS, so the API stops
-being wide open before either frontend gets built against it.
+Start Phase 6. Phases 1–5 proved the core architectural bet, the codegen loop, the OData
+query surface, live event streaming, and real OAuth/OIDC end-to-end against the dev STS —
+the API is no longer wide open. Phase 6 is the first user-facing surface built against all
+of that: the Vue frontend, using the NSwag TypeScript client and OIDC login against the same
+STS this phase stood up.

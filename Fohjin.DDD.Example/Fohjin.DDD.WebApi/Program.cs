@@ -12,6 +12,7 @@ using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Services;
 using Fohjin.DDD.WebApi.OData;
 using Fohjin.DDD.WebApi.Sse;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.OData;
 using Microsoft.AspNetCore.OData.Query;
 using Microsoft.AspNetCore.OData.Query.Validator;
@@ -84,6 +85,22 @@ builder.Services.AddAsyncApiSchemaGeneration(options =>
     };
 });
 
+// Phase 5: pure standard OIDC discovery against the dev STS (Fohjin.DDD.Sts) - Authority comes
+// from configuration and nothing here references any OpenIddict type/package, so swapping in a
+// real IdP later (Entra ID, Auth0, Keycloak, ...) is a config change, not a code change
+// (docs/supporting/oidc-sts-openiddict-vs-duende.md). Audience validation is deliberately off:
+// this API is the STS's only resource, and the dev STS doesn't stamp a matching aud claim
+// without extra per-scope resource configuration on its side - validating issuer + signature
+// via discovery is enough to reject anything not issued by the configured Authority.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Sts:Authority"];
+        options.RequireHttpsMetadata = builder.Configuration.GetValue("Sts:RequireHttpsMetadata", true);
+        options.TokenValidationParameters.ValidateAudience = false;
+    });
+builder.Services.AddAuthorization();
+
 var app = builder.Build();
 
 app.MapAsyncApiDocuments();
@@ -98,6 +115,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Phase 1: prove the wiring - the CQRS core (Bus, CommandHandlers, EventHandlers, EventStore,
 // Reporting) is composed exactly as Fohjin.DDD.BankApplication composes it today, just hosted
@@ -120,12 +140,14 @@ app.MapPost("/api/clients", (CreateClientRequest request, IBus bus) =>
     return Results.Accepted("/api/clients");
 })
 .WithName("CreateClient")
-.Produces(StatusCodes.Status202Accepted);
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
 
 app.MapGet("/api/clients", async (IReportingRepository repository) =>
     await repository.GetByExampleAsync<ClientReport>(null))
 .WithName("GetClients")
-.Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK);
+.Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK)
+.RequireAuthorization();
 
 app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository repository) =>
 {
@@ -134,7 +156,8 @@ app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository reposi
 })
 .WithName("GetClientById")
 .Produces<ClientReport>(StatusCodes.Status200OK)
-.Produces(StatusCodes.Status404NotFound);
+.Produces(StatusCodes.Status404NotFound)
+.RequireAuthorization();
 
 // Phase 3: /api/clients above is the plain REST surface from Phase 1; /odata/Clients is the
 // new OData one, backed by a real IQueryable rather than IReportingRepository's example-object
@@ -177,7 +200,8 @@ app.MapMethods("/odata/Clients", [HttpMethods.Get, HttpMethods.Query], async (Ht
 })
 .WithName("QueryClients")
 .Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK)
-.Produces<string>(StatusCodes.Status400BadRequest);
+.Produces<string>(StatusCodes.Status400BadRequest)
+.RequireAuthorization();
 
 // Phase 4: live domain events over Server-Sent Events (native System.Net.ServerSentEvents,
 // .NET 10). Every event DirectBus.Events (Fohjin.DDD.Bus/Direct/DirectBus.cs) publishes gets
@@ -224,7 +248,8 @@ app.MapGet("/api/events", (HttpContext httpContext, IBus bus, [FromKeyedServices
     }
 })
 .WithName("StreamEvents")
-.Produces<string>(StatusCodes.Status400BadRequest);
+.Produces<string>(StatusCodes.Status400BadRequest)
+.RequireAuthorization();
 
 app.Run();
 

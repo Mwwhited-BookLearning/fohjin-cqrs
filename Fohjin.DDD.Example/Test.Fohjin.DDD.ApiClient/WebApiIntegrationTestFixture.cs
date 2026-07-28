@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Test.Fohjin.DDD.ApiClient;
 
@@ -32,7 +35,14 @@ public abstract class WebApiIntegrationTestFixture
         Directory.CreateDirectory(_tempDirectory);
         Directory.SetCurrentDirectory(_tempDirectory);
 
-        Factory = new WebApplicationFactory<Program>();
+        // Phase 5 requires authorization on the command/query/SSE endpoints; these tests exercise
+        // that endpoint behavior, not authentication itself, so the real JwtBearer scheme is
+        // replaced with an always-succeeds test scheme (see TestAuthHandler) rather than standing
+        // up a real dev STS per test run.
+        Factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services
+                .AddAuthentication(TestAuthHandler.SchemeName)
+                .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { })));
         HttpClient = Factory.CreateClient();
     }
 

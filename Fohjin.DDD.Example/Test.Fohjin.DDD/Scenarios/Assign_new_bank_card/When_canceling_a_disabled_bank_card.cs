@@ -7,37 +7,38 @@ using Fohjin.DDD.Events.Client;
 using Fohjin.DDD.EventStore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Assign_new_bank_card
+namespace Test.Fohjin.DDD.Scenarios.Assign_new_bank_card;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_canceling_a_disabled_bank_card : CommandTestFixture<CancelBankCardCommand, CancelBankCardCommandHandler, Client>
 {
-    public class When_canceling_a_disabled_bank_card : CommandTestFixture<CancelBankCardCommand, CancelBankCardCommandHandler, Client>
+    private readonly Guid _bankCardId = Guid.NewGuid();
+    private readonly Guid _accountId = Guid.NewGuid();
+    private readonly Guid _clientId = Guid.NewGuid();
+
+    protected override IEnumerable<IDomainEvent> Given()
     {
-        private readonly Guid _bankCardId = Guid.NewGuid();
-        private readonly Guid _accountId = Guid.NewGuid();
-        private readonly Guid _clientId = Guid.NewGuid();
+        yield return PrepareDomainEvent.Set(new ClientCreatedEvent(_clientId, "Mark Nijhof", "Welhavens gate", "49b", "5006", "Bergen", "95009937")).ToVersion(1);
+        yield return PrepareDomainEvent.Set(new AccountToClientAssignedEvent(_accountId)).ToVersion(2);
+        yield return PrepareDomainEvent.Set(new NewBankCardForAccountAsignedEvent(_bankCardId, _accountId)).ToVersion(3);
+        yield return PrepareDomainEvent.Set(new BankCardWasCanceledByClientEvent { AggregateId = _bankCardId }).ToVersion(4);
+    }
 
-        protected override IEnumerable<IDomainEvent> Given()
-        {
-            yield return PrepareDomainEvent.Set(new ClientCreatedEvent(_clientId, "Mark Nijhof", "Welhavens gate", "49b", "5006", "Bergen", "95009937")).ToVersion(1);
-            yield return PrepareDomainEvent.Set(new AccountToClientAssignedEvent(_accountId)).ToVersion(2);
-            yield return PrepareDomainEvent.Set(new NewBankCardForAccountAsignedEvent(_bankCardId, _accountId)).ToVersion(3);
-            yield return PrepareDomainEvent.Set(new BankCardWasCanceledByClientEvent { AggregateId = _bankCardId }).ToVersion(4);
-        }
+    protected override CancelBankCardCommand When()
+    {
+        return new CancelBankCardCommand(_clientId, _bankCardId);
+    }
 
-        protected override CancelBankCardCommand When()
-        {
-            return new CancelBankCardCommand(_clientId, _bankCardId);
-        }
+    [TestMethod]
+    public void Then_a_non_existing_bank_card_is_disabled_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<BankCardIsDisabledException>();
+    }
 
-        [TestMethod]
-        public void Then_a_non_existing_bank_card_is_disabled_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<BankCardIsDisabledException>();
-        }
-
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The bank card is disabled and no opperations can be executed on it");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The bank card is disabled and no operations can be executed on it");
     }
 }

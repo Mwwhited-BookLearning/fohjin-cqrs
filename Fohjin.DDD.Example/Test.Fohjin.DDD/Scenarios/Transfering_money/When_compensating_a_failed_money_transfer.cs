@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_compensating_a_failed_money_transfer : CommandTestFixture<MoneyTransferFailedCompensatingCommand, MoneyTransferFailedCompensatingCommandHandler, ActiveAccount>
 {
     protected override IEnumerable<IDomainEvent> Given()

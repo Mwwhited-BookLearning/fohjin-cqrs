@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_withdrawing_cash : CommandTestFixture<WithdrawalCashCommand, WithdrawalCashCommandHandler, ActiveAccount>
 {
     protected override IEnumerable<IDomainEvent> Given()
@@ -26,7 +28,7 @@ public class When_withdrawing_cash : CommandTestFixture<WithdrawalCashCommand, W
     [TestMethod]
     public void Then_the_published_event_will_contain_the_amount_and_new_account_balance()
     {
-        PublishedEvents?.Last<CashWithdrawnEvent>().Balance.WillBe(15);
-        PublishedEvents?.Last<CashWithdrawnEvent>().Amount.WillBe(5);
+        PublishedEvents?.Last<CashWithdrawnEvent>().Balance.WillBe(15M);
+        PublishedEvents?.Last<CashWithdrawnEvent>().Amount.WillBe(5M);
     }
 }

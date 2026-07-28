@@ -13,10 +13,9 @@ public class ChangeClientNameCommandHandler : CommandHandlerBase<ChangeClientNam
         _repository = repository;
     }
 
-    public override Task ExecuteAsync(ChangeClientNameCommand compensatingCommand)
+    public override async Task ExecuteAsync(ChangeClientNameCommand compensatingCommand)
     {
-        var client = _repository.GetById<Client>(compensatingCommand.Id);
+        var client = await _repository.GetByIdAsync<Client>(compensatingCommand.Id);
         client?.UpdateClientName(new ClientName(compensatingCommand.ClientName));
-        return Task.CompletedTask;
     }
 }

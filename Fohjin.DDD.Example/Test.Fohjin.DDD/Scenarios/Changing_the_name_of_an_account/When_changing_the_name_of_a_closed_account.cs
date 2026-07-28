@@ -7,31 +7,32 @@ using Fohjin.DDD.Events.Account;
 using Fohjin.DDD.EventStore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account
+namespace Test.Fohjin.DDD.Scenarios.Changing_the_name_of_an_account;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_changing_the_name_of_a_closed_account : CommandTestFixture<ChangeAccountNameCommand, ChangeAccountNameCommandHandler, ActiveAccount>
 {
-    public class When_changing_the_name_of_a_closed_account : CommandTestFixture<ChangeAccountNameCommand, ChangeAccountNameCommandHandler, ActiveAccount>
+    protected override IEnumerable<IDomainEvent> Given()
     {
-        protected override IEnumerable<IDomainEvent> Given()
-        {
-            yield return PrepareDomainEvent.Set(new AccountOpenedEvent(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "1234567890")).ToVersion(1);
-            yield return PrepareDomainEvent.Set(new AccountClosedEvent()).ToVersion(2);
-        }
+        yield return PrepareDomainEvent.Set(new AccountOpenedEvent(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "1234567890")).ToVersion(1);
+        yield return PrepareDomainEvent.Set(new AccountClosedEvent()).ToVersion(2);
+    }
 
-        protected override ChangeAccountNameCommand When()
-        {
-            return new ChangeAccountNameCommand(Guid.NewGuid(), "New Account Name");
-        }
+    protected override ChangeAccountNameCommand When()
+    {
+        return new ChangeAccountNameCommand(Guid.NewGuid(), "New Account Name");
+    }
 
-        [TestMethod]
-        public void Then_a_closed_account_exception_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<ClosedAccountException>();
-        }
+    [TestMethod]
+    public void Then_a_closed_account_exception_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<ClosedAccountException>();
+    }
 
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The ActiveAcount is closed and no opperations can be executed on it");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The ActiveAccount is closed and no operations can be executed on it");
     }
 }

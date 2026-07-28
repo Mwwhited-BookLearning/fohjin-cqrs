@@ -12,8 +12,6 @@ public class NewBankCardForAccountAssignedEventHandler : EventHandlerBase<NewBan
         _reportingRepository = reportingRepository;
     }
 
-    public override Task ExecuteAsync(NewBankCardForAccountAsignedEvent theEvent)
-    {
-        throw new NotImplementedException();
-    }
+    public override Task ExecuteAsync(NewBankCardForAccountAsignedEvent theEvent) =>
+        Task.CompletedTask;
 }

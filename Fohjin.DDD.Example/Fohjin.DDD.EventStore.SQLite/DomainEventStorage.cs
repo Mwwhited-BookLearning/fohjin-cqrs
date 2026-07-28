@@ -1,271 +1,206 @@
 using Fohjin.DDD.Common;
+using Fohjin.DDD.EventStore.SQLite.Entities;
 using Fohjin.DDD.EventStore.Storage;
 using Fohjin.DDD.EventStore.Storage.Memento;
-using Microsoft.Data.Sqlite;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
-namespace Fohjin.DDD.EventStore.SQLite
+namespace Fohjin.DDD.EventStore.SQLite;
+
+public static class DomainEventStorageConfig
 {
-    public abstract class DomainEventStorage
+    public const string ConnectionStringConfigKey = "DomainEventStorage:SqliteConnectionString";
+}
+
+public class DomainEventStorage<TDomainEvent> : IDomainEventStorage<TDomainEvent> where TDomainEvent : IDomainEvent
+{
+    private readonly IDbContextFactory<DomainEventStoreDbContext> _dbContextFactory;
+    private readonly IExtendedFormatter _formatter;
+    private DomainEventStoreDbContext? _transactionalContext;
+    private IDbContextTransaction? _transaction;
+
+    public DomainEventStorage(IDbContextFactory<DomainEventStoreDbContext> dbContextFactory, IExtendedFormatter formatter)
     {
-        public const string ConnectionStringConfigKey = "DomainEventStorage:SqliteConnectionString";
+        _dbContextFactory = dbContextFactory;
+        _formatter = formatter;
     }
-    public class DomainEventStorage<TDomainEvent> : DomainEventStorage, IDomainEventStorage<TDomainEvent> where TDomainEvent : IDomainEvent
-    {
-        private bool _isRunningWithinTransaction;
-        private readonly string _sqLiteConnectionString;
-        private readonly IExtendedFormatter _formatter;
-        private SqliteTransaction? _sqLiteTransaction;
-        private SqliteConnection? _sqliteConnection;
 
-        public DomainEventStorage(IConfiguration configuration, IExtendedFormatter formatter)
+    public Task<IEnumerable<TDomainEvent>> GetAllEventsAsync(Guid eventProviderId) =>
+        WithContextAsync(async context =>
         {
-            _sqLiteConnectionString = configuration[ConnectionStringConfigKey] ??
-                throw new NotSupportedException($"configuration for {nameof(ConnectionStringConfigKey)} is missing");
-            _formatter = formatter;
-        }
+            var records = await context.Events
+                .Where(e => e.EventProviderId == eventProviderId)
+                .OrderBy(e => e.Version)
+                .ToListAsync();
 
-        public IEnumerable<TDomainEvent> GetAllEvents(Guid eventProviderId)
+            return (IEnumerable<TDomainEvent>)[.. records.Select(r => Deserialize<TDomainEvent>(r.Event))];
+        });
+
+    public Task<IEnumerable<TDomainEvent>> GetEventsSinceLastSnapShotAsync(Guid eventProviderId) =>
+        WithContextAsync(async context =>
         {
-            const string commandText = @"SELECT Event FROM Events WHERE EventProviderId = @eventProviderId ORDER BY Version ASC;";
+            var snapShotVersion = await GetSnapShotVersionAsync(context, eventProviderId);
 
-            var domainEvents = new List<TDomainEvent>();
+            var records = await context.Events
+                .Where(e => e.EventProviderId == eventProviderId && e.Version >= snapShotVersion)
+                .OrderBy(e => e.Version)
+                .ToListAsync();
 
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
+            return (IEnumerable<TDomainEvent>)[.. records.Select(r => Deserialize<TDomainEvent>(r.Event))];
+        });
 
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
-            {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                sqliteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProviderId));
-                using var sqLiteDataReader = sqliteCommand.ExecuteReader();
-                while (sqLiteDataReader.Read())
-                {
-                    domainEvents.Add(Deserialize<TDomainEvent>((byte[])sqLiteDataReader["Event"]));
-                }
-                sqliteTransaction.Commit();
-            }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
-
-            return domainEvents;
-        }
-
-        public IEnumerable<TDomainEvent> GetEventsSinceLastSnapShot(Guid eventProviderId)
+    public Task<int> GetEventCountSinceLastSnapShotAsync(Guid eventProviderId) =>
+        WithContextAsync(async context =>
         {
-            var snapShot = GetSnapShot(eventProviderId);
+            var snapShotVersion = await GetSnapShotVersionAsync(context, eventProviderId);
 
-            var snapShotVersion = snapShot != null
-                                 ? snapShot.Version
-                                 : -1;
+            return await context.Events
+                .Where(e => e.EventProviderId == eventProviderId && e.Version >= snapShotVersion)
+                .CountAsync();
+        });
 
-            var commandText = string.Format(@"SELECT Event FROM Events WHERE EventProviderId = @eventProviderId AND Version > {0} ORDER BY Version ASC;", snapShotVersion);
-
-            var domainEvents = new List<TDomainEvent>();
-
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
-
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
-            {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                sqliteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProviderId));
-                using var sqLiteDataReader = sqliteCommand.ExecuteReader();
-                while (sqLiteDataReader.Read())
-                {
-                    domainEvents.Add(Deserialize<TDomainEvent>((byte[])sqLiteDataReader["Event"]));
-                }
-                sqliteTransaction.Commit();
-            }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
-            return domainEvents;
-        }
-
-        public int GetEventCountSinceLastSnapShot(Guid eventProviderId)
+    public Task SaveAsync(IEventProvider<TDomainEvent> eventProvider) =>
+        WithContextAsync(async context =>
         {
-            int count;
-            var snapShot = GetSnapShot(eventProviderId);
-
-            var snapShotVersion = snapShot != null
-                                 ? snapShot.Version
-                                 : 0;
-
-            var commandText = string.Format(@"SELECT COUNT(*) FROM Events WHERE EventProviderId = @eventProviderId AND Version > {0};", snapShotVersion);
-
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
-
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
-            {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                sqliteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProviderId));
-                count = Convert.ToInt32(sqliteCommand.ExecuteScalar());
-                sqliteTransaction.Commit();
-            }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
-            return count;
-        }
-
-        public void Save(IEventProvider<TDomainEvent> eventProvider)
-        {
-            if (!_isRunningWithinTransaction || _sqLiteTransaction == null)
+            if (_transactionalContext == null)
                 throw new Exception("Operation is not running within a transaction");
 
-            var version = GetEventProviderVersion(eventProvider, _sqLiteTransaction);
+            var providerEntity = await GetOrCreateEventProviderEntityAsync(context, eventProvider);
 
-            if (version != eventProvider.Version && eventProvider.Version > 0)
-                throw new ConcurrencyViolationException($"version not correct: {version} != {eventProvider.Version} ({eventProvider.GetType()})");
+            if (providerEntity.Version != eventProvider.Version && eventProvider.Version > 0)
+                throw new ConcurrencyViolationException($"version not correct: {providerEntity.Version} != {eventProvider.Version} ({eventProvider.GetType()})");
 
             foreach (var domainEvent in eventProvider.GetChanges())
             {
-                SaveEvent(domainEvent, eventProvider, _sqLiteTransaction);
+                context.Events.Add(new EventRecordEntity
+                {
+                    Id = domainEvent.Id,
+                    EventProviderId = eventProvider.Id,
+                    Event = Serialize(domainEvent),
+                    Version = domainEvent.Version,
+                });
             }
 
             eventProvider.UpdateVersion(eventProvider.Version + eventProvider.GetChanges().Count());
-            UpdateEventProviderVersion(eventProvider, _sqLiteTransaction);
-        }
+            providerEntity.Version = eventProvider.Version;
 
-        public ISnapShot? GetSnapShot(Guid eventProviderId)
+            await context.SaveChangesAsync();
+            return true;
+        });
+
+    public Task<ISnapShot?> GetSnapShotAsync(Guid entityId) =>
+        WithContextAsync(async context =>
         {
-            ISnapShot? snapshot = null;
-            const string commandText = @"SELECT SnapShot FROM SnapShots WHERE EventProviderId = @eventProviderId AND Version != -1;";
+            var entity = await context.SnapShots
+                .Where(s => s.EventProviderId == entityId && s.Version != -1)
+                .FirstOrDefaultAsync();
 
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
+            return entity == null ? null : Deserialize<ISnapShot>(entity.SnapShot);
+        });
 
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
+    public Task SaveShapShotAsync(IEventProvider<TDomainEvent> entity) =>
+        StoreSnapShotAsync(new SnapShot(entity.Id, entity.Version, ((IOriginator)entity).CreateMemento()));
+
+    public async Task BeginTransactionAsync()
+    {
+        _transactionalContext = await _dbContextFactory.CreateDbContextAsync();
+        _transaction = await _transactionalContext.Database.BeginTransactionAsync();
+    }
+
+    public async Task CommitAsync()
+    {
+        if (_transaction == null || _transactionalContext == null)
+            throw new Exception("Operation is not running within a transaction");
+
+        await _transaction.CommitAsync();
+        await _transaction.DisposeAsync();
+        await _transactionalContext.DisposeAsync();
+        _transaction = null;
+        _transactionalContext = null;
+    }
+
+    public async Task RollbackAsync()
+    {
+        if (_transaction == null || _transactionalContext == null)
+            throw new Exception("Operation is not running within a transaction");
+
+        await _transaction.RollbackAsync();
+        await _transaction.DisposeAsync();
+        await _transactionalContext.DisposeAsync();
+        _transaction = null;
+        _transactionalContext = null;
+    }
+
+    private async Task<int> GetSnapShotVersionAsync(DomainEventStoreDbContext context, Guid eventProviderId)
+    {
+        var snapShotEntity = await context.SnapShots
+            .Where(s => s.EventProviderId == eventProviderId && s.Version != -1)
+            .FirstOrDefaultAsync();
+
+        return snapShotEntity?.Version ?? -1;
+    }
+
+    private static async Task<EventProviderEntity> GetOrCreateEventProviderEntityAsync(DomainEventStoreDbContext context, IEventProvider<TDomainEvent> eventProvider)
+    {
+        var entity = await context.EventProviders.FindAsync(eventProvider.Id);
+        if (entity != null)
+            return entity;
+
+        entity = new EventProviderEntity
+        {
+            EventProviderId = eventProvider.Id,
+            Type = eventProvider.GetType().FullName ?? eventProvider.GetType().Name,
+            Version = 0,
+        };
+        context.EventProviders.Add(entity);
+        await context.SaveChangesAsync();
+        return entity;
+    }
+
+    private async Task StoreSnapShotAsync(ISnapShot snapShot) =>
+        await WithContextAsync(async context =>
+        {
+            var existing = await context.SnapShots.FindAsync(snapShot.EventProviderId);
+            var bytes = Serialize(snapShot);
+
+            if (existing == null)
             {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                sqliteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProviderId));
-                if (sqliteCommand.ExecuteScalar() is byte[] bytes)
-                    snapshot = Deserialize<ISnapShot>(bytes);
-                sqliteTransaction.Commit();
+                context.SnapShots.Add(new SnapShotEntity
+                {
+                    EventProviderId = snapShot.EventProviderId,
+                    SnapShot = bytes,
+                    Version = snapShot.Version,
+                });
             }
-            catch (Exception)
+            else
             {
-                sqliteTransaction.Rollback();
-                throw;
+                existing.SnapShot = bytes;
+                existing.Version = snapShot.Version;
             }
-            return snapshot;
-        }
 
-        public void SaveShapShot(IEventProvider<TDomainEvent> entity)
-        {
-            StoreSnapShot(new SnapShot(entity.Id, entity.Version, ((IOriginator)entity).CreateMemento()));
-        }
+            await context.SaveChangesAsync();
+            return true;
+        });
 
-        public void BeginTransaction()
-        {
-            _sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            _sqliteConnection.Open();
-            _sqLiteTransaction = _sqliteConnection.BeginTransaction();
-            _isRunningWithinTransaction = true;
-        }
+    private async Task<T> WithContextAsync<T>(Func<DomainEventStoreDbContext, Task<T>> action)
+    {
+        if (_transactionalContext != null)
+            return await action(_transactionalContext);
 
-        public void Commit()
-        {
-            _isRunningWithinTransaction = false;
-            _sqLiteTransaction?.Commit();
-            _sqLiteTransaction?.Dispose();
-            _sqliteConnection?.Close();
-            _sqliteConnection?.Dispose();
-        }
+        await using var context = await _dbContextFactory.CreateDbContextAsync();
+        return await action(context);
+    }
 
-        public void Rollback()
-        {
-            _isRunningWithinTransaction = false;
-            _sqLiteTransaction?.Rollback();
-            _sqLiteTransaction?.Dispose();
-            _sqliteConnection?.Close();
-            _sqliteConnection?.Dispose();
-        }
+    private byte[] Serialize<T>(T theObject)
+    {
+        using var memoryStream = new MemoryStream();
+        _formatter.Serialize(memoryStream, theObject);
+        return memoryStream.ToArray();
+    }
 
-        private void SaveEvent(TDomainEvent domainEvent, IEventProvider<TDomainEvent> eventProvider, SqliteTransaction transaction)
-        {
-            const string commandText = "INSERT INTO Events VALUES(@eventId, @eventProviderId, @event, @version)";
-            using var sqLiteCommand = new SqliteCommand(commandText, transaction.Connection, transaction);
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@eventId", domainEvent.Id));
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProvider.Id));
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@event", Serialize(domainEvent)));
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@version", domainEvent.Version));
-
-            sqLiteCommand.ExecuteNonQuery();
-        }
-
-        private void StoreSnapShot(ISnapShot snapShot)
-        {
-            const string commandText = "INSERT OR REPLACE INTO SnapShots (EventProviderId, SnapShot, Version) VALUES (@eventProviderId, @snapShot, @version);";
-
-            using var sqliteConnection = new SqliteConnection(_sqLiteConnectionString);
-            sqliteConnection.Open();
-
-            using var sqliteTransaction = sqliteConnection.BeginTransaction();
-            try
-            {
-                using var sqliteCommand = new SqliteCommand(commandText, sqliteTransaction.Connection, sqliteTransaction);
-                sqliteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", snapShot.EventProviderId));
-                sqliteCommand.Parameters.Add(new SqliteParameter("@snapShot", Serialize(snapShot)));
-                sqliteCommand.Parameters.Add(new SqliteParameter("@version", snapShot.Version));
-
-                sqliteCommand.ExecuteNonQuery();
-                sqliteTransaction.Commit();
-            }
-            catch (Exception)
-            {
-                sqliteTransaction.Rollback();
-                throw;
-            }
-        }
-
-        private static void UpdateEventProviderVersion(IEventProvider<TDomainEvent> eventProvider, SqliteTransaction transaction)
-        {
-            const string commandText = "UPDATE EventProviders SET Version = @version WHERE EventProviderId = @eventProviderId;";
-            using var sqLiteCommand = new SqliteCommand(commandText, transaction.Connection, transaction);
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProvider.Id));
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@version", eventProvider.Version));
-
-            sqLiteCommand.ExecuteNonQuery();
-        }
-
-        private static int GetEventProviderVersion(IEventProvider<TDomainEvent> eventProvider, SqliteTransaction transaction)
-        {
-            const string commandText = @"
-                INSERT OR IGNORE INTO EventProviders VALUES (@eventProviderId, @type, 0);
-                SELECT Version FROM EventProviders WHERE EventProviderId = @eventProviderId";
-            using var sqLiteCommand = new SqliteCommand(commandText, transaction.Connection, transaction);
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@eventProviderId", eventProvider.Id));
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@type", eventProvider.GetType().FullName));
-            sqLiteCommand.Parameters.Add(new SqliteParameter("@version", eventProvider.Version));
-
-            return Convert.ToInt32(sqLiteCommand.ExecuteScalar());
-        }
-
-        private byte[] Serialize<T>(T theObject)
-        {
-            using var memoryStream = new MemoryStream();
-            _formatter.Serialize(memoryStream, theObject);
-            return memoryStream.ToArray();
-        }
-
-        private TType Deserialize<TType>(byte[] bytes)
-        {
-            using var memoryStream = new MemoryStream(bytes);
-            return _formatter.Deserialize<TType>(memoryStream);
-        }
+    private TType Deserialize<TType>(byte[] bytes)
+    {
+        using var memoryStream = new MemoryStream(bytes);
+        return _formatter.Deserialize<TType>(memoryStream);
     }
 }

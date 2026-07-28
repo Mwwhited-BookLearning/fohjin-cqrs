@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.Common
+﻿namespace Fohjin.DDD.Common;
+
+public interface ISystemRandom
 {
-    public interface ISystemRandom
-    {
-        int Next(int start, int end);
-    }
+    int Next(int start, int end);
 }

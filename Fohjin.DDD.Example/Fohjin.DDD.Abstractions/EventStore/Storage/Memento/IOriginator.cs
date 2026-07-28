@@ -1,10 +1,9 @@
 using System.Text.Json;
 
-namespace Fohjin.DDD.EventStore.Storage.Memento
+namespace Fohjin.DDD.EventStore.Storage.Memento;
+
+public interface IOriginator
 {
-    public interface IOriginator
-    {
-        IMemento CreateMemento();
-        void SetMemento(IMemento memento);
-    }
+    IMemento CreateMemento();
+    void SetMemento(IMemento memento);
 }

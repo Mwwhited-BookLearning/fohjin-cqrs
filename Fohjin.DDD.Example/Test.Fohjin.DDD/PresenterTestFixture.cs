@@ -5,6 +5,7 @@ using System.Linq.Expressions;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class PresenterTestFixture<TPresenter>
 {
     private IDictionary<Type, object> mocks = null!;
@@ -57,7 +58,7 @@ public abstract class PresenterTestFixture<TPresenter>
             mocks.Add(parameter.ParameterType, CreateMock(parameter.ParameterType));
         }
 
-        return (TPresenter)constructorInfo.Invoke(mocks.Values.Select(x => ((Mock)x).Object).ToArray());
+        return (TPresenter)constructorInfo.Invoke([.. mocks.Values.Select(x => ((Mock)x).Object)]);
     }
 
     private static object CreateMock(Type type)

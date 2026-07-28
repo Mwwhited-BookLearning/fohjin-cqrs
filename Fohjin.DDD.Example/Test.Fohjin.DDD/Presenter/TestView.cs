@@ -4,7 +4,7 @@ namespace Test.Fohjin.DDD.Presenter;
 
 public class TestView : ITestView
 {
-    public event EventAction OnTest = null!;
+    public event Action OnTest = null!;
 
     public void Test()
     {

@@ -1,11 +1,11 @@
-﻿using Fohjin.DDD.Bus.Direct;
-using Fohjin.DDD.Configuration;
-using Fohjin.DDD.EventHandlers;
-using Microsoft.Extensions.DependencyInjection;
+using Fohjin.DDD.Bus.Direct;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Reactive.Linq;
 
 namespace Test.Fohjin.DDD.Bus;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_a_single_event_gets_published_to_the_bus_containing_multiple_event_handlers : BaseTestFixture<DirectBus>
 {
     private FirstTestEventHandler _handler;
@@ -16,18 +16,14 @@ public class When_a_single_event_gets_published_to_the_bus_containing_multiple_e
     {
         _handler = new FirstTestEventHandler();
         _secondHandler = new SecondTestEventHandler();
-        Services.AddConfigurationServices()
-            .AddTransient<IEventHandler>(_ => _handler)
-            .AddTransient<IEventHandler>(_ => _secondHandler)
-            ;
-
-        var messageRouter = new MessageRouter(this.Provider, this.Logger<MessageRouter>());
-        DoNotMock?.Add(typeof(IRouteMessages), messageRouter);
+        DoNotMock?.Add(typeof(IQueue), new InMemoryQueue(this.Logger<InMemoryQueue>()));
     }
 
     protected override void Given()
     {
         _event = new TestEvent();
+        SubjectUnderTest.Events.OfType<TestEvent>().Subscribe(async e => await _handler.ExecuteAsync(e));
+        SubjectUnderTest.Events.OfType<TestEvent>().Subscribe(async e => await _secondHandler.ExecuteAsync(e));
     }
 
     protected override async Task WhenAsync()
@@ -36,6 +32,8 @@ public class When_a_single_event_gets_published_to_the_bus_containing_multiple_e
             return;
         SubjectUnderTest.Publish(new List<object> { _event });
         await SubjectUnderTest.CommitAsync();
+        await _handler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
+        await _secondHandler.Signal.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     [TestMethod]

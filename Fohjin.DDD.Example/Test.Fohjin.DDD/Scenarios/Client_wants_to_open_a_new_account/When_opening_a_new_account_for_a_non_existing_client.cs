@@ -7,31 +7,32 @@ using Fohjin.DDD.EventStore;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account
+namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_open_a_new_account;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_opening_a_new_account_for_a_non_existing_client : CommandTestFixture<OpenNewAccountForClientCommand, OpenNewAccountForClientCommandHandler, Client>
 {
-    public class When_opening_a_new_account_for_a_non_existing_client : CommandTestFixture<OpenNewAccountForClientCommand, OpenNewAccountForClientCommandHandler, Client>
+    protected override OpenNewAccountForClientCommand When()
     {
-        protected override OpenNewAccountForClientCommand When()
-        {
-            return new OpenNewAccountForClientCommand(Guid.NewGuid(), "New Account");
-        }
+        return new OpenNewAccountForClientCommand(Guid.NewGuid(), "New Account");
+    }
 
-        [TestMethod]
-        public void Then_a_non_existing_client_exception_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<NonExistingClientException>();
-        }
+    [TestMethod]
+    public void Then_a_non_existing_client_exception_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<NonExistingClientException>();
+    }
 
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The Client is not created and no opperations can be executed on it");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The Client is not created and no opperations can be executed on it");
+    }
 
-        [TestMethod]
-        public void Then_there_is_no_new_account_to_be_saved()
-        {
-            OnDependency<IDomainRepository<IDomainEvent>>().Verify(x => x.Add(It.IsAny<ActiveAccount>()), Times.Never());
-        }
+    [TestMethod]
+    public void Then_there_is_no_new_account_to_be_saved()
+    {
+        OnDependency<IDomainRepository<IDomainEvent>>().Verify(x => x.Add(It.IsAny<ActiveAccount>()), Times.Never());
     }
 }

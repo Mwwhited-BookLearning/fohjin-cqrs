@@ -1,10 +1,9 @@
-﻿namespace Fohjin.DDD.BankApplication.Views
+﻿namespace Fohjin.DDD.BankApplication.Views;
+
+public abstract class ViewFormBase : Form, IView
 {
-    public abstract class ViewFormBase : Form, IView
+    DialogResults IView.ShowDialog()
     {
-        DialogResults IView.ShowDialog()
-        {
-            return (DialogResults)(int)ShowDialog();
-        }
+        return (DialogResults)(int)ShowDialog();
     }
 }

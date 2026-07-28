@@ -13,52 +13,58 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Fohjin.DDD.BankApplication
+namespace Fohjin.DDD.BankApplication;
+
+static class Program
 {
-    static class Program
+    /// <summary>
+    /// The main entry point for the application.
+    /// </summary>
+    [STAThread]
+    static async Task Main(string[] args)
     {
-        /// <summary>
-        /// The main entry point for the application.
-        /// </summary>
-        [STAThread]
-        static void Main(string[] args)
-        {
-            var configBuilder = new ConfigurationBuilder()
-                .SetBasePath(Directory.GetCurrentDirectory())
-                .AddIniFile("appsettings.ini", optional: true)
-                .AddJsonFile("appsettings.json", optional: true)
-                .AddXmlFile("appsettings.xml", optional: true)
-                .AddEnvironmentVariables()
-                .AddCommandLine(args)
-                ;
+        var configBuilder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddIniFile("appsettings.ini", optional: true)
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddXmlFile("appsettings.xml", optional: true)
+            .AddEnvironmentVariables()
+            .AddCommandLine(args)
+            ;
 
-            var services = new ServiceCollection()
-                .AddLogging(opt=>opt.AddConsole().AddDebug()
+        var monitoringLoggerProvider = new MonitoringLoggerProvider();
+
+        var services = new ServiceCollection()
+            .AddSingleton(monitoringLoggerProvider)
+            .AddSingleton<ILoggerProvider>(monitoringLoggerProvider)
+            .AddLogging(opt=>opt.AddConsole().AddDebug()
 #if DEBUG
-                    .SetMinimumLevel(LogLevel.Debug)
+                .SetMinimumLevel(LogLevel.Debug)
 #else
-                    .SetMinimumLevel(LogLevel.Information)
+                .SetMinimumLevel(LogLevel.Information)
 #endif
-                    )
-                .AddTransient<IConfiguration>(_ => configBuilder.Build())
-                .AddBusServices()
-                .AddCommandHandlersServices()
-                .AddCommonServices()
-                .AddConfigurationServices()
-                .AddEventHandlersServices()
-                .AddEventStoreServices()
-                .AddEventStoreSqliteServices()
-                .AddReportingServices()
-                .AddDddServices()
-                .AddBankApplicationServices()
-                ;
-            var service = services.BuildServiceProvider()
-                .BootStrapApplication()
-                ;
+                )
+            .AddTransient<IConfiguration>(_ => configBuilder.Build())
+            .AddBusServices()
+            .AddCommandHandlersServices()
+            .AddCommonServices()
+            .AddConfigurationServices()
+            .AddEventHandlersServices()
+            .AddEventStoreServices()
+            .AddEventStoreSqliteServices()
+            .AddReportingServices()
+            .AddDddServices()
+            .AddBankApplicationServices()
+            ;
+        var service = (await services.BuildServiceProvider()
+            .BootStrapApplicationAsync())
+            .SubscribeEventHandlers()
+            ;
 
-            var clientSearchFormPresenter = service.GetRequiredService<IClientSearchFormPresenter>();
-            Application.EnableVisualStyles();
-            clientSearchFormPresenter.Display();
-        }
+        var clientSearchFormPresenter = service.GetRequiredService<IClientSearchFormPresenter>();
+        var monitoringPresenter = service.GetRequiredService<IMonitoringPresenter>();
+        Application.EnableVisualStyles();
+        monitoringPresenter.Display();
+        clientSearchFormPresenter.Display();
     }
 }

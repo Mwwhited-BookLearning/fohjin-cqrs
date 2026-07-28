@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.Common
+﻿namespace Fohjin.DDD.Common;
+
+public class SystemDateTime : ISystemDateTime
 {
-    public class SystemDateTime : ISystemDateTime
-    {
-        public DateTimeOffset Now() => DateTimeOffset.Now;
-    }
+    public DateTimeOffset Now() => DateTimeOffset.Now;
 }

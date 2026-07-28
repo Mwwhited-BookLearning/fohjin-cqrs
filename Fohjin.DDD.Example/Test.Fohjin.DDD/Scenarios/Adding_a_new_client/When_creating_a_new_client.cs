@@ -6,6 +6,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Adding_a_new_client;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_creating_a_new_client : CommandTestFixture<CreateClientCommand, CreateClientCommandHandler, Client>
 {
     protected override CreateClientCommand When() =>

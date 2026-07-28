@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Transfering_money;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_money_transfer_was_send : EventTestFixture<MoneyTransferSendEvent, MoneyTransferSendEventHandler>
 {
     private static Guid _accountId;
@@ -17,11 +19,11 @@ public class When_money_transfer_was_send : EventTestFixture<MoneyTransferSendEv
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Update<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
+            .Setup(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
             .Callback<object, object>((u, w) => { UpdateAccountDetailsObject = u; WhereAccountDetailsObject = w; });
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<LedgerReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<LedgerReport>()))
             .Callback<LedgerReport>(l => { LedgerReportObject = l; });
     }
 
@@ -34,7 +36,7 @@ public class When_money_transfer_was_send : EventTestFixture<MoneyTransferSendEv
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_account_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Update<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
     }
 
     [TestMethod]
@@ -47,7 +49,7 @@ public class When_money_transfer_was_send : EventTestFixture<MoneyTransferSendEv
     [TestMethod]
     public void Then_the_account_details_report_will_be_updated_with_the_expected_details()
     {
-        OnDependency<IReportingRepository>()?.Verify(x => x.Save(It.IsAny<LedgerReport>()));
+        OnDependency<IReportingRepository>()?.Verify(x => x.SaveAsync(It.IsAny<LedgerReport>()));
     }
 
     [TestMethod]

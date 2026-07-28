@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Depositing_cash;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_depositing_cash : CommandTestFixture<DepositCashCommand, DepositCashCommandHandler, ActiveAccount>
 {
     protected override IEnumerable<IDomainEvent> Given()
@@ -26,7 +28,7 @@ public class When_depositing_cash : CommandTestFixture<DepositCashCommand, Depos
     [TestMethod]
     public void Then_the_published_event_will_contain_the_amount_and_new_account_balance()
     {
-        PublishedEvents?.Last<CashDepositedEvent>().Balance.WillBe(30);
-        PublishedEvents?.Last<CashDepositedEvent>().Amount.WillBe(20);
+        PublishedEvents?.Last<CashDepositedEvent>().Balance.WillBe(30M);
+        PublishedEvents?.Last<CashDepositedEvent>().Amount.WillBe(20M);
     }
 }

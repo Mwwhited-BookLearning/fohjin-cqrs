@@ -3,19 +3,20 @@ using Fohjin.DDD.Commands;
 using Fohjin.DDD.Domain.Account;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account
-{
-    public class When_closing_a_non_existing_account : CommandTestFixture<CloseAccountCommand, CloseAccountCommandHandler, ActiveAccount>
-    {
-        protected override CloseAccountCommand When()
-        {
-            return new CloseAccountCommand(Guid.NewGuid());
-        }
+namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account;
 
-        [TestMethod]
-        public void Then_a_non_existing_account_exception_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<NonExitsingAccountException>();
-        }
+[TestClass]
+[TestCategory("unit")]
+public class When_closing_a_non_existing_account : CommandTestFixture<CloseAccountCommand, CloseAccountCommandHandler, ActiveAccount>
+{
+    protected override CloseAccountCommand When()
+    {
+        return new CloseAccountCommand(Guid.NewGuid());
+    }
+
+    [TestMethod]
+    public void Then_a_non_existing_account_exception_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<NonExitsingAccountException>();
     }
 }

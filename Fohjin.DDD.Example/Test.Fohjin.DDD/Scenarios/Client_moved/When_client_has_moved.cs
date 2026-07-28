@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_moved;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_client_has_moved : EventTestFixture<ClientMovedEvent, ClientMovedEventHandler>
 {
     private static Guid _clientId;
@@ -16,7 +18,7 @@ public class When_client_has_moved : EventTestFixture<ClientMovedEvent, ClientMo
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Update<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
+            .Setup(x => x.UpdateAsync<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()))
             .Callback<object, object>((u, w) => { UpdateClientDetailsObject = u; WhereClientDetailsObject = w; });
     }
 
@@ -30,7 +32,7 @@ public class When_client_has_moved : EventTestFixture<ClientMovedEvent, ClientMo
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_client_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Update<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<ClientDetailsReport>(It.IsAny<object>(), It.IsAny<object>()));
     }
 
     [TestMethod]

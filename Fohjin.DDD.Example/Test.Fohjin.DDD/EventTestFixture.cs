@@ -7,6 +7,7 @@ using Moq;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class EventTestFixture<TEvent, TEventHandler>
     where TEvent : class, IDomainEvent
     where TEventHandler : class, IEventHandler<TEvent>
@@ -20,7 +21,7 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
     protected virtual void Finally() { }
 
     [TestInitialize]
-    public void Setup()
+    public async Task Setup()
     {
         mocks = new Dictionary<Type, object>();
         CaughtException = new ThereWasNoExceptionButOneWasExpectedException();
@@ -29,7 +30,7 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
 
         try
         {
-            EventHandler.ExecuteAsync(When()).GetAwaiter().GetResult();
+            await EventHandler.ExecuteAsync(When());
         }
         catch (Exception exception)
         {
@@ -65,7 +66,7 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
             mocks.Add(parameter.ParameterType, CreateMock(parameter.ParameterType));
         }
 
-        return (IEventHandler<TEvent>)constructorInfo.Invoke(mocks.Values.Select(x => ((Mock)x).Object).ToArray());
+        return (IEventHandler<TEvent>)constructorInfo.Invoke([.. mocks.Values.Select(x => ((Mock)x).Object)]);
     }
 
     private static object CreateMock(Type type)

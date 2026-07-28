@@ -1,9 +1,8 @@
 ﻿using Fohjin.DDD.Commands;
 
-namespace Fohjin.DDD.CommandHandlers
+namespace Fohjin.DDD.CommandHandlers;
+
+public interface ICommandHandlerHelper
 {
-    public interface ICommandHandlerHelper
-    {
-        Task<bool> RouteAsync(ICommand message);
-    }
+    Task<bool> RouteAsync(ICommand message);
 }

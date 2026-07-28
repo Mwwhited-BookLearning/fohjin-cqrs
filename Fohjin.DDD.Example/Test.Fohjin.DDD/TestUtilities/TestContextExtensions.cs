@@ -46,7 +46,7 @@ public static class TestContextExtensions
             context.TestName?[..(maxLenght / 2 - 1)] + "-" + context.TestName?[^(maxLenght / 2 - 1)..];
 
     public static T? GetTestProperty<T>(this TestContext context, string key) =>
-         (T?)context.Properties[key];
+         context.Properties.TryGetValue(key, out var value) ? (T?)value : default;
 
     public static TestContext AddResults(this TestContext context, string name, object? results)
     {
@@ -55,8 +55,8 @@ public static class TestContextExtensions
 
         var path = context.GetTestProperty<string>(TestWorkingDirectory) ?? context.GetPathForTest();
 
-        if (context.Properties["RUN_ID"] != null && path != null)
-            path = Path.Combine(path, context.Properties["RUN_ID"]?.ToString() ?? "");
+        if (context.Properties.TryGetValue("RUN_ID", out var runId) && runId != null && path != null)
+            path = Path.Combine(path, runId.ToString() ?? "");
 
         if (!Directory.Exists(path) && path != null)
             Directory.CreateDirectory(path);

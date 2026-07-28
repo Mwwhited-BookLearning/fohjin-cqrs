@@ -1,9 +1,8 @@
 ﻿using Fohjin.DDD.Services.Models;
 
-namespace Fohjin.DDD.Services
+namespace Fohjin.DDD.Services;
+
+public interface ISendMoneyTransfer
 {
-    public interface ISendMoneyTransfer
-    {
-        void Send(MoneyTransfer moneyTransfer);
-    }
+    void Send(MoneyTransfer moneyTransfer);
 }

@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Receiving_money_transfer;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_receiveing_a_money_transfer : CommandTestFixture<ReceiveMoneyTransferCommand, ReceiveMoneyTransferCommandHandler, ActiveAccount>
 {
     protected override IEnumerable<IDomainEvent> Given()

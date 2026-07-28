@@ -42,7 +42,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
         _systemTimer = systemTimer;
     }
 
-    public void Display()
+    public async void Display()
     {
         _createNewProcess = false;
         _clientDetailsView.DisableSaveButton();
@@ -60,15 +60,15 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             return;
         }
 
-        LoadData();
+        await LoadDataAsync();
 
         EnableAllMenuButtons();
         _clientDetailsView.ShowDialog();
     }
 
-    private void LoadData()
+    private async Task LoadDataAsync()
     {
-        _clientDetailsReport = _reportingRepository.GetByExample<ClientDetailsReport>(new { _clientReport?.Id }).FirstOrDefault()
+        _clientDetailsReport = (await _reportingRepository.GetByExampleAsync<ClientDetailsReport>(new { _clientReport?.Id })).FirstOrDefault()
             ?? ClientDetailsReport.New;
 
         SetClientDetailsData();
@@ -145,7 +145,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 1000);
+            _systemTimer.Trigger(LoadDataAsync, 1000);
         });
     }
 
@@ -158,7 +158,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             {
                 _editStep = 3;
 
-                _clientDetailsReport = ClientDetailsReport.New with
+                _clientDetailsReport = _clientDetailsReport with
                 {
                     Street = _clientDetailsView.Street,
                     StreetNumber = _clientDetailsView.StreetNumber,
@@ -188,7 +188,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
@@ -232,7 +232,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
@@ -248,7 +248,7 @@ public class ClientDetailsPresenter : Presenter<IClientDetailsView>, IClientDeta
             EnableAllMenuButtons();
             _clientDetailsView.EnableOverviewPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 

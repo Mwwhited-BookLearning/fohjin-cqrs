@@ -6,6 +6,7 @@ using Moq;
 namespace Test.Fohjin.DDD;
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class BaseTestFixture
 {
     protected Exception CaughtException;
@@ -35,6 +36,7 @@ public abstract class BaseTestFixture
 }
 
 [TestClass]
+[TestCategory("unit")]
 public abstract class BaseTestFixture<TSubjectUnderTest>
 {
     public TestContext TestContext { get; set; } = null!;
@@ -60,7 +62,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
     protected virtual void Finally() { }
 
     [TestInitialize]
-    public void Setup()
+    public async Task Setup()
     {
         mocks = new Dictionary<Type, object>();
         DoNotMock = new Dictionary<Type, object>();
@@ -74,7 +76,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
 
         try
         {
-            WhenAsync();
+            await WhenAsync();
         }
         catch (Exception exception)
         {
@@ -110,7 +112,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
             parameters.Add(theObject);
         }
 
-        return (TSubjectUnderTest)constructorInfo.Invoke(parameters.ToArray());
+        return (TSubjectUnderTest)constructorInfo.Invoke([.. parameters]);
     }
 
     private void BuildMocks()

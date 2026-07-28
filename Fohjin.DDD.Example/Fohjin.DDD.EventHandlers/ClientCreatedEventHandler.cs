@@ -13,12 +13,11 @@ public class ClientCreatedEventHandler : EventHandlerBase<ClientCreatedEvent>
         _reportingRepository = reportingRepository;
     }
 
-    public override Task ExecuteAsync(ClientCreatedEvent theEvent)
+    public override async Task ExecuteAsync(ClientCreatedEvent theEvent)
     {
         var client = new ClientReport(theEvent.ClientId, theEvent.ClientName);
         var clientDetails = new ClientDetailsReport(theEvent.ClientId, theEvent.ClientName, theEvent.Street, theEvent.StreetNumber, theEvent.PostalCode, theEvent.City, theEvent.PhoneNumber);
-        _reportingRepository.Save(client);
-        _reportingRepository.Save(clientDetails);
-        return Task.CompletedTask;
+        await _reportingRepository.SaveAsync(client);
+        await _reportingRepository.SaveAsync(clientDetails);
     }
 }

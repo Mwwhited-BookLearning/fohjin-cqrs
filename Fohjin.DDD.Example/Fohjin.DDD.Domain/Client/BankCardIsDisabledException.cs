@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.Domain.Client
+﻿namespace Fohjin.DDD.Domain.Client;
+
+public class BankCardIsDisabledException : Exception
 {
-    public class BankCardIsDisabledException : Exception
-    {
-        public BankCardIsDisabledException(string message) : base(message) { }
-    }
+    public BankCardIsDisabledException(string message) : base(message) { }
 }

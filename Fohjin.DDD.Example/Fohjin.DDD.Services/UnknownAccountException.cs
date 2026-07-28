@@ -1,7 +1,6 @@
-namespace Fohjin.DDD.Services
+namespace Fohjin.DDD.Services;
+
+public class UnknownAccountException : Exception
 {
-    public class UnknownAccountException : Exception
-    {
-        public UnknownAccountException(string message) : base(message) { }
-    }
+    public UnknownAccountException(string message) : base(message) { }
 }

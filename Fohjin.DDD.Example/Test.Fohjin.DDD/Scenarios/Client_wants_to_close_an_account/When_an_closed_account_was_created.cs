@@ -7,6 +7,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_wants_to_close_an_account;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_an_closed_account_was_created : EventTestFixture<ClosedAccountCreatedEvent, ClosedAccountCreatedEventHandler>
 {
     private static Guid _orginalAccountId;
@@ -19,11 +21,11 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<ClosedAccountReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<ClosedAccountReport>()))
             .Callback<ClosedAccountReport>(a => SaveClosedAccountReportObject = a);
 
         OnDependency<IReportingRepository>()
-            .Setup(x => x.Save(It.IsAny<ClosedAccountDetailsReport>()))
+            .Setup(x => x.SaveAsync(It.IsAny<ClosedAccountDetailsReport>()))
             .Callback<ClosedAccountDetailsReport>(a => SaveClosedAccountDetailsReportObject = a);
     }
 
@@ -39,7 +41,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
                 new KeyValuePair<string, string>("DebitMutation" , "15.0|"),
                 new KeyValuePair<string, string>("CreditTransfer" , "10.5|1234567890"),
                 new KeyValuePair<string, string>("DebitTransfer" , "15.0|0987654321"),
-                new KeyValuePair<string, string>("CreditTransferFailed" , "15.0|0987654321"),
+                new KeyValuePair<string, string>("DebitTransferFailed" , "15.0|0987654321"),
             };
 
         return new ClosedAccountCreatedEvent(_accountId, _orginalAccountId, _clientId, ledgers, "Closed Account", "1234567890");
@@ -48,7 +50,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_closed_account_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<ClosedAccountReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<ClosedAccountReport>()));
     }
 
     [TestMethod]
@@ -62,7 +64,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_closed_account_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<ClosedAccountDetailsReport>()));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<ClosedAccountDetailsReport>()));
     }
 
     [TestMethod]
@@ -70,7 +72,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     {
         SaveClosedAccountDetailsReportObject?.Id.WillBe(_accountId);
         SaveClosedAccountDetailsReportObject?.ClientReportId.WillBe(_clientId);
-        SaveClosedAccountDetailsReportObject?.Balance.WillBe(0);
+        SaveClosedAccountDetailsReportObject?.Balance.WillBe(0M);
         SaveClosedAccountDetailsReportObject?.AccountName.WillBe("Closed Account");
         SaveClosedAccountDetailsReportObject?.AccountNumber.WillBe("1234567890");
     }
@@ -78,6 +80,6 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_save_the_four_ledger_reports()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.Save(It.IsAny<LedgerReport>()), Times.Exactly(5));
+        OnDependency<IReportingRepository>().Verify(x => x.SaveAsync(It.IsAny<LedgerReport>()), Times.Exactly(5));
     }
 }

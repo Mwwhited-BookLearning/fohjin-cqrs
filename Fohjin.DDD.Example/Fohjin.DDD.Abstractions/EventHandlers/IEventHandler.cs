@@ -1,14 +1,13 @@
 using Fohjin.DDD.EventStore;
 using System.Text.Json;
 
-namespace Fohjin.DDD.EventHandlers
+namespace Fohjin.DDD.EventHandlers;
+
+public interface IEventHandler
 {
-    public interface IEventHandler
-    {
-        Task ExecuteAsync(IDomainEvent @event);
-    }
-    public interface IEventHandler<TEvent> : IEventHandler where TEvent : class, IDomainEvent
-    {
-        Task ExecuteAsync(TEvent @event);
-    }
+    Task ExecuteAsync(IDomainEvent @event);
+}
+public interface IEventHandler<TEvent> : IEventHandler where TEvent : class, IDomainEvent
+{
+    Task ExecuteAsync(TEvent @event);
 }

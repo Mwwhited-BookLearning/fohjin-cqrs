@@ -13,10 +13,9 @@ public class ChangeClientPhoneNumberCommandHandler : CommandHandlerBase<ChangeCl
         _repository = repository;
     }
 
-    public override Task ExecuteAsync(ChangeClientPhoneNumberCommand compensatingCommand)
+    public override async Task ExecuteAsync(ChangeClientPhoneNumberCommand compensatingCommand)
     {
-        var client = _repository.GetById<Client>(compensatingCommand.Id);
+        var client = await _repository.GetByIdAsync<Client>(compensatingCommand.Id);
         client?.UpdatePhoneNumber(new PhoneNumber(compensatingCommand.PhoneNumber));
-        return Task.CompletedTask;
     }
 }

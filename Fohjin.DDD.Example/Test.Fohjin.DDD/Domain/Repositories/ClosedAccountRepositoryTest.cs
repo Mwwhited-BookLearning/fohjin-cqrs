@@ -6,7 +6,8 @@ using Fohjin.DDD.EventStore;
 using Fohjin.DDD.EventStore.SQLite;
 using Fohjin.DDD.EventStore.Storage;
 using Fohjin.DDD.EventStore.Storage.Memento;
-using Microsoft.Extensions.Configuration;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -17,6 +18,7 @@ using Test.Fohjin.DDD.TestUtilities;
 namespace Test.Fohjin.DDD.Domain.Repositories;
 
 [TestClass]
+[TestCategory("unit")]
 public class ClosedAccountRepositoryTest
 {
     public TestContext TestContext { get; set; } = null!;
@@ -38,7 +40,7 @@ public class ClosedAccountRepositoryTest
     private List<Ledger> _ledgers;
 
     [TestInitialize]
-    public void SetUp()
+    public async Task SetUp()
     {
         TestContext.SetupWorkingDirectory();
         var dataBaseFile = Path.Combine(
@@ -47,16 +49,16 @@ public class ClosedAccountRepositoryTest
             DomainDatabaseBootStrapper.DataBaseFile
             );
 
-        new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
+        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
 
         var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
 
-        var config = new ConfigurationBuilder()
-            .AddTupleConfiguration((DomainEventStorage.ConnectionStringConfigKey, sqliteConnectionString))
-            .Build();
+        var dbContextOptions = new DbContextOptionsBuilder<DomainEventStoreDbContext>()
+            .UseSqlite(sqliteConnectionString)
+            .Options;
 
         _domainEventStorage = new DomainEventStorage<IDomainEvent>(
-            config,
+            new PooledDbContextFactory<DomainEventStoreDbContext>(dbContextOptions),
             new ExtendedFormatter()
             );
 
@@ -75,7 +77,7 @@ public class ClosedAccountRepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
+    public async Task When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
     {
         _ledgers = new List<Ledger>
         {
@@ -89,14 +91,14 @@ public class ClosedAccountRepositoryTest
         var closedAccount = ClosedAccount.CreateNew(Guid.NewGuid(), Guid.NewGuid(), _ledgers, new AccountName("AccountName"), new AccountNumber("1234567890"));
 
         _repository?.Add(closedAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
-        Assert.AreEqual(1, _domainEventStorage?.GetEventsSinceLastSnapShot(closedAccount.Id).Count());
-        Assert.AreEqual(1, _domainEventStorage?.GetAllEvents(closedAccount.Id).Count());
+        Assert.AreEqual(1, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(closedAccount.Id)).Count());
+        Assert.AreEqual(1, (await _domainEventStorage!.GetAllEventsAsync(closedAccount.Id)).Count());
     }
 
     [TestMethod]
-    public void When_calling_Save_it_will_reset_the_domain_events()
+    public async Task When_calling_Save_it_will_reset_the_domain_events()
     {
         _ledgers = new List<Ledger>
         {
@@ -110,7 +112,7 @@ public class ClosedAccountRepositoryTest
         var closedAccount = ClosedAccount.CreateNew(Guid.NewGuid(), Guid.NewGuid(), _ledgers, new AccountName("AccountName"), new AccountNumber("1234567890"));
 
         _repository?.Add(closedAccount);
-        _eventStoreUnitOfWork?.Commit();
+        await _eventStoreUnitOfWork!.CommitAsync();
 
         var closedAccountForRepository = (IEventProvider<IDomainEvent>)closedAccount;
 
@@ -118,7 +120,7 @@ public class ClosedAccountRepositoryTest
     }
 
     [TestMethod]
-    public void When_calling_CreateMemento_it_will_return_a_closed_account_memento()
+    public async Task When_calling_CreateMemento_it_will_return_a_closed_account_memento()
     {
         _ledgers = new List<Ledger>
         {

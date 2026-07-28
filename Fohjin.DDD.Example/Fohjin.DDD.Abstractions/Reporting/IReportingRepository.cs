@@ -1,10 +1,9 @@
-namespace Fohjin.DDD.Reporting
+namespace Fohjin.DDD.Reporting;
+
+public interface IReportingRepository
 {
-    public interface IReportingRepository
-    {
-        IEnumerable<TDto> GetByExample<TDto>(object? example) where TDto : class;
-        void Save<TDto>(TDto dto) where TDto : class;
-        void Update<TDto>(object update, object where) where TDto : class;
-        void Delete<TDto>(object example) where TDto : class;
-    }
+    Task<IEnumerable<TDto>> GetByExampleAsync<TDto>(object? example) where TDto : class;
+    Task SaveAsync<TDto>(TDto dto) where TDto : class;
+    Task UpdateAsync<TDto>(object update, object where) where TDto : class;
+    Task DeleteAsync<TDto>(object example) where TDto : class;
 }

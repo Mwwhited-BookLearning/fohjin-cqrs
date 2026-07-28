@@ -1,7 +1,6 @@
-﻿namespace Fohjin.DDD.Common
+namespace Fohjin.DDD.Common;
+
+public interface ISystemTimer
 {
-    public interface ISystemTimer
-    {
-        void Trigger(Action value, int @in);
-    }
+    void Trigger(Func<Task> value, int @in);
 }

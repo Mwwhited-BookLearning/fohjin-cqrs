@@ -19,17 +19,15 @@ public class OpenNewAccountForClientCommandHandler : CommandHandlerBase<OpenNewA
         _systemHash = systemHash;
     }
 
-    public override Task ExecuteAsync(OpenNewAccountForClientCommand compensatingCommand)
+    public override async Task ExecuteAsync(OpenNewAccountForClientCommand compensatingCommand)
     {
-        var client = _repository.GetById<Client>(compensatingCommand.Id);
+        var client = await _repository.GetByIdAsync<Client>(compensatingCommand.Id);
         var activeAccount = client?.CreateNewAccount(
-            compensatingCommand.AccountName, 
+            compensatingCommand.AccountName,
             _systemHash.Hash(compensatingCommand.AccountName)
             );
 
         if (activeAccount != null)
             _repository.Add(activeAccount);
-
-        return Task.CompletedTask;
     }
 }

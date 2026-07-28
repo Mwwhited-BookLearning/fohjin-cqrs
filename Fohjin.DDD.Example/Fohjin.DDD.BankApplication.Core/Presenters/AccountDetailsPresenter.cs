@@ -34,29 +34,29 @@ public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountD
         _systemTimer = systemTimer;
     }
 
-    public void Display()
+    public async void Display()
     {
         _accountDetailsView.DisableSaveButton();
         _accountDetailsView.EnableMenuButtons();
         _accountDetailsView.EnableDetailsPanel();
 
-        LoadData();
+        await LoadDataAsync();
         _accountDetailsView.ShowDialog();
     }
 
-    private void LoadData()
+    private async Task LoadDataAsync()
     {
         if (_accountReport == null)
             return;
 
-        _accountDetailsReport = _reportingRepository?.GetByExample<AccountDetailsReport>(new { _accountReport.Id }).FirstOrDefault() ??
+        _accountDetailsReport = (await _reportingRepository.GetByExampleAsync<AccountDetailsReport>(new { _accountReport.Id })).FirstOrDefault() ??
             AccountDetailsReport.New;
         _accountDetailsView.AccountName = _accountDetailsReport?.AccountName;
         _accountDetailsView.AccountNameLabel = _accountDetailsReport?.AccountName;
         _accountDetailsView.AccountNumberLabel = _accountDetailsReport?.AccountNumber;
         _accountDetailsView.BalanceLabel = _accountDetailsReport?.Balance ?? 0;
         _accountDetailsView.Ledgers = _accountDetailsReport?.Ledgers;
-        _accountDetailsView.TransferAccounts = _reportingRepository?.GetByExample<AccountReport>(null).ToList().Where(x => x.Id != _accountDetailsReport?.Id).ToList();
+        _accountDetailsView.TransferAccounts = [.. (await _reportingRepository.GetByExampleAsync<AccountReport>(null)).ToList().Where(x => x.Id != _accountDetailsReport?.Id)];
     }
 
     public void SetAccount(AccountReport? accountReport)
@@ -136,7 +136,7 @@ public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountD
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
@@ -151,7 +151,7 @@ public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountD
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
@@ -166,7 +166,7 @@ public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountD
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 2000);
         });
     }
 
@@ -182,8 +182,8 @@ public class AccountDetailsPresenter : Presenter<IAccountDetailsView>, IAccountD
             _accountDetailsView.EnableMenuButtons();
             _accountDetailsView.EnableDetailsPanel();
             _bus.CommitAsync();
-            _systemTimer.Trigger(LoadData, 2000);
-            _systemTimer.Trigger(LoadData, 4000); // This one is because there is also a delay in the transfer service :)
+            _systemTimer.Trigger(LoadDataAsync, 2000);
+            _systemTimer.Trigger(LoadDataAsync, 4000); // This one is because there is also a delay in the transfer service :)
         });
     }
 

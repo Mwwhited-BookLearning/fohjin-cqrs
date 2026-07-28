@@ -1,8 +1,7 @@
-﻿namespace Fohjin.DDD.Bus.Direct
+﻿namespace Fohjin.DDD.Bus.Direct;
+
+public interface IQueue
 {
-    public interface IQueue
-    {
-        Task PutAsync(object item);
-        Task PopAsync(Func<object, Task> popAction);
-    }
+    Task PutAsync(object item);
+    Task PopAsync(Func<object, Task> popAction);
 }

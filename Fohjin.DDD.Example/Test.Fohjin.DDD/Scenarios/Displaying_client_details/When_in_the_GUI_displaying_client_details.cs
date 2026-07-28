@@ -9,6 +9,8 @@ using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Displaying_client_details;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_displaying_client_details : PresenterTestFixture<ClientDetailsPresenter>
 {
     private readonly Guid _clientId = Guid.NewGuid();
@@ -20,8 +22,8 @@ public class When_in_the_GUI_displaying_client_details : PresenterTestFixture<Cl
         _clientDetailsReport = new ClientDetailsReport(_clientId, "Client Name", "street", "123", "5000", "bergen", "1234567890");
         _clientDetailsReports = new List<ClientDetailsReport> { _clientDetailsReport };
         OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExample<ClientDetailsReport>(It.IsAny<object>()))
-            .Returns(_clientDetailsReports);
+            .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
+            .ReturnsAsync(_clientDetailsReports);
     }
 
     protected override void When()

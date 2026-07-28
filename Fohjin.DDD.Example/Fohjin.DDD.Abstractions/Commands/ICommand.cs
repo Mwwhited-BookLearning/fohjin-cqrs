@@ -1,10 +1,9 @@
 using System.Text.Json;
 
-namespace Fohjin.DDD.Commands
+namespace Fohjin.DDD.Commands;
+
+[JsonInterfaceConverter(typeof(InterfaceConverter<ICommand>))]
+public interface ICommand
 {
-    [JsonInterfaceConverter(typeof(InterfaceConverter<ICommand>))]
-    public interface ICommand
-    {
-        Guid Id { get; init; }
-    }
+    Guid Id { get; init; }
 }

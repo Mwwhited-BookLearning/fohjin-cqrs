@@ -9,6 +9,7 @@ using Test.Fohjin.DDD.TestUtilities;
 namespace Test.Fohjin.DDD.Serialization;
 
 [TestClass]
+[TestCategory("unit")]
 public class SerializationTests
 {
     public TestContext TestContext { get; set; }= null!;

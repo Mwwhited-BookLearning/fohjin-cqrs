@@ -3,9 +3,12 @@ using Fohjin.DDD.BankApplication.Views;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
 
 namespace Test.Fohjin.DDD.Scenarios.Opening_the_bank_application;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_in_the_GUI_openeing_the_bank_application : PresenterTestFixture<ClientSearchFormPresenter>
 {
     private List<ClientReport>? _clientReports;
@@ -14,8 +17,8 @@ public class When_in_the_GUI_openeing_the_bank_application : PresenterTestFixtur
     {
         _clientReports = new List<ClientReport> { new ClientReport(Guid.NewGuid(), "Client Name") };
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.GetByExample<ClientReport>(null))
-            .Returns(_clientReports);
+            ?.Setup(x => x.GetByExampleAsync<ClientReport>(null))
+            .ReturnsAsync(_clientReports);
     }
 
     protected override void When()

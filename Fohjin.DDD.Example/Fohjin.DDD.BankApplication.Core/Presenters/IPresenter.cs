@@ -1,7 +1,6 @@
-namespace Fohjin.DDD.BankApplication.Presenters
+namespace Fohjin.DDD.BankApplication.Presenters;
+
+public interface IPresenter
 {
-    public interface IPresenter
-    {
-        void Display();
-    }
+    void Display();
 }

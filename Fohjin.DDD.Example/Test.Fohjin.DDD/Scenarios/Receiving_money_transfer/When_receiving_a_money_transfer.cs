@@ -7,30 +7,25 @@ using Fohjin.DDD.Services.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
-namespace Test.Fohjin.DDD.Scenarios.Receiving_money_transfer
+namespace Test.Fohjin.DDD.Scenarios.Receiving_money_transfer;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_receiving_a_money_transfer : BaseTestFixture<MoneyReceiveService>
 {
-    public class When_receiving_a_money_transfer : BaseTestFixture<MoneyReceiveService>
+    protected override void SetupDependencies()
     {
-        protected override void SetupDependencies()
-        {
-            OnDependency<IReportingRepository>()
-                ?.Setup(x => x.GetByExample<AccountReport>(It.IsAny<object>()))
-                .Returns(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
-        }
+        OnDependency<IReportingRepository>()
+            ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+            .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
+    }
 
-        protected override Task WhenAsync()
-        {
-            if (SubjectUnderTest == null)
-                return Task.CompletedTask;
+    protected override Task WhenAsync() =>
+        SubjectUnderTest?.Receive(new MoneyTransfer("source account number", "target account number", 123.45M)) ?? Task.CompletedTask;
 
-            SubjectUnderTest.Receive(new MoneyTransfer("source account number", "target account number", 123.45M));
-            return Task.CompletedTask;
-        }
-
-        [TestMethod]
-        public void Then_the_newly_created_account_will_be_saved()
-        {
-            OnDependency<IBus>()?.Verify(x => x.Publish(It.IsAny<ReceiveMoneyTransferCommand>()));
-        }
+    [TestMethod]
+    public void Then_the_newly_created_account_will_be_saved()
+    {
+        OnDependency<IBus>()?.Verify(x => x.Publish(It.IsAny<ReceiveMoneyTransferCommand>()));
     }
 }

@@ -4,25 +4,26 @@ using Fohjin.DDD.Commands;
 using Fohjin.DDD.Domain.Account;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash
+namespace Test.Fohjin.DDD.Scenarios.Withdrawing_cash;
+
+[TestClass]
+[TestCategory("unit")]
+public class When_Withdrawaling_cash_from_a_non_existing_account : CommandTestFixture<WithdrawalCashCommand, WithdrawalCashCommandHandler, ActiveAccount>
 {
-    public class When_Withdrawaling_cash_from_a_non_existing_account : CommandTestFixture<WithdrawalCashCommand, WithdrawalCashCommandHandler, ActiveAccount>
+    protected override WithdrawalCashCommand When()
     {
-        protected override WithdrawalCashCommand When()
-        {
-            return new WithdrawalCashCommand(Guid.NewGuid(), 0);
-        }
+        return new WithdrawalCashCommand(Guid.NewGuid(), 0);
+    }
 
-        [TestMethod]
-        public void Then_a_non_existing_account_exception_will_be_thrown()
-        {
-            CaughtException.WillBeOfType<NonExitsingAccountException>();
-        }
+    [TestMethod]
+    public void Then_a_non_existing_account_exception_will_be_thrown()
+    {
+        CaughtException.WillBeOfType<NonExitsingAccountException>();
+    }
 
-        [TestMethod]
-        public void Then_the_exception_message_will_be()
-        {
-            CaughtException.Message.WillBe("The ActiveAcount is not created and no opperations can be executed on it");
-        }
+    [TestMethod]
+    public void Then_the_exception_message_will_be()
+    {
+        CaughtException.Message.WillBe("The ActiveAccount is not created and no operations can be executed on it");
     }
 }

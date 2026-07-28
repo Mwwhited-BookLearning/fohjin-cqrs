@@ -13,11 +13,13 @@ public static class ServiceCollectionExtensions
         service.TryAddTransient<IClientDetailsPresenter, ClientDetailsPresenter>();
         service.TryAddTransient<IAccountDetailsPresenter, AccountDetailsPresenter>();
         service.TryAddTransient<IPopupPresenter, PopupPresenter>();
+        service.TryAddTransient<IMonitoringPresenter, MonitoringPresenter>();
 
         service.TryAddTransient<IClientSearchFormView, ClientSearchForm>();
         service.TryAddTransient<IClientDetailsView, ClientDetails>();
         service.TryAddTransient<IAccountDetailsView, AccountDetails>();
         service.TryAddTransient<IPopupView, Popup>();
+        service.TryAddTransient<IMonitoringView, MonitoringForm>();
 
         return service;
     }

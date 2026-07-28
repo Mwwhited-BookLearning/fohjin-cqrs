@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_a_new_phone_number;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_changing_the_phone_number : CommandTestFixture<ChangeClientPhoneNumberCommand, ChangeClientPhoneNumberCommandHandler, Client>
 {
     protected override IEnumerable<IDomainEvent> Given()

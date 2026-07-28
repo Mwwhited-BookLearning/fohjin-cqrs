@@ -7,6 +7,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.Scenarios.Client_got_his_name_changed;
 
+[TestClass]
+[TestCategory("unit")]
 public class When_changing_the_name_of_a_client : CommandTestFixture<ChangeClientNameCommand, ChangeClientNameCommandHandler, Client>
 {
     protected override IEnumerable<IDomainEvent> Given()

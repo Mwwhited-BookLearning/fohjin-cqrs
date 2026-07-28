@@ -50,15 +50,15 @@ rectangle "Fohjin Bank Application (target)" {
   database "Event Store /\nReporting Store\n<size:11><<unchanged>></size>" <<Container>> as db
 }
 
-employee --> vue : browser
-employee --> winforms : desktop
-vue --> api : REST + OData + QUERY,\nSSE, OIDC login
-winforms --> csClient : uses generated client
-csClient --> api : REST + OData + QUERY
-api --> sts : validates tokens\n(OIDC discovery only)
-vue --> sts : OIDC login
-winforms --> sts : OIDC login\n(desktop flow)
-api --> core : same DI composition\nBankApplication used to do directly
+employee --> vue : "browser"
+employee --> winforms : "desktop"
+vue --> api : "REST + OData + QUERY,\nSSE, OIDC login"
+winforms --> csClient : "uses generated client"
+csClient --> api : "REST + OData + QUERY"
+api --> sts : "validates tokens\n(OIDC discovery only)"
+vue --> sts : "OIDC login"
+winforms --> sts : "OIDC login\n(desktop flow)"
+api --> core : "same DI composition\nBankApplication used to do directly"
 core --> db
 @enduml
 ```

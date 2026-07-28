@@ -75,19 +75,35 @@ not a license to build all nine before showing anything.
 Branch created (`feature/webapi-vue-modernization`), `Fohjin.DDD.MakeReusable` deadweight
 removed, this plan and its supporting research written.
 
-### Phase 1 — Bare WebAPI host
+### Phase 1 — Bare WebAPI host (done)
 
-Stand up `Fohjin.DDD.WebApi` (`Microsoft.NET.Sdk.Web`) referencing the same
-`AddBusServices()`/`AddCommandHandlersServices()`/`AddEventHandlersServices()`/
-`AddEventStoreServices()`/`AddEventStoreSqliteServices()`/`AddReportingServices()`/
-`AddDddServices()`/`AddConfigurationServices()` composition `Program.cs` already uses
-(docs `07`) — same extension methods, registered into a `WebApplicationBuilder` instead of
-a bare `ServiceCollection`. One thin command endpoint (`POST` → `CreateClientCommand`) and
-one thin query endpoint (`GET` hitting `IReportingRepository` directly, pre-OData) to
-prove the wiring. No auth, no OData, no SSE yet.
+Stood up `Fohjin.DDD.WebApi` (`Microsoft.NET.Sdk.Web`), referencing the same
+`AddBusServices()`/`AddCommandHandlersServices()`/`AddCommonServices()`/
+`AddConfigurationServices()`/`AddEventHandlersServices()`/`AddEventStoreServices()`/
+`AddEventStoreSqliteServices()`/`AddReportingServices()`/`AddDddServices()` composition
+`Program.cs` already uses (docs `07`) — same extension methods, registered into a
+`WebApplicationBuilder` instead of a bare `ServiceCollection` — plus the same
+`BootStrapApplicationAsync()`/`SubscribeEventHandlers()` startup calls
+`Fohjin.DDD.BankApplication.Core`/`Fohjin.DDD.Configuration` already provide (referencing
+`BankApplication.Core` directly turned out fine — it has no WinForms dependency itself,
+only `BankApplication` does). `POST /api/clients` → `CreateClientCommand` via `IBus`, plus
+`GET /api/clients` and `GET /api/clients/{id}` hitting `IReportingRepository` directly
+(pre-OData). No auth, no OData, no SSE yet.
 
-**Exit criteria**: create-client and get-client work end-to-end over HTTP against the same
-SQLite databases, verified via a `.http` file/curl. WinForms is untouched and still works.
+One wrinkle found while wiring the create endpoint: `CreateClientCommand.Id` isn't the
+persisted client's id — `Client.CreateNew` (`Fohjin.DDD.Domain`) assigns the aggregate its
+own `Guid.NewGuid()` rather than using the command's, a pre-existing quirk the WinForms UI
+never surfaced because it just re-lists rather than round-tripping an id. The endpoint
+returns `202 Accepted` with no id/`Location`, documented inline; combined with `DirectBus`
+being fire-and-forget (docs `07`), the honest contract is "queued", not "done" or "here's
+its id".
+
+**Exit criteria — met**: verified live via `Fohjin.DDD.WebApi.http`/curl against real SQLite
+databases — `POST /api/clients` returns 202, the client shows up in `GET /api/clients`,
+and `GET /api/clients/{id}` with that id returns 200 (404 for an unknown id). OpenAPI
+generation (`/openapi/v1.json`, native to .NET 10) already reflects both endpoints, ahead of
+schedule for Phase 2. Full solution build + `dotnet test` unaffected: 410 passed, 4 skipped,
+0 failed. WinForms is untouched and still works.
 
 ### Phase 2 — OpenAPI + NSwag client generation
 
@@ -240,6 +256,7 @@ contract and would throw `InvalidCastException` instead of returning null.
 
 ## Suggested next step
 
-Start Phase 1. It's the smallest possible slice that proves the core architectural bet —
-hosting the existing CQRS core over HTTP — before any of the more novel pieces (OData
-QUERY, SSE+AsyncAPI, OIDC, Vue) get built on top of it.
+Start Phase 2. Phase 1 proved the core architectural bet — hosting the existing CQRS core
+over HTTP works, against real SQLite databases, with WinForms untouched — so the next slice
+is validating the OpenAPI → NSwag codegen loop on that same small surface before the API
+grows into OData/QUERY, SSE, and OIDC.

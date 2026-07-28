@@ -44,7 +44,7 @@ public class ClosedAccountCreatedEventHandler : EventHandlerBase<ClosedAccountCr
         if (transferType == "DebitTransfer")
             return string.Format("Transfer from {0}", accountNumber);
 
-        if (transferType == "CreditTransferFailed")
+        if (transferType == "DebitTransferFailed")
             return string.Format("Transfer to {0} failed", accountNumber);
 
         throw new UnsupportedTransferTypeException(transferType);

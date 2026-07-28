@@ -41,7 +41,7 @@ public class When_an_closed_account_was_created : EventTestFixture<ClosedAccount
                 new KeyValuePair<string, string>("DebitMutation" , "15.0|"),
                 new KeyValuePair<string, string>("CreditTransfer" , "10.5|1234567890"),
                 new KeyValuePair<string, string>("DebitTransfer" , "15.0|0987654321"),
-                new KeyValuePair<string, string>("CreditTransferFailed" , "15.0|0987654321"),
+                new KeyValuePair<string, string>("DebitTransferFailed" , "15.0|0987654321"),
             };
 
         return new ClosedAccountCreatedEvent(_accountId, _orginalAccountId, _clientId, ledgers, "Closed Account", "1234567890");

@@ -1,4 +1,4 @@
-using Fohjin.DDD.BankApplication;
+using Fohjin.DDD.Bootstrap;
 using Fohjin.DDD.Bus;
 using Fohjin.DDD.Common;
 using Fohjin.DDD.Domain.Account;

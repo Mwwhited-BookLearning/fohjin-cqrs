@@ -617,23 +617,53 @@ STS, WebApi, Vue dev server) with one command; `aspire publish` produces a `dock
 `.env` that, once the three application images are built and `.env` is filled in, boots via plain
 `docker compose up` into a fully working system reachable from the host on its published ports.
 
-### Phase 9 — Decommission the direct in-process wiring
+### Phase 9 — Decommission the direct in-process wiring (done)
 
-Now that both WinForms (Phase 7) and Vue (Phase 6) are fully on the API, most of what this
-phase originally described is already done: `Fohjin.DDD.BankApplication/Program.cs` no longer
-does any direct in-process wiring at all (Phase 7 removed every `AddBusServices()`-style
-registration and the local-SQLite bootstrap). What's left is narrower: confirm
-`Fohjin.DDD.BankApplication.Core`'s remaining CQRS-core project references
-(`Fohjin.DDD.Bus`, `Fohjin.DDD.CommandHandlers`, `Fohjin.DDD.Configuration`,
-`Fohjin.DDD.EventHandlers`, `Fohjin.DDD.EventStore(.SQLite)`, `Fohjin.DDD.Reporting`,
-`Fohjin.DDD.Services`) are there *only* to support `ApplicationBootStrapper`/
-`DomainDatabaseBootStrapper`/`ReportingDatabaseBootStrapper`, which `Fohjin.DDD.WebApi`'s own
-startup and `Test.Fohjin.DDD`'s infrastructure tests still legitimately need — and decide
-whether those bootstrapper classes belong in a project named `Fohjin.DDD.BankApplication.Core`
-at all anymore, or should move to a more accurately-named shared project now that WinForms
-itself doesn't use them. That's a real (if small) architectural cleanup, not just a rename —
-worth its own scoped change rather than folding it into whichever phase happens to touch that
-project next.
+Confirmed the premise first: every one of `Fohjin.DDD.BankApplication.Core`'s CQRS-core project
+references (`Fohjin.DDD.Bus`, `Fohjin.DDD.CommandHandlers`, `Fohjin.DDD.Configuration`,
+`Fohjin.DDD.EventHandlers`, `Fohjin.DDD.EventStore`, `Fohjin.DDD.EventStore.SQLite`,
+`Fohjin.DDD.Reporting`, `Fohjin.DDD.Services`, and even `Fohjin.DDD.Abstractions`) was used by
+exactly one thing — the three database-bootstrapping classes (`ApplicationBootStrapper`,
+`DomainDatabaseBootStrapper`, `ReportingDatabaseBootStrapper`) — and by nothing else in the
+project (grepped every `using Fohjin.DDD.*` across `Presenters/`/`View/` to be sure, not just
+assumed it from the diff history). WinForms itself (`Fohjin.DDD.BankApplication`, the actual
+`.exe` project) only ever references `Fohjin.DDD.ApiClient` + `Fohjin.DDD.BankApplication.Core`,
+confirming the presenters/views genuinely need nothing from the CQRS core anymore.
+
+**Split, not just decided**: moved the three bootstrapper classes into a new project,
+`Fohjin.DDD.Bootstrap` (namespace to match — they'd been sitting in `namespace
+Fohjin.DDD.BankApplication` only because `BankApplication.Core`'s `RootNamespace` strips
+`.Core` to share a namespace with the WinForms exe, which made sense for presenters/views but
+never really fit these three classes). `Fohjin.DDD.Bootstrap` references only
+`Fohjin.DDD.EventStore.SQLite` and `Fohjin.DDD.Reporting` — precisely what
+`DomainDatabaseBootStrapper`/`ReportingDatabaseBootStrapper` touch. `Fohjin.DDD.BankApplication.Core`
+now references only `Fohjin.DDD.ApiClient` + `Fohjin.DDD.Common` — genuinely a WinForms-only
+presenter/view library now, not a CQRS-core-adjacent grab-bag. `Fohjin.DDD.WebApi` (which calls
+`BootStrapApplicationAsync()` at startup) and `Test.Fohjin.DDD` (whose repository/infrastructure
+tests instantiate the two database bootstrappers directly) both now reference
+`Fohjin.DDD.Bootstrap` instead of (or, for `Test.Fohjin.DDD`, in addition to — it also still
+needs `Fohjin.DDD.BankApplication.Core` for its `Scenarios` presenter tests) reaching through
+`Fohjin.DDD.BankApplication.Core`.
+
+**Real transitive-dependency gap this surfaced**: stripping those CQRS-core references also
+stripped the `Microsoft.Extensions.Configuration.*`/`Microsoft.Extensions.Logging.Console`/
+`.Debug`/`Microsoft.Extensions.DependencyInjection` *package* references that had been sitting on
+`Fohjin.DDD.BankApplication.Core.csproj` — and three other projects had been quietly relying on
+getting those transitively through it rather than declaring what they actually use: the WinForms
+exe's own `Program.cs` (`ConfigurationBuilder.SetBasePath`/`.AddIniFile`/`.AddConsole`/`.AddDebug`,
+etc. — moved to `Fohjin.DDD.BankApplication.csproj`, the actual consumer), and `Test.Fohjin.DDD`
+(`ConfigurationProvider` base class for `TupleConfigurationProvider`, plus `.AddConsole()` calls
+sprinkled through several test fixtures — added `Microsoft.Extensions.Configuration` and
+`Microsoft.Extensions.Logging.Console` directly rather than re-adding them to
+`BankApplication.Core`, which doesn't need either). None of this was a surprise found via manual
+inspection — the build simply failed with `CS1061`/`CS0246` for each gap, confirming exactly which
+project needed to own which package reference directly instead of inheriting it by accident.
+
+**Exit criteria — met**: full solution build clean; 413 + 14 tests passed (unit/integration), 4
+skipped, 0 failed; the FlaUI UI automation suite (1/1) still drives the real compiled
+`Fohjin.DDD.BankApplication.exe` through a full sign-in/create-client/deposit-cash flow
+end-to-end, confirming the WinForms exe boots and behaves identically with its corrected,
+now-explicit package references.
 
 ### Phase 10 — Documentation pass: bring docs `00`–`10` in line with the final architecture
 

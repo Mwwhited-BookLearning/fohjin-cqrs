@@ -1,9 +1,8 @@
-using Fohjin.DDD.Configuration;
 using Fohjin.DDD.EventStore.SQLite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Fohjin.DDD.BankApplication;
+namespace Fohjin.DDD.Bootstrap;
 
 public static class ServiceProviderExtensions
 {

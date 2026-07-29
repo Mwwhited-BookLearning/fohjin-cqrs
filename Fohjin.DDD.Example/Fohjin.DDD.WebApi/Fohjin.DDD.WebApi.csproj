@@ -26,7 +26,7 @@
     <ProjectReference Include="..\Fohjin.DDD.EventStore.SQLite\Fohjin.DDD.EventStore.SQLite.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Reporting\Fohjin.DDD.Reporting.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Services\Fohjin.DDD.Services.csproj" />
-    <ProjectReference Include="..\Fohjin.DDD.BankApplication.Core\Fohjin.DDD.BankApplication.Core.csproj" />
+    <ProjectReference Include="..\Fohjin.DDD.Bootstrap\Fohjin.DDD.Bootstrap.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.ServiceDefaults\Fohjin.DDD.ServiceDefaults.csproj" />
   </ItemGroup>
 

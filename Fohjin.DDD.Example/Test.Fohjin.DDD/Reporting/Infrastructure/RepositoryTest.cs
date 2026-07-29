@@ -1,4 +1,4 @@
-using Fohjin.DDD.BankApplication;
+using Fohjin.DDD.Bootstrap;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Reporting.Infrastructure;

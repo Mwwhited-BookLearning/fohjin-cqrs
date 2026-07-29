@@ -1,7 +1,7 @@
 using Fohjin.DDD.EventStore.SQLite;
 using Microsoft.EntityFrameworkCore;
 
-namespace Fohjin.DDD.BankApplication;
+namespace Fohjin.DDD.Bootstrap;
 
 public class DomainDatabaseBootStrapper
 {

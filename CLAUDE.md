@@ -140,8 +140,10 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
 - `dotnet test Fohjin.DDD.sln --filter "FullyQualifiedName!~BankApplication.UI"` — the fast
   unit/integration suite (needs the dev SQL Server instance reachable at port 14330).
 - `Test.Fohjin.DDD.BankApplication.UI` (FlaUI + Playwright) drives the real compiled WinForms
-  `.exe` end to end — run this after anything touching WinForms or shared backend behavior.
-  Needs STS/WebApi built and a real Edge install.
+  and WPF `.exe`s end to end (`ClientAndAccountWorkflowTest.cs` /
+  `WpfClientAndAccountWorkflowTest.cs`, sharing window-finding helpers in
+  `Win32WindowFinder.cs`) — run this after anything touching either desktop client or shared
+  backend behavior. Needs STS/WebApi built and a real Edge install.
 - Both suites passing does not substitute for the live-browser check above when the change is
   UI-facing or touches how a live event stream is consumed.
 - `Fohjin.DDD.WebUI` has its own Vitest suite (`npm test` from that directory) covering

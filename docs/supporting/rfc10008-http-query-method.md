@@ -22,12 +22,22 @@ safety/idempotency/cacheability semantics that a real query deserves.
   `app.MapMethods(pattern, [HttpMethods.Query], handler)`. Plan to write a small
   `MapQuery(...)` extension wrapping this for readability, matching the existing
   `MapGet`/`MapPost` style.
-- **OpenAPI generation gap**: ASP.NET Core 10's OpenAPI document generator recognizes the
-  QUERY method exists, but currently **excludes QUERY endpoints from the generated OpenAPI
-  document entirely**, rather than describing them. This directly affects the NSwag
-  client-generation plan — see the migration plan's Phase 3 for the workaround (documenting
-  the QUERY surface as an equivalent, codegen-friendly POST-with-body operation, or a
-  manually-authored OpenAPI fragment merged into the generated doc).
+- **OpenAPI generation gap (worked around, not a dead end)**: ASP.NET Core 10's OpenAPI
+  document generator recognizes the QUERY method exists, but excludes QUERY endpoints from
+  the generated OpenAPI document entirely, rather than describing them. The underlying
+  `Microsoft.OpenApi` object model has no such gap, though: `OpenApiPathItem.Operations` is
+  a plain `Dictionary<HttpMethod, OpenApiOperation>`, and `System.Net.Http.HttpMethod.Query`
+  is a real, first-class static member (added specifically for RFC 10008) - confirmed by
+  hand that adding an operation keyed on it serializes correctly through
+  `SerializeAsV31`. So the gap is entirely in the *generator*, not the *model* or the
+  *serializer*: `Fohjin.DDD.WebApi/Program.cs` adds a document transformer that manually
+  inserts the missing `"query"` operation for `/odata/Clients` back into the document
+  (mirroring its existing GET operation's response shape, describing the filter as a JSON
+  request body instead of a query string). NSwag 14.7.1 then generates a real client method
+  from it on both sides - `FohjinApiClient.QueryClientsViaQueryMethodAsync(...)` (C#) and
+  `queryClientsViaQueryMethod(...)` (TypeScript) - each literally emitting
+  `new HttpMethod("QUERY")`/`method: "QUERY"`, not a POST substitute. Verified end to end in
+  `Fohjin.DDD.ApiClient.Tests/ODataClientsEndpointTest.cs`.
 
 ## Design implication for this project
 

@@ -48,45 +48,97 @@ builder.AddServiceDefaults();
 var stsOptions = builder.Configuration.GetSection(StsOptions.SectionName).Get<StsOptions>() ?? new StsOptions();
 builder.Services.Configure<StsOptions>(builder.Configuration.GetSection(StsOptions.SectionName));
 var stsAuthority = stsOptions.Authority;
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
+builder.Services.AddOpenApi(options =>
 {
-    // Served live, MapOpenApi() infers a "servers" entry from the actual incoming request's
-    // scheme/host - but Fohjin.DDD.ApiClient/Fohjin.DDD.ApiClient.csproj's build-time document
-    // generation (Microsoft.Extensions.ApiDescription.Server) has no HTTP request to infer one
-    // from, and the NSwag-generated FohjinApiClient bakes servers[0].url in as its constructor's
-    // hardcoded BaseUrl default. Setting it explicitly here keeps both paths identical instead
-    // of the generated client silently losing its default the moment doc generation moved from
-    // "curl a running server" to "build-time, no server running" (docs/00-architecture-overview.md).
-    document.Servers = [new OpenApiServer { Url = "http://127.0.0.1:5320/" }];
-
-    document.Components ??= new OpenApiComponents();
-    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-    document.Components.SecuritySchemes["OAuth2"] = new OpenApiSecurityScheme
+    // RFC 10008's QUERY method (docs/supporting/rfc10008-http-query-method.md) is a real,
+    // extensible System.Net.Http.HttpMethod value, and Microsoft.OpenApi's own model happily
+    // serializes a "query" operation key - confirmed by hand: adding one to
+    // OpenApiPathItem.Operations[HttpMethod.Query] round-trips through SerializeAsV31 just like
+    // get/post/etc do. The gap is entirely in Microsoft.AspNetCore.OpenApi's endpoint-to-document
+    // generator, which silently drops any endpoint mapped only to HttpMethods.Query -
+    // /odata/Clients below is mapped to [Get, Query] together, so its "get" operation still gets
+    // generated normally; this transformer adds the missing "query" one back in, describing the
+    // same filter as a JSON body instead of a query string, so it's visible in Scalar and NSwag
+    // generates a real client method for it (confirmed: NSwag emits
+    // `request_.Method = new HttpMethod("QUERY")`, a genuine QUERY request, not a POST
+    // workaround - Fohjin.DDD.ApiClient.Tests/ODataClientsEndpointTest.cs proves it end to end).
+    // This only affects the generated document - the endpoint itself already handles real QUERY
+    // requests regardless (see the handler below).
+    options.AddDocumentTransformer((document, _, _) =>
     {
-        Type = Microsoft.OpenApi.SecuritySchemeType.OAuth2,
-        Description = "Client ID: dev-client (public client, PKCE - Fohjin.DDD.Sts's seeded dev client).",
-        Flows = new OpenApiOAuthFlows
+        if (document.Paths.TryGetValue("/odata/Clients", out var odataClientsPath) &&
+            odataClientsPath?.Operations is { } operations &&
+            operations.TryGetValue(System.Net.Http.HttpMethod.Get, out var getOperation) && getOperation is not null &&
+            !operations.ContainsKey(System.Net.Http.HttpMethod.Query))
         {
-            AuthorizationCode = new OpenApiOAuthFlow
+            operations[System.Net.Http.HttpMethod.Query] = new OpenApiOperation
             {
-                AuthorizationUrl = new Uri($"{stsAuthority}connect/authorize"),
-                TokenUrl = new Uri($"{stsAuthority}connect/token"),
-                Scopes = new Dictionary<string, string>
+                Tags = getOperation.Tags,
+                Summary = "Same as GET /odata/Clients, but for $filter expressions too large/complex for a query string (RFC 10008).",
+                OperationId = "QueryClientsViaQueryMethod",
+                RequestBody = new OpenApiRequestBody
                 {
-                    ["openid"] = "OpenID",
-                    ["profile"] = "Profile",
-                    ["email"] = "Email",
+                    Content = new Dictionary<string, OpenApiMediaType>
+                    {
+                        ["application/json"] = new OpenApiMediaType
+                        {
+                            Schema = new OpenApiSchema
+                            {
+                                Type = JsonSchemaType.Object,
+                                Properties = new Dictionary<string, IOpenApiSchema>
+                                {
+                                    ["filter"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null, Description = "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"." },
+                                },
+                            },
+                        },
+                    },
+                },
+                Responses = getOperation.Responses,
+            };
+        }
+
+        return Task.CompletedTask;
+    });
+    options.AddDocumentTransformer((document, _, _) =>
+    {
+        // Served live, MapOpenApi() infers a "servers" entry from the actual incoming request's
+        // scheme/host - but Fohjin.DDD.ApiClient/Fohjin.DDD.ApiClient.csproj's build-time document
+        // generation (Microsoft.Extensions.ApiDescription.Server) has no HTTP request to infer one
+        // from, and the NSwag-generated FohjinApiClient bakes servers[0].url in as its constructor's
+        // hardcoded BaseUrl default. Setting it explicitly here keeps both paths identical instead
+        // of the generated client silently losing its default the moment doc generation moved from
+        // "curl a running server" to "build-time, no server running" (docs/00-architecture-overview.md).
+        document.Servers = [new OpenApiServer { Url = "http://127.0.0.1:5320/" }];
+
+        document.Components ??= new OpenApiComponents();
+        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+        document.Components.SecuritySchemes["OAuth2"] = new OpenApiSecurityScheme
+        {
+            Type = Microsoft.OpenApi.SecuritySchemeType.OAuth2,
+            Description = "Client ID: dev-client (public client, PKCE - Fohjin.DDD.Sts's seeded dev client).",
+            Flows = new OpenApiOAuthFlows
+            {
+                AuthorizationCode = new OpenApiOAuthFlow
+                {
+                    AuthorizationUrl = new Uri($"{stsAuthority}connect/authorize"),
+                    TokenUrl = new Uri($"{stsAuthority}connect/token"),
+                    Scopes = new Dictionary<string, string>
+                    {
+                        ["openid"] = "OpenID",
+                        ["profile"] = "Profile",
+                        ["email"] = "Email",
+                    },
                 },
             },
-        },
-    };
-    document.Security ??= [];
-    document.Security.Add(new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("OAuth2", document, null)] = [],
+        };
+        document.Security ??= [];
+        document.Security.Add(new OpenApiSecurityRequirement
+        {
+            [new OpenApiSecuritySchemeReference("OAuth2", document, null)] = [],
+        });
+        return Task.CompletedTask;
     });
-    return Task.CompletedTask;
-}));
+});
 
 // The Vue SPA (Fohjin.DDD.WebUI) calls this API directly from the browser - needs CORS, unlike
 // the WinForms desktop client (Phase 7), which never runs in a browser context at all.

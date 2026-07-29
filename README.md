@@ -62,6 +62,3 @@ in place:
 - Neither desktop client (WinForms or WPF) refreshes its OIDC access token; it just
   expires after an hour with no silent renewal (`docs/09-client-uis.md`) — an accepted
   limitation for a dev sample.
-- ASP.NET Core's OpenAPI generator currently excludes the new HTTP `QUERY` method's
-  endpoints from the generated document entirely — a platform limitation, not this
-  codebase's bug (`docs/supporting/rfc10008-http-query-method.md`).

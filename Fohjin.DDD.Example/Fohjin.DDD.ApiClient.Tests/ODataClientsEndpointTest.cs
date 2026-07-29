@@ -66,6 +66,25 @@ public class ODataClientsEndpointTest : WebApiIntegrationTestFixture
         Assert.IsTrue(getResult.All(c => c.Name == "Mark Nijhof"));
     }
 
+    // Confirms the actual generated-client gap this endpoint's WithDocumentTransformer fix closes
+    // (docs/supporting/rfc10008-http-query-method.md, WebApi/Program.cs): before that fix, NSwag
+    // had no "query" operation in openapi.json to generate a method from at all. Everything above
+    // exercises the endpoint via a raw HttpRequestMessage; this is the one test that goes through
+    // FohjinApiClient itself, proving NSwag's generated QueryClientsViaQueryMethodAsync(...)
+    // really does send a working HTTP QUERY request end to end (confirmed live: it emits
+    // `request_.Method = new HttpMethod("QUERY")`, not a POST fallback).
+    [TestMethod]
+    public async Task Generated_client_QueryClientsViaQueryMethod_works_end_to_end()
+    {
+        await CreateTwoClientsAsync();
+
+        var client = new FohjinApiClient(HttpClient) { BaseUrl = HttpClient.BaseAddress!.ToString() };
+        var result = await client.QueryClientsViaQueryMethodAsync(new Body { Filter = "Name eq 'Mark Nijhof'" });
+
+        Assert.AreEqual(1, result.Count);
+        Assert.AreEqual("Mark Nijhof", result.Single().Name);
+    }
+
     [TestMethod]
     public async Task QUERY_with_no_body_behaves_like_no_filter()
     {

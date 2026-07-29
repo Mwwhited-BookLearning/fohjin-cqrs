@@ -131,6 +131,17 @@ kept its Presenter/View screens (`09-winforms-ui.md`) but now drives them throug
 - `Fohjin.DDD.AppHost` orchestrating local `dotnet run` and generating (not
   hand-maintaining) a `docker-compose.yaml` for deployment: `supporting/hosting-aspire-docker-compose.md`.
 
+`Fohjin.DDD.WebApi` exposes both of its generated API documents as browsable pages, not just
+raw JSON, in development: `Scalar.AspNetCore`'s `MapScalarApiReference()` (`/scalar/v1`) reads
+the OpenAPI document (`/openapi/v1.json`) — the modern replacement for what Swashbuckle's
+bundled Swagger UI used to provide, since `Microsoft.AspNetCore.OpenApi` only generates the
+document itself and ships no UI of its own — and Saunter's own `MapAsyncApiUi()`
+(`/asyncapi/ui/index.html`) does the same for the AsyncAPI document
+(`supporting/asyncapi-saunter.md`). `Fohjin.DDD.AppHost/AppHost.cs` surfaces all four URLs
+(`OpenAPI`, `OpenAPI UI (Scalar)`, `AsyncAPI`, `AsyncAPI UI`) as clickable links on the
+`webapi` resource in the Aspire dashboard via `WithUrlForEndpoint`, rather than requiring
+anyone to already know the paths.
+
 ## Data flow, one sentence per stage
 
 1. A Presenter (WinForms) or a Vue component builds a request and calls the API — via the

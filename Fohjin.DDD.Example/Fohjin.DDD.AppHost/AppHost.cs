@@ -38,7 +38,14 @@ var webApi = builder.AddProject<Projects.Fohjin_DDD_WebApi>("webapi")
     .WithReference(reportingDb)
     .WaitFor(eventStoreDb)
     .WaitFor(reportingDb)
-    .WaitFor(sts);
+    .WaitFor(sts)
+    // Deep links to the two API doc endpoints Program.cs already exposes (docs/supporting/
+    // asyncapi-saunter.md), surfaced on the resource's own detail page in the Aspire dashboard
+    // instead of only being reachable by knowing the path already.
+    .WithUrlForEndpoint("http", ep => new() { Url = "/openapi/v1.json", DisplayText = "OpenAPI" })
+    .WithUrlForEndpoint("http", ep => new() { Url = "/scalar/v1", DisplayText = "OpenAPI UI (Scalar)" })
+    .WithUrlForEndpoint("http", ep => new() { Url = "/asyncapi/asyncapi.json", DisplayText = "AsyncAPI" })
+    .WithUrlForEndpoint("http", ep => new() { Url = "/asyncapi/ui/index.html", DisplayText = "AsyncAPI UI" });
 
 // The Vue dev server (Fohjin.DDD.WebUI) - modeled as an Aspire JavaScript/Vite resource so
 // `dotnet run` on this AppHost starts it alongside everything else instead of needing a separate

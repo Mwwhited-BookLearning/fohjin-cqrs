@@ -20,6 +20,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OData;
 using Microsoft.OData.Edm;
+using Scalar.AspNetCore;
 using Saunter;
 using Saunter.AsyncApiSchema.v2;
 using System.Net.ServerSentEvents;
@@ -127,6 +128,11 @@ app.Services.SubscribeEventHandlers();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    // Interactive API explorer reading the /openapi/v1.json document above - the modern
+    // replacement for what Swashbuckle's bundled Swagger UI used to provide, since
+    // Microsoft.AspNetCore.OpenApi (unlike Swashbuckle.AspNetCore) only generates the raw
+    // document and ships no UI of its own.
+    app.MapScalarApiReference();
 }
 
 // No UseHttpsRedirection - this API is deliberately http-only in every dev topology (fixed port

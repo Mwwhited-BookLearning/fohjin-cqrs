@@ -11,6 +11,7 @@ import {
   type AccountReport,
 } from "../api/generated-client";
 import { onReconnect, subscribe } from "../events/eventBus";
+import { shouldRefreshAccountDetails } from "../events/refreshRules";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -47,25 +48,10 @@ async function load() {
 
 watch(() => props.id, load, { immediate: true });
 
-// Event-driven refresh instead of a poll (src/events/eventBus.ts). Every one of these events is
-// applied on the ActiveAccount aggregate itself, so AggregateId is always this account's own id
-// regardless of whether this account initiated the change (deposit/withdrawal/rename/send) or
-// is only the target of someone else's transfer (MoneyTransferReceivedEvent) or its refund
-// (MoneyTransferFailedEvent) - no separate "is this about me" lookup needed, unlike
-// ClientDetails.vue's bank-card events.
-const RELEVANT_EVENTS = new Set([
-  "AccountNameChangedEvent",
-  "CashDepositedEvent",
-  "CashWithdrawnEvent",
-  "MoneyTransferSendEvent",
-  "MoneyTransferReceivedEvent",
-  "MoneyTransferFailedEvent",
-]);
-
+// Event-driven refresh instead of a poll (rule itself lives in src/events/refreshRules.ts, unit
+// tested there).
 const unsubscribe = subscribe((event) => {
-  if (RELEVANT_EVENTS.has(event.eventType) && event.aggregateId === props.id) {
-    load();
-  }
+  if (shouldRefreshAccountDetails(event, props.id)) load();
 });
 // Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
 const unsubscribeReconnect = onReconnect(load);

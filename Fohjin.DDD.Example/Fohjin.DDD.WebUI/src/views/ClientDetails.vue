@@ -11,6 +11,7 @@ import {
   type ClientDetailsReport,
 } from "../api/generated-client";
 import { onReconnect, subscribe } from "../events/eventBus";
+import { shouldRefreshClientDetails } from "../events/refreshRules";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -54,27 +55,11 @@ async function load() {
 
 watch(() => props.id, load, { immediate: true });
 
-// Event-driven refresh instead of a poll (src/events/eventBus.ts). Every event below is applied
-// on the Client aggregate itself (AggregateId === props.id) except the two bank-card "disabled"
-// events, which are applied on the BankCard entity instead (AggregateId === the card's own id,
-// not the client's - see docs/02-bank-cards.md's note on this) - checked against the bank card
-// ids already loaded into `details`, since there's no other way to know which client a bare
-// bank-card id belongs to without a second lookup.
-const CLIENT_LEVEL_EVENTS = new Set([
-  "ClientNameChangedEvent",
-  "ClientMovedEvent",
-  "ClientPhoneNumberChangedEvent",
-  "AccountToClientAssignedEvent",
-  "NewBankCardForAccountAsignedEvent",
-]);
-const BANK_CARD_EVENTS = new Set(["BankCardWasCanceledByClientEvent", "BankCardWasReportedStolenEvent"]);
-
+// Event-driven refresh instead of a poll (rule itself lives in src/events/refreshRules.ts, unit
+// tested there - this is just wiring it up to this screen's own client id and loaded card ids).
 const unsubscribe = subscribe((event) => {
-  if (CLIENT_LEVEL_EVENTS.has(event.eventType) && event.aggregateId === props.id) {
-    load();
-  } else if (BANK_CARD_EVENTS.has(event.eventType) && details.value?.bankCards?.some((c) => c.id === event.aggregateId)) {
-    load();
-  }
+  const bankCardIds = details.value?.bankCards?.map((c) => c.id!) ?? [];
+  if (shouldRefreshClientDetails(event, props.id, bankCardIds)) load();
 });
 // Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
 const unsubscribeReconnect = onReconnect(load);

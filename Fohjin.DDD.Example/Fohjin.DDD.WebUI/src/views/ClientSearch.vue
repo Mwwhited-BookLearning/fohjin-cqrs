@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { apiClient } from "../api/client";
 import type { ClientReport } from "../api/generated-client";
 import { onReconnect, subscribe } from "../events/eventBus";
+import { shouldRefreshClientSearch } from "../events/refreshRules";
 
 const router = useRouter();
 const clients = ref<ClientReport[]>([]);
@@ -31,11 +32,9 @@ async function load() {
 
 onMounted(load);
 
-// Event-driven refresh instead of a poll: ClientCreatedEvent's AggregateId is the new client's
-// own id (Client.CreateNew), not something we already know before it happens, so this just
-// reloads the whole list on any creation rather than trying to append a single row.
+// Event-driven refresh instead of a poll (src/events/refreshRules.ts for the rule itself).
 const unsubscribe = subscribe((event) => {
-  if (event.eventType === "ClientCreatedEvent") load();
+  if (shouldRefreshClientSearch(event)) load();
 });
 // Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
 const unsubscribeReconnect = onReconnect(load);

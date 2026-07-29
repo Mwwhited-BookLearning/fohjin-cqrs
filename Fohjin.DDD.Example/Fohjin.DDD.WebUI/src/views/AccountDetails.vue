@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { onBeforeUnmount, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { apiClient } from "../api/client";
 import {
@@ -10,6 +10,8 @@ import {
   type AccountDetailsReport,
   type AccountReport,
 } from "../api/generated-client";
+import { onReconnect, subscribe } from "../events/eventBus";
+import { shouldRefreshAccountDetails } from "../events/refreshRules";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -46,19 +48,23 @@ async function load() {
 
 watch(() => props.id, load, { immediate: true });
 
-// DirectBus.CommitAsync() is fire-and-forget (docs/07-messaging-bus.md), so the read model
-// updates asynchronously - reload shortly after each command, same pattern as ClientDetails.vue
-// and the WinForms AccountDetailsPresenter's SystemTimer.Trigger(LoadDataAsync, 2000).
-function reloadShortly() {
-  setTimeout(load, 1000);
-}
+// Event-driven refresh instead of a poll (rule itself lives in src/events/refreshRules.ts, unit
+// tested there).
+const unsubscribe = subscribe((event) => {
+  if (shouldRefreshAccountDetails(event, props.id)) load();
+});
+// Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
+const unsubscribeReconnect = onReconnect(load);
+onBeforeUnmount(() => {
+  unsubscribe();
+  unsubscribeReconnect();
+});
 
 async function saveName() {
   savingName.value = true;
   error.value = null;
   try {
     await apiClient.changeAccountName(props.id, new ChangeAccountNameRequest(nameForm));
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -72,7 +78,6 @@ async function deposit() {
   try {
     await apiClient.depositCash(props.id, new DepositCashRequest(depositForm));
     depositForm.amount = 0;
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -86,7 +91,6 @@ async function withdraw() {
   try {
     await apiClient.withdrawalCash(props.id, new WithdrawalCashRequest(withdrawalForm));
     withdrawalForm.amount = 0;
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -100,10 +104,6 @@ async function transfer() {
   try {
     await apiClient.sendMoneyTransfer(props.id, new SendMoneyTransferRequest(transferForm));
     transferForm.amount = 0;
-    // The target account's own balance updates on a longer, non-deterministic delay
-    // (Fohjin.DDD.Services/MoneyTransferService.cs simulates an external bank) - only this
-    // account's own debit is guaranteed to show up promptly.
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {

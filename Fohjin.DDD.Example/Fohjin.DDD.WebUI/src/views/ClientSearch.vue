@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { apiClient } from "../api/client";
 import type { ClientReport } from "../api/generated-client";
+import { onReconnect, subscribe } from "../events/eventBus";
+import { shouldRefreshClientSearch } from "../events/refreshRules";
 
 const router = useRouter();
 const clients = ref<ClientReport[]>([]);
@@ -29,6 +31,17 @@ async function load() {
 }
 
 onMounted(load);
+
+// Event-driven refresh instead of a poll (src/events/refreshRules.ts for the rule itself).
+const unsubscribe = subscribe((event) => {
+  if (shouldRefreshClientSearch(event)) load();
+});
+// Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
+const unsubscribeReconnect = onReconnect(load);
+onBeforeUnmount(() => {
+  unsubscribe();
+  unsubscribeReconnect();
+});
 
 function openClient(client: ClientReport) {
   router.push({ name: "client-details", params: { id: client.id } });

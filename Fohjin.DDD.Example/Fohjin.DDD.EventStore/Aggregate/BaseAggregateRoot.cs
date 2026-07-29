@@ -21,9 +21,17 @@ public class BaseAggregateRoot<TDomainEvent> : IEventProvider<TDomainEvent>, IRe
 
     protected void Apply<TEvent>(TEvent domainEvent) where TEvent : class, TDomainEvent
     {
-        domainEvent.AggregateId = Id;
         domainEvent.Version = GetNewEventVersion();
         Apply(domainEvent.GetType(), domainEvent);
+        // Stamped after dispatch, not before: a "created" event's handler is what assigns this
+        // aggregate its own Id in the first place (e.g. Client's private constructor calls
+        // Apply(new ClientCreatedEvent(...)) while Id is still Guid.Empty - OnNewClientCreated
+        // sets Id = clientCreatedEvent.ClientId as a side effect of handling it). Stamping
+        // AggregateId from the pre-handler Id silently recorded Guid.Empty on every aggregate's
+        // own creation event - found via the Vue frontend's live SSE event bus filtering on
+        // AggregateId and never matching a freshly-created client/account. Every other event
+        // (raised once Id is already set) is unaffected either way.
+        domainEvent.AggregateId = Id;
         _appliedEvents.Add(domainEvent);
     }
 

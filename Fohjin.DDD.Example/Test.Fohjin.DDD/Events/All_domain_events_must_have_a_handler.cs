@@ -18,8 +18,8 @@ public class All_domain_events_must_have_a_handler
 {
     public TestContext TestContext { get; set; } = null!;
 
-    [DataTestMethod]
-    [DynamicData(nameof(TestData), DynamicDataSourceType.Method, DynamicDataDisplayName = nameof(TestDataDisplayName))]
+    [TestMethod]
+    [DynamicData(nameof(TestData), DynamicDataDisplayName = nameof(TestDataDisplayName))]
     public async Task TestEventHandler(Type eventType, Type? handlerType = null)
     {
         this.TestContext.WriteLine($"RUN_ID:{TestContext.Properties[$"RUN_ID"] = Guid.NewGuid()}");

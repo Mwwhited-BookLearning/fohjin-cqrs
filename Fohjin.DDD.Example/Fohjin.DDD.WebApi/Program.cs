@@ -20,6 +20,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OData;
 using Microsoft.OData.Edm;
+using Microsoft.OpenApi;
+using Scalar.AspNetCore;
 using Saunter;
 using Saunter.AsyncApiSchema.v2;
 using System.Net.ServerSentEvents;
@@ -32,7 +34,41 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddOpenApi();
+// Declares the same OIDC/OAuth2 authorization-code + PKCE flow Fohjin.DDD.WebUI itself uses
+// (docs/supporting/oidc-sts-openiddict-vs-duende.md) as a security scheme in the generated
+// OpenAPI document, so Scalar (below) can drive a real "Authorize" login against
+// Fohjin.DDD.Sts rather than requiring a token to be pasted in by hand.
+var stsAuthority = builder.Configuration["Sts:Authority"] ?? "http://127.0.0.1:5310/";
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
+{
+    document.Components ??= new OpenApiComponents();
+    document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+    document.Components.SecuritySchemes["OAuth2"] = new OpenApiSecurityScheme
+    {
+        Type = Microsoft.OpenApi.SecuritySchemeType.OAuth2,
+        Description = "Client ID: dev-client (public client, PKCE - Fohjin.DDD.Sts's seeded dev client).",
+        Flows = new OpenApiOAuthFlows
+        {
+            AuthorizationCode = new OpenApiOAuthFlow
+            {
+                AuthorizationUrl = new Uri($"{stsAuthority}connect/authorize"),
+                TokenUrl = new Uri($"{stsAuthority}connect/token"),
+                Scopes = new Dictionary<string, string>
+                {
+                    ["openid"] = "OpenID",
+                    ["profile"] = "Profile",
+                    ["email"] = "Email",
+                },
+            },
+        },
+    };
+    document.Security ??= [];
+    document.Security.Add(new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference("OAuth2", document, null)] = [],
+    });
+    return Task.CompletedTask;
+}));
 
 // The Vue SPA (Fohjin.DDD.WebUI) calls this API directly from the browser - needs CORS, unlike
 // the WinForms desktop client (Phase 7), which never runs in a browser context at all.
@@ -127,10 +163,34 @@ app.Services.SubscribeEventHandlers();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    // Interactive API explorer reading the /openapi/v1.json document above - the modern
+    // replacement for what Swashbuckle's bundled Swagger UI used to provide, since
+    // Microsoft.AspNetCore.OpenApi (unlike Swashbuckle.AspNetCore) only generates the raw
+    // document and ships no UI of its own. PKCE and the client id are Scalar-UI-specific knobs
+    // with no equivalent field in the OpenAPI spec itself (unlike the authorizationUrl/tokenUrl
+    // above, which come straight from the document's own OAuth2 flow) - overridden here so
+    // Scalar's "Authorize" button drives a working login against Fohjin.DDD.Sts's dev-client,
+    // which requires PKCE.
+    app.MapScalarApiReference(options => options
+        .AddPreferredSecuritySchemes("OAuth2")
+        .AddAuthorizationCodeFlow("OAuth2", flow => flow
+            .WithClientId("dev-client")
+            .WithPkce(Pkce.Sha256)));
 }
 
-app.UseHttpsRedirection();
-
+// No UseHttpsRedirection - this API is deliberately http-only in every dev topology (fixed port
+// 5320 with no https counterpart in Fohjin.DDD.AppHost/AppHost.cs, matching Fohjin.DDD.Sts, which
+// never had this call). It used to be here as an unremoved `dotnet new webapi` template default,
+// redirecting to its own launchSettings.json "https" profile port (7094) even though nothing
+// actually listens there under Fohjin.DDD.AppHost. That 307 hit real, hard-to-diagnose traffic:
+// the browser's CORS preflight (an OPTIONS request) got redirected and was rejected outright (no
+// browser follows a 3xx on a preflight), and even after fixing that by moving CORS first, the
+// ACTUAL authenticated request still got redirected cross-origin to :7094 - which strips the
+// Authorization header per the fetch redirect spec - breaking every authenticated call from the
+// Vue app with an opaque CORS error and no server-side trace of the failure at all. Found live via
+// Playwright while verifying browser OTel traces (docs/00-architecture-overview.md) - not
+// something the existing test suite could catch, since none of it drives a real cross-origin
+// preflight.
 app.UseCors(VueDevCorsPolicy);
 
 app.UseAuthentication();
@@ -427,8 +487,32 @@ app.MapGet("/api/events", (HttpContext httpContext, IBus bus, [FromKeyedServices
 
         try
         {
-            await foreach (var envelope in channel.Reader.ReadAllAsync(cancellationToken))
-                yield return new SseItem<EventEnvelope>(envelope, envelope.EventType);
+            // Not `await foreach (... in channel.Reader.ReadAllAsync(cancellationToken))`: a
+            // `yield return` isn't allowed inside a try block that has its own catch (CS1626), and
+            // ReadAllAsync's OperationCanceledException needs to be caught right where it's thrown,
+            // not left to propagate. WaitToReadAsync/TryRead is the same channel-draining loop
+            // without that restriction, since only the await (no yield) sits inside the inner try.
+            while (true)
+            {
+                bool more;
+                try
+                {
+                    more = await channel.Reader.WaitToReadAsync(cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    // The client (browser tab closed, navigated away, eventBus.ts reconnecting)
+                    // went away - httpContext.RequestAborted firing here is the normal, expected
+                    // way this stream ends, not a failure. Without this, the exception propagates
+                    // straight out of Results.ServerSentEvents' write loop as unhandled, on every
+                    // single disconnect.
+                    yield break;
+                }
+                if (!more) yield break;
+
+                while (channel.Reader.TryRead(out var envelope))
+                    yield return new SseItem<EventEnvelope>(envelope, envelope.EventType);
+            }
         }
         finally
         {

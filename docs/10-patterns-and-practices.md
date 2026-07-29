@@ -5,9 +5,15 @@ to where it's described more formally and where to find it in this repo. `00` th
 `09` describe *what* each part of the system does; this doc is about *which named
 pattern* it's an instance of and *why* that pattern was the right tool.
 
+This is the concise catalog — one paragraph and a source pointer per pattern. For a
+from-first-principles explanation of each one (with diagrams and a detailed walk-through of
+this codebase's implementation), see `patterns/README.md`.
+
 ## Architectural patterns
 
 ### CQRS — Command Query Responsibility Segregation
+
+*Deep dive: `patterns/cqrs.md`.*
 
 Every write goes in through a `Command` (`Fohjin.DDD.Commands`) and every read comes back
 out through a `Report` DTO (`Fohjin.DDD.Reporting.Dtos`) — never the reverse, and never
@@ -25,6 +31,8 @@ exactly the same rule it always was.
 
 ### Event Sourcing
 
+*Deep dive: `patterns/event-sourcing.md`.*
+
 Aggregate state isn't stored directly — it's derived by replaying the sequence of domain
 events that produced it. The event log is the source of truth; current state is a cache.
 
@@ -34,6 +42,8 @@ events that produced it. The event log is the source of truth; current state is 
   the `EventProviders`/`Events` tables. See `06-event-sourcing-infrastructure.md`.
 
 ### Snapshot pattern
+
+*Deep dive: `patterns/event-sourcing.md` (covered alongside Event Sourcing itself).*
 
 Replaying every event since the beginning of time gets expensive as history grows; a
 snapshot is a point-in-time memento you can restore from and replay only the events after
@@ -48,6 +58,8 @@ it.
   triggered automatically.
 
 ### Domain-Driven Design building blocks
+
+*Deep dive: `patterns/ddd-building-blocks.md`.*
 
 - **Aggregate root** — a cluster of objects treated as a single unit for data changes, with
   one member (the root) as the only entry point from outside. `Client` and `ActiveAccount`
@@ -68,6 +80,8 @@ it.
 
 ### Repository
 
+*Deep dive: `patterns/repository-and-unit-of-work.md`.*
+
 `IDomainRepository<T>`/`IReportingRepository` both hide the storage mechanism behind a
 collection-like interface (`GetByIdAsync`, `Add`, `SaveAsync`) — callers never see SQL, EF
 Core, or the event store's serialization format.
@@ -79,6 +93,8 @@ Core, or the event store's serialization format.
 
 ### Unit of Work
 
+*Deep dive: `patterns/repository-and-unit-of-work.md`.*
+
 Tracks a batch of changes and commits or rolls them back as one transaction.
 
 - **Reference**: Martin Fowler, *Patterns of Enterprise Application Architecture*
@@ -89,6 +105,8 @@ Tracks a batch of changes and commits or rolls them back as one transaction.
   collision flagged there — two unrelated `IUnitOfWork` interfaces share a name.)
 
 ### Mediator / Message Bus
+
+*Deep dive: `patterns/messaging-mediator-observer.md`.*
 
 Callers publish a message without knowing which handler(s) will process it; the bus looks
 that up at runtime.
@@ -102,6 +120,8 @@ that up at runtime.
 
 ### Observer (via Rx.NET)
 
+*Deep dive: `patterns/messaging-mediator-observer.md` (covered alongside Mediator/Message Bus).*
+
 Event handlers subscribe to a stream of domain events without the publisher knowing or
 caring who's listening or how many there are.
 
@@ -114,6 +134,8 @@ caring who's listening or how many there are.
   `07-messaging-bus.md`.
 
 ### Model-View-Presenter (MVP)
+
+*Deep dive: `patterns/mvp.md`.*
 
 The View is a passive interface (`IClientDetailsView`, etc.) with events and settable
 properties; the Presenter contains all the logic and is unit-testable without any real
@@ -132,6 +154,8 @@ second implementation of this pattern.
 
 ### Specification / dynamic query object
 
+*Deep dive: `patterns/ddd-building-blocks.md` (covered alongside the DDD building blocks).*
+
 Rather than writing a LINQ query per DTO/filter combination, `GetByExampleAsync` builds an
 `Expression<Func<TDto,bool>>` at runtime from an anonymous object's properties — one
 generic query mechanism instead of N hand-written ones.
@@ -146,6 +170,8 @@ generic query mechanism instead of N hand-written ones.
 
 ### Compensating transaction
 
+*Deep dive: `patterns/resilience-patterns.md`.*
+
 Rather than a two-phase distributed transaction across "banks," a failed transfer is
 undone by *another* forward-moving domain event/command (a refund), not a rollback.
 
@@ -158,6 +184,8 @@ undone by *another* forward-moving domain event/command (a refund), not a rollba
   for the full activity diagram.
 
 ### Optimistic concurrency
+
+*Deep dive: `patterns/repository-and-unit-of-work.md` (covered alongside Repository/Unit of Work).*
 
 Instead of locking an aggregate while it's in memory, the event store checks the expected
 version number at save time and rejects the write if another writer got there first.

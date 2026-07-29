@@ -9,6 +9,9 @@ Covers creating a client and changing their name, address, or phone number. See
 value objects (C# `record`s). `BankCard` is a child entity of `Client` — covered in
 `02-bank-cards.md`, shown here only as a relationship.
 
+> Aggregate root / entity / value object explained from first principles:
+> `patterns/ddd-building-blocks.md`.
+
 ```plantuml
 @startuml
 skinparam classAttributeIconSize 0
@@ -126,10 +129,11 @@ EvtHandler -> Reporting : SaveAsync(ClientDetailsReport)
 
 The `202 Accepted` matters: it comes back as soon as `CommitAsync()` returns, which is
 fire-and-forget (`07-messaging-bus.md`) — the HTTP response does **not** wait for
-`ClientCreatedEventHandler` to run. Both clients handle this the same way conceptually:
-WinForms' fixed-delay `ISystemTimer` refresh (`09-winforms-ui.md`) and Vue's
-navigate-back-to-the-search-list-and-refetch are both just "poll again a bit later,"
-because there's no id or confirmation to navigate straight to yet.
+`ClientCreatedEventHandler` to run, so there's no id or confirmation to navigate straight to
+yet either way. WinForms handles this with a fixed-delay `ISystemTimer` poll; Vue's
+`ClientSearch.vue` instead subscribes to `ClientCreatedEvent` on the shared client-side
+event bus (`09-winforms-ui.md`) and reloads the instant the read model actually catches up,
+rather than guessing how long to wait.
 
 ## Editing an existing client
 
@@ -158,6 +162,6 @@ Bus -> Handler : ExecuteAsync(command)
 Handler -> Aggregate : GetByIdAsync(Id)
 Handler -> Aggregate : client.UpdateClientName(new ClientName(...))
 Aggregate --> Aggregate : Apply(ClientNameChangedEvent)
-Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 1000ms);\nVue: re-fetch on navigation)
+Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 1000ms);\nVue: reloads when the matching domain event\narrives on the shared event bus - 09-winforms-ui.md)
 @enduml
 ```

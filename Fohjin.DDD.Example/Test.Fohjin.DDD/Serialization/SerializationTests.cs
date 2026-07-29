@@ -15,8 +15,8 @@ public class SerializationTests
     public TestContext TestContext { get; set; }= null!;
 
 
-    [DataTestMethod]
-    [DynamicData(nameof(TestData), DynamicDataSourceType.Method, DynamicDataDisplayName = nameof(TestDataDisplayName))]
+    [TestMethod]
+    [DynamicData(nameof(TestData), DynamicDataDisplayName = nameof(TestDataDisplayName))]
     public void ModelPersistenceTest(Type type, Type interfaceType)
     {
         var obj = type.BuildObject();

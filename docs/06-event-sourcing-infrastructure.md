@@ -7,6 +7,10 @@ this changed when this system grew an HTTP front door — it's reached today fro
 section) instead of directly from WinForms presenters, but the code in this document is
 untouched.
 
+> For the Event Sourcing, Snapshot/Memento, Repository, and Unit of Work patterns this
+> infrastructure implements — explained from first principles, not just located here — see
+> `patterns/event-sourcing.md` and `patterns/repository-and-unit-of-work.md`.
+
 ## Components
 
 ```plantuml
@@ -77,9 +81,28 @@ BaseAggregateRoot "1" o-- "*" EntityList
 @enduml
 ```
 
-`Apply<TEvent>` does three things in order: stamp `AggregateId`/`Version` on the event,
-dispatch it to the registered handler (mutating state), and append it to `_appliedEvents`
-(the "changes since last commit" buffer that `GetChanges()` returns).
+`Apply<TEvent>` does three things: stamp `Version` on the event, dispatch it to the
+registered handler (mutating state), and append it to `_appliedEvents` (the "changes since
+last commit" buffer that `GetChanges()` returns) — then, only *after* the handler has run,
+stamp `AggregateId`.
+
+> **Bug found and fixed while building a client-side live-refresh feature**: `AggregateId`
+> used to be stamped *before* dispatching to the handler, from whatever `Id` happened to be
+> at that moment. That's correct for every event except an aggregate's own creation event —
+> a "created" event's handler is what assigns the aggregate its `Id` in the first place
+> (e.g. `Client`'s private constructor calls `Apply(new ClientCreatedEvent(...))` while `Id`
+> is still `Guid.Empty`; `OnNewClientCreated` sets `Id = clientCreatedEvent.ClientId` as a
+> side effect of handling it). Stamping from the pre-handler `Id` meant `ClientCreatedEvent`,
+> `AccountOpenedEvent`, and `ClosedAccountCreatedEvent` always recorded `AggregateId =
+> Guid.Empty` — invisible to every existing test (none of them observed a live event stream
+> end to end), and invisible to replay/storage too (the event store keys events by
+> `EventProviderEntity.EventProviderId`, populated separately at save time, not by
+> `AggregateId` on the event object). It only became visible once something filtered a live
+> event stream by `AggregateId` looking for a freshly-created aggregate — a Vue-side SSE
+> subscriber (`09-winforms-ui.md`'s Vue section) — and never matched. Fixed by reordering
+> `Apply<TEvent>` (and the identical bug in `BaseEntity<TDomainEvent>.Apply`, used by child
+> entities like `BankCard`) to stamp `AggregateId` after the handler runs; every other event
+> (raised once `Id` is already set) behaves identically either way.
 
 Child entities (e.g. `BankCard` under `Client`) don't keep their own version counter —
 they call back into the parent aggregate's `EventVersion` via a `Func<int>` hooked up when

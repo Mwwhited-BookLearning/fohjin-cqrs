@@ -11,6 +11,9 @@ client covering the same screens.
 
 ## WinForms
 
+> The Model-View-Presenter pattern this implements, and why Vue isn't "MVP again," explained
+> from first principles: `patterns/mvp.md`.
+
 ### Presenter/View wiring
 
 `Presenter<TView>`'s constructor wires up every view event to a matching presenter method
@@ -389,24 +392,70 @@ same seeded `dev-client`, against the same `Fohjin.DDD.Sts` — the difference i
 mechanical: a real browser tab doing a page redirect vs. a desktop process opening a
 system browser and listening on a loopback port for the same redirect.
 
-### Monitoring: hand-rolled SSE, same reason as WinForms
+### Live refresh: a shared client-side event bus, not a poll
 
-`Monitoring.vue` can't use the NSwag-generated client's `streamEvents()` either (same gap:
-NSwag has no real SSE support) and can't use the browser's native `EventSource` (it can't
-attach an `Authorization` header) — so it reads `GET /api/events` by hand: a `fetch()` call
-with a bearer token attached, then a hand-parsed reader over
-`Results.ServerSentEvents`'s wire format (`event:`/`data:` lines, blank line between
-records). It filters out the synthetic `"StreamConnected"` marker event the same way
-`EventStreamClient` does on the WinForms side, and caps its list at 200 entries — the Vue
-equivalent of WinForms' bounded `ListBox`.
+`src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection for the whole
+Vue session — opened once at app boot (`main.ts`) and kept open, rather than each screen
+polling on its own fixed-delay timer. It's the client-side mirror of `DirectBus`'s own
+shape server-side (`07-messaging-bus.md`): one shared event stream, N independent
+subscribers, each filtering for what it cares about. It can't use the NSwag-generated
+client's `streamEvents()` (NSwag has no real SSE support) or the browser's native
+`EventSource` (can't attach an `Authorization` header) — so, same as `EventStreamClient` on
+the WinForms side, it reads `GET /api/events` by hand: `fetch()` with a bearer token, then
+a hand-parsed reader over `Results.ServerSentEvents`'s wire format (`event:`/`data:` lines,
+blank line between records), filtering out the synthetic `"StreamConnected"` marker event.
+
+```plantuml
+@startuml
+skinparam rectangle {
+  BackgroundColor<<Component>> #85bbf0
+  FontColor<<Component>> black
+  BorderColor black
+}
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+
+rectangle "eventBus.ts\n<size:11><<Component>></size>\none shared fetch()+reader\nover GET /api/events" <<Component>> as bus
+rectangle "ClientSearch.vue\n<size:11><<Component>></size>\nsubscribes: ClientCreatedEvent" <<Component>> as search
+rectangle "ClientDetails.vue\n<size:11><<Component>></size>\nsubscribes: client-level +\nbank-card events" <<Component>> as details
+rectangle "AccountDetails.vue\n<size:11><<Component>></size>\nsubscribes: this account's\nbalance/ledger events" <<Component>> as account
+rectangle "Monitoring.vue\n<size:11><<Component>></size>\nsubscribes: everything\n(no filter)" <<Component>> as monitoring
+
+bus --> search : subscribe(filter)
+bus --> details : subscribe(filter)
+bus --> account : subscribe(filter)
+bus --> monitoring : subscribe()
+@enduml
+```
+
+Filtering happens client-side, per subscriber, over the one unfiltered stream — not via a
+separate server-side `$filter` connection per screen, since there's only one shared
+connection. Filters key off `eventType` and `aggregateId` exactly as documented in each
+domain doc: `ClientDetails.vue` needs the note in `02-bank-cards.md`/`06-event-sourcing-infrastructure.md`
+about `BankCardWasCanceledByClientEvent`/`BankCardWasReportedStolenEvent` carrying the bank
+card's own id as `aggregateId`, not the client's, so it also checks the event's aggregate id
+against every bank card id already loaded for that client.
+
+**No queue or replay on this stream** — an event that fires while nobody's connected (the
+brief window right after login while the OIDC token exchange finishes, a dropped network
+connection, a laptop waking from sleep) is gone for good, not delivered late. Two things
+mitigate this without reintroducing a poll: the retry loop reconnects almost immediately
+(not on a flat backoff) specifically when the reason was "not authenticated yet" rather than
+a real connection failure, since every extra second there is a bigger miss window; and
+`onReconnect()` lets a screen do one reconciliation reload every time the connection
+(re)establishes, catching anything that happened in the gap. `Monitoring.vue` is the
+simplest subscriber — no filter, no reconciliation reload (it has nothing to "reload," just
+a live list) — and its "Pause"/"Resume" buttons only stop appending to its own list; they
+don't touch the shared connection other screens are also using.
 
 ### What's genuinely different between the two UIs
 
 - **Create-client UX**: WinForms uses a three-step modal wizard; Vue uses one form. Same
   single `CreateClientCommand`/`POST /api/clients` either way (`01-client-management.md`).
-- **Refresh strategy**: WinForms polls on a fixed-delay timer after every mutating action;
-  Vue re-fetches on navigation (e.g. returning to the client list after create/edit) rather
-  than polling.
+- **Refresh strategy**: WinForms polls on a fixed-delay timer after every mutating action.
+  Vue subscribes to the relevant domain events on the shared event bus above and reloads
+  when one arrives — no timer, no fixed delay, refresh happens as soon as the read model
+  actually catches up rather than after a guessed interval.
 - **Auth flow shape**: loopback `HttpListener` + system browser (desktop) vs. full-page
   redirect (web) — same authorization-code + PKCE grant underneath either way.
 - **Bank cards**: Vue-only (`ClientDetails.vue`'s "Bank cards" section). WinForms has no

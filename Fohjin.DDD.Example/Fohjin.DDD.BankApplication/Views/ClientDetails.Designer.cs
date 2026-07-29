@@ -35,6 +35,8 @@ partial class ClientDetails
         this.changedHisPhoneNumberToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         this.accountsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         this.addNewAccountToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        this.bankCardsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+        this.addNewBankCardToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
         this.tabControl1 = new System.Windows.Forms.TabControl();
         this._detailsTab = new System.Windows.Forms.TabPage();
         this.groupBox4 = new System.Windows.Forms.GroupBox();
@@ -76,6 +78,16 @@ partial class ClientDetails
         this._newAccountCreateButton = new System.Windows.Forms.Button();
         this.groupBox3 = new System.Windows.Forms.GroupBox();
         this._newAccountName = new System.Windows.Forms.TextBox();
+        this._addNewBankCard = new System.Windows.Forms.TabPage();
+        this._newBankCardCancelButton = new System.Windows.Forms.Button();
+        this._newBankCardAssignButton = new System.Windows.Forms.Button();
+        this.groupBox5 = new System.Windows.Forms.GroupBox();
+        this._reportBankCardStolenButton = new System.Windows.Forms.Button();
+        this._cancelBankCardButton = new System.Windows.Forms.Button();
+        this._bankCards = new System.Windows.Forms.ListBox();
+        this.groupBox6 = new System.Windows.Forms.GroupBox();
+        this._newBankCardAccount = new System.Windows.Forms.ComboBox();
+        this.label8 = new System.Windows.Forms.Label();
         this.menuStrip1.SuspendLayout();
         this.tabControl1.SuspendLayout();
         this._detailsTab.SuspendLayout();
@@ -90,13 +102,17 @@ partial class ClientDetails
         this._clientNameGroupBox.SuspendLayout();
         this._addNewAccount.SuspendLayout();
         this.groupBox3.SuspendLayout();
+        this._addNewBankCard.SuspendLayout();
+        this.groupBox5.SuspendLayout();
+        this.groupBox6.SuspendLayout();
         this.SuspendLayout();
         // 
         // menuStrip1
         // 
         this.menuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
         this.clientToolStripMenuItem,
-        this.accountsToolStripMenuItem});
+        this.accountsToolStripMenuItem,
+        this.bankCardsToolStripMenuItem});
         this.menuStrip1.Location = new System.Drawing.Point(0, 0);
         this.menuStrip1.Name = "menuStrip1";
         this.menuStrip1.Size = new System.Drawing.Size(306, 24);
@@ -148,7 +164,22 @@ partial class ClientDetails
         this.addNewAccountToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.A)));
         this.addNewAccountToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
         this.addNewAccountToolStripMenuItem.Text = "Add new account";
-        // 
+        //
+        // bankCardsToolStripMenuItem
+        //
+        this.bankCardsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+        this.addNewBankCardToolStripMenuItem});
+        this.bankCardsToolStripMenuItem.Name = "bankCardsToolStripMenuItem";
+        this.bankCardsToolStripMenuItem.Size = new System.Drawing.Size(80, 20);
+        this.bankCardsToolStripMenuItem.Text = "Bank Cards";
+        //
+        // addNewBankCardToolStripMenuItem
+        //
+        this.addNewBankCardToolStripMenuItem.Name = "addNewBankCardToolStripMenuItem";
+        this.addNewBankCardToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.B)));
+        this.addNewBankCardToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
+        this.addNewBankCardToolStripMenuItem.Text = "Bank cards";
+        //
         // tabControl1
         // 
         this.tabControl1.Controls.Add(this._detailsTab);
@@ -156,6 +187,7 @@ partial class ClientDetails
         this.tabControl1.Controls.Add(this._phoneNumberTab);
         this.tabControl1.Controls.Add(this._clientNameTab);
         this.tabControl1.Controls.Add(this._addNewAccount);
+        this.tabControl1.Controls.Add(this._addNewBankCard);
         this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
         this.tabControl1.Location = new System.Drawing.Point(0, 24);
         this.tabControl1.Name = "tabControl1";
@@ -554,15 +586,117 @@ partial class ClientDetails
         this.groupBox3.TabIndex = 17;
         this.groupBox3.TabStop = false;
         this.groupBox3.Text = "Specify the name of the new account";
-        // 
+        //
         // _newAccountName
-        // 
+        //
         this._newAccountName.Location = new System.Drawing.Point(6, 19);
         this._newAccountName.Name = "_newAccountName";
         this._newAccountName.Size = new System.Drawing.Size(273, 20);
         this._newAccountName.TabIndex = 0;
         this._newAccountName.TextChanged += new System.EventHandler(this.ClientChanged);
-        // 
+        //
+        // _addNewBankCard
+        //
+        this._addNewBankCard.Controls.Add(this._newBankCardCancelButton);
+        this._addNewBankCard.Controls.Add(this._newBankCardAssignButton);
+        this._addNewBankCard.Controls.Add(this.groupBox5);
+        this._addNewBankCard.Controls.Add(this.groupBox6);
+        this._addNewBankCard.Location = new System.Drawing.Point(4, 22);
+        this._addNewBankCard.Name = "_addNewBankCard";
+        this._addNewBankCard.Size = new System.Drawing.Size(298, 352);
+        this._addNewBankCard.TabIndex = 5;
+        this._addNewBankCard.Text = "tabPage6";
+        this._addNewBankCard.UseVisualStyleBackColor = true;
+        //
+        // _newBankCardCancelButton
+        //
+        this._newBankCardCancelButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+        this._newBankCardCancelButton.Location = new System.Drawing.Point(142, 329);
+        this._newBankCardCancelButton.Name = "_newBankCardCancelButton";
+        this._newBankCardCancelButton.Size = new System.Drawing.Size(75, 23);
+        this._newBankCardCancelButton.TabIndex = 2;
+        this._newBankCardCancelButton.Text = "Close";
+        this._newBankCardCancelButton.UseVisualStyleBackColor = true;
+        //
+        // _newBankCardAssignButton
+        //
+        this._newBankCardAssignButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+        this._newBankCardAssignButton.Location = new System.Drawing.Point(223, 329);
+        this._newBankCardAssignButton.Name = "_newBankCardAssignButton";
+        this._newBankCardAssignButton.Size = new System.Drawing.Size(75, 23);
+        this._newBankCardAssignButton.TabIndex = 1;
+        this._newBankCardAssignButton.Text = "Assign";
+        this._newBankCardAssignButton.UseVisualStyleBackColor = true;
+        //
+        // groupBox5
+        //
+        this.groupBox5.Controls.Add(this._reportBankCardStolenButton);
+        this.groupBox5.Controls.Add(this._cancelBankCardButton);
+        this.groupBox5.Controls.Add(this._bankCards);
+        this.groupBox5.Location = new System.Drawing.Point(6, 6);
+        this.groupBox5.Name = "groupBox5";
+        this.groupBox5.Size = new System.Drawing.Size(285, 140);
+        this.groupBox5.TabIndex = 18;
+        this.groupBox5.TabStop = false;
+        this.groupBox5.Text = "Client bank cards";
+        //
+        // _reportBankCardStolenButton
+        //
+        this._reportBankCardStolenButton.Enabled = false;
+        this._reportBankCardStolenButton.Location = new System.Drawing.Point(149, 109);
+        this._reportBankCardStolenButton.Name = "_reportBankCardStolenButton";
+        this._reportBankCardStolenButton.Size = new System.Drawing.Size(130, 23);
+        this._reportBankCardStolenButton.TabIndex = 2;
+        this._reportBankCardStolenButton.Text = "Report stolen";
+        this._reportBankCardStolenButton.UseVisualStyleBackColor = true;
+        //
+        // _cancelBankCardButton
+        //
+        this._cancelBankCardButton.Enabled = false;
+        this._cancelBankCardButton.Location = new System.Drawing.Point(6, 109);
+        this._cancelBankCardButton.Name = "_cancelBankCardButton";
+        this._cancelBankCardButton.Size = new System.Drawing.Size(130, 23);
+        this._cancelBankCardButton.TabIndex = 1;
+        this._cancelBankCardButton.Text = "Cancel card";
+        this._cancelBankCardButton.UseVisualStyleBackColor = true;
+        //
+        // _bankCards
+        //
+        this._bankCards.FormattingEnabled = true;
+        this._bankCards.Location = new System.Drawing.Point(6, 19);
+        this._bankCards.Name = "_bankCards";
+        this._bankCards.Size = new System.Drawing.Size(273, 82);
+        this._bankCards.TabIndex = 0;
+        //
+        // groupBox6
+        //
+        this.groupBox6.Controls.Add(this._newBankCardAccount);
+        this.groupBox6.Controls.Add(this.label8);
+        this.groupBox6.Location = new System.Drawing.Point(6, 152);
+        this.groupBox6.Name = "groupBox6";
+        this.groupBox6.Size = new System.Drawing.Size(285, 60);
+        this.groupBox6.TabIndex = 19;
+        this.groupBox6.TabStop = false;
+        this.groupBox6.Text = "Assign a new bank card to an account";
+        //
+        // _newBankCardAccount
+        //
+        this._newBankCardAccount.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+        this._newBankCardAccount.FormattingEnabled = true;
+        this._newBankCardAccount.Location = new System.Drawing.Point(6, 33);
+        this._newBankCardAccount.Name = "_newBankCardAccount";
+        this._newBankCardAccount.Size = new System.Drawing.Size(273, 21);
+        this._newBankCardAccount.TabIndex = 0;
+        //
+        // label8
+        //
+        this.label8.AutoSize = true;
+        this.label8.Location = new System.Drawing.Point(3, 16);
+        this.label8.Name = "label8";
+        this.label8.Size = new System.Drawing.Size(45, 13);
+        this.label8.TabIndex = 1;
+        this.label8.Text = "Account";
+        //
         // ClientDetails
         // 
         this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -595,6 +729,10 @@ partial class ClientDetails
         this._addNewAccount.ResumeLayout(false);
         this.groupBox3.ResumeLayout(false);
         this.groupBox3.PerformLayout();
+        this._addNewBankCard.ResumeLayout(false);
+        this.groupBox5.ResumeLayout(false);
+        this.groupBox6.ResumeLayout(false);
+        this.groupBox6.PerformLayout();
         this.ResumeLayout(false);
         this.PerformLayout();
 
@@ -650,4 +788,16 @@ partial class ClientDetails
     private System.Windows.Forms.TextBox _newAccountName;
     private System.Windows.Forms.GroupBox groupBox4;
     private System.Windows.Forms.ListBox _closedAccounts;
+    private System.Windows.Forms.ToolStripMenuItem bankCardsToolStripMenuItem;
+    private System.Windows.Forms.ToolStripMenuItem addNewBankCardToolStripMenuItem;
+    private System.Windows.Forms.TabPage _addNewBankCard;
+    private System.Windows.Forms.Button _newBankCardCancelButton;
+    private System.Windows.Forms.Button _newBankCardAssignButton;
+    private System.Windows.Forms.GroupBox groupBox5;
+    private System.Windows.Forms.Button _reportBankCardStolenButton;
+    private System.Windows.Forms.Button _cancelBankCardButton;
+    private System.Windows.Forms.ListBox _bankCards;
+    private System.Windows.Forms.GroupBox groupBox6;
+    private System.Windows.Forms.ComboBox _newBankCardAccount;
+    private System.Windows.Forms.Label label8;
 }

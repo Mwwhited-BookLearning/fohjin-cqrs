@@ -6,7 +6,7 @@ through `docs/10-patterns-and-practices.md` — those docs are the living source
 the system's actual shape (there is no separate migration-plan doc anymore; it was removed
 once every phase it tracked was done and folded into `00`–`10`). `docs/patterns/` is a
 companion set of from-first-principles explanations (with diagrams) of every pattern `10`
-catalogs — this project is explicitly meant to be learned from (see the root `ReadMe.txt`),
+catalogs — this project is explicitly meant to be learned from (see the root `README.md`),
 so when a pattern's implementation changes, update both `10`'s catalog entry and its
 `patterns/*.md` deep dive, not just one.
 

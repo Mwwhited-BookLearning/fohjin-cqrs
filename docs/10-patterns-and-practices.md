@@ -25,7 +25,7 @@ exactly the same rule it always was.
 
 - **Reference**: Greg Young, *CQRS Documents* (the original write-up:
   https://cqrs.wordpress.com/documents/cqrs-documents/); this project is itself derived
-  from a Greg Young workshop (see the root `ReadMe.txt`).
+  from a Greg Young workshop (see the root `README.md`).
 - **In this repo**: `Fohjin.DDD.CommandHandlers` (write side) vs. `IReportingRepository`
   (read side) never reference each other's storage. See `00-architecture-overview.md`.
 

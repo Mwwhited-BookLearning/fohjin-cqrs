@@ -8,7 +8,7 @@ general, a diagram, and then a detailed walk-through of this specific codebase's
 implementation with links to the real source. Read `10-patterns-and-practices.md` first if
 you just need the map; come here when you want to actually learn the pattern.
 
-This project exists to be learned from (see the root `ReadMe.txt` — it's derived from a
+This project exists to be learned from (see the root `README.md` — it's derived from a
 Greg Young CQRS/Event Sourcing workshop), so these docs assume less background than `00`–`10`
 do, and spend more time on *why*, not just *what* and *where*.
 

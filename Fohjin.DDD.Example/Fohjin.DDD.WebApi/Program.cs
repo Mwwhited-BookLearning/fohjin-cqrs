@@ -41,6 +41,15 @@ builder.AddServiceDefaults();
 var stsAuthority = builder.Configuration["Sts:Authority"] ?? "http://127.0.0.1:5310/";
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
 {
+    // Served live, MapOpenApi() infers a "servers" entry from the actual incoming request's
+    // scheme/host - but Fohjin.DDD.ApiClient/Fohjin.DDD.ApiClient.csproj's build-time document
+    // generation (Microsoft.Extensions.ApiDescription.Server) has no HTTP request to infer one
+    // from, and the NSwag-generated FohjinApiClient bakes servers[0].url in as its constructor's
+    // hardcoded BaseUrl default. Setting it explicitly here keeps both paths identical instead
+    // of the generated client silently losing its default the moment doc generation moved from
+    // "curl a running server" to "build-time, no server running" (docs/00-architecture-overview.md).
+    document.Servers = [new OpenApiServer { Url = "http://127.0.0.1:5320/" }];
+
     document.Components ??= new OpenApiComponents();
     document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
     document.Components.SecuritySchemes["OAuth2"] = new OpenApiSecurityScheme

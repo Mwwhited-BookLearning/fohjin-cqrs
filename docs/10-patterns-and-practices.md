@@ -15,12 +15,14 @@ this codebase's implementation), see `patterns/README.md`.
 
 *Deep dive: `patterns/cqrs.md`.*
 
-Every write goes in through a `Command` (`Fohjin.DDD.Commands`) and every read comes back
-out through a `Report` DTO (`Fohjin.DDD.Reporting.Dtos`) — never the reverse, and never
-the same object doing both jobs. This is the organizing principle of the whole codebase;
-see `00-architecture-overview.md` for the container-level view of the split. Both clients
-(WinForms and Vue, `09-client-uis.md`) reach this split over HTTP now rather than an
-in-process reference, but the split itself — enforced inside `Fohjin.DDD.WebApi` — is
+Every write goes in through a `Command` (the `Fohjin.DDD.Commands` namespace, physically in
+`Fohjin.DDD.Abstractions/Commands` — see the note in `patterns/cqrs.md`) and every read
+comes back out through a `Report` DTO (`Fohjin.DDD.Reporting.Dtos`) — never the reverse, and
+never the same object doing both jobs. This is the organizing principle of the whole
+codebase; see `00-architecture-overview.md` for the container-level view of the split. All
+three clients (WinForms, WPF, and Vue, `09-client-uis.md`) reach this split over HTTP now
+rather than an in-process reference, but the split itself — enforced inside
+`Fohjin.DDD.WebApi` — is
 exactly the same rule it always was.
 
 - **Reference**: Greg Young, *CQRS Documents* (the original write-up:

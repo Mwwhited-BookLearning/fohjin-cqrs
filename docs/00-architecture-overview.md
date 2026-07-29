@@ -136,7 +136,9 @@ kept its Presenter/View screens (`09-client-uis.md`) but now drives them through
   (`GET /api/events`), and the Saunter library generating it: `supporting/asyncapi-saunter.md`.
 - `Fohjin.DDD.ApiClient` (WinForms and WPF) and `Fohjin.DDD.WebUI/src/api/generated-client.ts`
   (Vue) all being generated from the same `openapi.json` via NSwag, rather than
-  hand-written per client: `supporting/nswag-client-codegen.md`.
+  hand-written per client - including `openapi.json` itself, generated at build time
+  (`Microsoft.Extensions.ApiDescription.Server`) rather than curled by hand from a running
+  server: `supporting/nswag-client-codegen.md`.
 - `Fohjin.DDD.AppHost` orchestrating local `dotnet run` and generating (not
   hand-maintaining) a `docker-compose.yaml` for deployment: `supporting/hosting-aspire-docker-compose.md`.
 

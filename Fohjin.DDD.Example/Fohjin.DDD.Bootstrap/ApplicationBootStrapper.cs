@@ -1,4 +1,4 @@
-using Fohjin.DDD.EventStore.SQLite;
+using Fohjin.DDD.EventStore.SqlServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

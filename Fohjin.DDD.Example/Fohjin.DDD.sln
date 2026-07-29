@@ -5,17 +5,17 @@ VisualStudioVersion = 17.5.33627.172
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.Reporting", "Fohjin.DDD.Reporting\Fohjin.DDD.Reporting.csproj", "{0E86D5C6-929D-4304-A00D-ADC9FB2AFE77}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Test.Fohjin.DDD", "Test.Fohjin.DDD\Test.Fohjin.DDD.csproj", "{CEBF24CE-3326-464B-B6C5-463E7F4BF4BC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.Tests", "Fohjin.DDD.Tests\Fohjin.DDD.Tests.csproj", "{CEBF24CE-3326-464B-B6C5-463E7F4BF4BC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.CommandHandlers", "Fohjin.DDD.CommandHandlers\Fohjin.DDD.CommandHandlers.csproj", "{7757DA0F-CD51-4753-95C8-8632177AA60E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.Configuration", "Fohjin.DDD.Configuration\Fohjin.DDD.Configuration.csproj", "{CF50373D-3EB9-492D-A88F-70D7D6756DFF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.MessageRouting", "Fohjin.DDD.MessageRouting\Fohjin.DDD.MessageRouting.csproj", "{CF50373D-3EB9-492D-A88F-70D7D6756DFF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.BankApplication", "Fohjin.DDD.BankApplication\Fohjin.DDD.BankApplication.csproj", "{672A4AB0-6972-49F1-86A6-C2B7DE5AD4D4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.EventHandlers", "Fohjin.DDD.EventHandlers\Fohjin.DDD.EventHandlers.csproj", "{2A96D452-7D1D-4118-B3D4-8EF543D1FBCB}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.EventStore.SQLite", "Fohjin.DDD.EventStore.SQLite\Fohjin.DDD.EventStore.SQLite.csproj", "{8DE1C044-594E-4A85-8244-FE059BF4825B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.EventStore.SqlServer", "Fohjin.DDD.EventStore.SqlServer\Fohjin.DDD.EventStore.SqlServer.csproj", "{8DE1C044-594E-4A85-8244-FE059BF4825B}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Fohjin.DDD.Services", "Fohjin.DDD.Services\Fohjin.DDD.Services.csproj", "{B2428304-1BF2-4BCB-B250-7D09E536560A}"
 EndProject
@@ -44,11 +44,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fohjin.DDD.WebApi", "Fohjin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fohjin.DDD.ApiClient", "Fohjin.DDD.ApiClient\Fohjin.DDD.ApiClient.csproj", "{A057E36A-B431-4568-846F-C005938BABCC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Fohjin.DDD.ApiClient", "Test.Fohjin.DDD.ApiClient\Test.Fohjin.DDD.ApiClient.csproj", "{2824A23B-9447-48FF-9CC1-A4E53A6A08F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fohjin.DDD.ApiClient.Tests", "Fohjin.DDD.ApiClient.Tests\Fohjin.DDD.ApiClient.Tests.csproj", "{2824A23B-9447-48FF-9CC1-A4E53A6A08F3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fohjin.DDD.Sts", "Fohjin.DDD.Sts\Fohjin.DDD.Sts.csproj", "{2947F14B-F082-446A-9F4B-09F8944CB6AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test.Fohjin.DDD.BankApplication.UI", "Test.Fohjin.DDD.BankApplication.UI\Test.Fohjin.DDD.BankApplication.UI.csproj", "{4D611979-5FE0-4088-B7DA-D99FFB4D4D16}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fohjin.DDD.BankApplication.UITests", "Fohjin.DDD.BankApplication.UITests\Fohjin.DDD.BankApplication.UITests.csproj", "{4D611979-5FE0-4088-B7DA-D99FFB4D4D16}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fohjin.DDD.AppHost", "Fohjin.DDD.AppHost\Fohjin.DDD.AppHost.csproj", "{ED408572-6C11-452A-B0F2-D997D8D265C4}"
 EndProject

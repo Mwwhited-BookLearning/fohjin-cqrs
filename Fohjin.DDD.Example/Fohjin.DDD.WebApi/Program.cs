@@ -3,10 +3,10 @@ using Fohjin.DDD.Bus;
 using Fohjin.DDD.CommandHandlers;
 using Fohjin.DDD.Commands;
 using Fohjin.DDD.Common;
-using Fohjin.DDD.Configuration;
+using Fohjin.DDD.MessageRouting;
 using Fohjin.DDD.EventHandlers;
 using Fohjin.DDD.EventStore;
-using Fohjin.DDD.EventStore.SQLite;
+using Fohjin.DDD.EventStore.SqlServer;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Services;
@@ -94,7 +94,7 @@ builder.Services
     .AddBusServices()
     .AddCommandHandlersServices()
     .AddCommonServices()
-    .AddConfigurationServices()
+    .AddMessageRoutingServices()
     .AddEventHandlersServices()
     .AddEventStoreServices()
     .AddEventStoreSqlServerServices()
@@ -547,6 +547,6 @@ record WithdrawalCashRequest(decimal Amount);
 record SendMoneyTransferRequest(decimal Amount, string? AccountNumber);
 record ODataQueryRequest(string? Filter);
 
-// Lets WebApplicationFactory<Program> (Test.Fohjin.DDD.ApiClient) host this app in-process for
+// Lets WebApplicationFactory<Program> (Fohjin.DDD.ApiClient.Tests) host this app in-process for
 // integration tests - top-level statements otherwise leave Program inaccessible to other assemblies.
 public partial class Program;

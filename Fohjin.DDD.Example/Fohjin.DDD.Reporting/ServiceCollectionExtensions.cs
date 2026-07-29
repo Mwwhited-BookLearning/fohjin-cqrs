@@ -8,7 +8,7 @@ namespace Fohjin.DDD.Reporting;
 
 public static class ServiceCollectionExtensions
 {
-    // See Fohjin.DDD.EventStore.SQLite.DomainEventStorageConfig for why this uses Aspire's
+    // See Fohjin.DDD.EventStore.SqlServer.DomainEventStorageConfig for why this uses Aspire's
     // ConnectionStrings:<name> convention rather than a project-specific config section.
     public const string ConnectionStringName = "reportingdb";
     public const string ConnectionStringConfigKey = $"ConnectionStrings:{ConnectionStringName}";

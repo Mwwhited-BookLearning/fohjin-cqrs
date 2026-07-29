@@ -1,0 +1,334 @@
+using Fohjin.DDD.Bootstrap;
+using Fohjin.DDD.Bus;
+using Fohjin.DDD.Common;
+using Fohjin.DDD.Domain.Client;
+using Fohjin.DDD.Domain.Mementos;
+using Fohjin.DDD.EventStore;
+using Fohjin.DDD.EventStore.SqlServer;
+using Fohjin.DDD.EventStore.Storage;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Moq;
+using Fohjin.DDD.Tests.TestUtilities;
+
+namespace Fohjin.DDD.Tests.Domain.Repositories;
+
+[TestClass]
+[TestCategory("unit")]
+public class clientRepositoryTest
+{
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
+
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
+
+    public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
+
+    public TestContext TestContext { get; set; } = null!;
+
+    private IDomainRepository<IDomainEvent> _repository = null!;
+    private DomainEventStorage<IDomainEvent> _domainEventStorage = null!;
+    private EventStoreIdentityMap<IDomainEvent> _eventStoreIdentityMap = null!;
+    private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork = null!;
+
+    [TestInitialize]
+    public async Task SetUp()
+    {
+        var connectionString = TestSqlServer.ConnectionStringFor(TestContext.GetDatabaseNameForTest("EventStore"));
+
+        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(connectionString);
+
+        var dbContextOptions = new DbContextOptionsBuilder<DomainEventStoreDbContext>()
+            .UseSqlServer(connectionString)
+            .Options;
+
+        _domainEventStorage = new DomainEventStorage<IDomainEvent>(
+            new PooledDbContextFactory<DomainEventStoreDbContext>(dbContextOptions),
+            new ExtendedFormatter()
+            );
+
+        _eventStoreIdentityMap = new EventStoreIdentityMap<IDomainEvent>();
+        _eventStoreUnitOfWork = new EventStoreUnitOfWork<IDomainEvent>(
+            _domainEventStorage,
+            _eventStoreIdentityMap,
+            new Mock<IBus>().Object,
+            Logger<EventStoreUnitOfWork<IDomainEvent>>()
+            );
+        _repository = new DomainRepository<IDomainEvent>(
+            _eventStoreUnitOfWork,
+            _eventStoreIdentityMap,
+            Logger<DomainRepository<IDomainEvent>>()
+            );
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_it_will_add_the_domain_events_to_the_domain_event_storage()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        Assert.AreEqual(3, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(client.Id)).Count());
+        Assert.AreEqual(3, (await _domainEventStorage!.GetAllEventsAsync(client.Id)).Count());
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_it_will_reset_the_domain_events()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        var clientForRepository = (IEventProvider<IDomainEvent>)client;
+
+        Assert.AreEqual(0, clientForRepository.GetChanges().Count());
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_9_events_will_not()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        Assert.IsNull((await _domainEventStorage!.GetSnapShotAsync(client.Id)));
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_10_events()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(client);
+
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
+
+        Assert.IsNotNull(snapShot);
+        Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_after_more_than_9_events_a_new_snap_shot_will_be_created_11_events()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(client);
+
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
+
+        Assert.IsNotNull(snapShot);
+        Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(client);
+
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
+
+        Assert.IsNotNull(snapShot);
+        Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(client);
+
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        var snapShot = (await _domainEventStorage!.GetSnapShotAsync(client.Id));
+
+        Assert.IsNotNull(snapShot);
+        Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
+    }
+
+    [TestMethod]
+    public async Task When_calling_Save_after_more_than_9_events_after_the_last_snap_shot_a_new_snapshot_will_be_created_10_events_after_last_snapshot_9_events_after_last_snapshot_verify_all_event_counts()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+        await _domainEventStorage!.SaveShapShotAsync(client);
+
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        Assert.AreEqual(9, (await _domainEventStorage!.GetEventsSinceLastSnapShotAsync(client.Id)).Count());
+        Assert.AreEqual(19, (await _domainEventStorage!.GetAllEventsAsync(client.Id)).Count());
+    }
+
+    [TestMethod]
+    public async Task When_calling_GetById_after_9_events_a_new_Client_will_be_populated()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("0987654321"));
+
+        _repository?.Add(client);
+
+        await _repository!.GetByIdAsync<Client>(client.Id);
+    }
+
+    [TestMethod]
+    public async Task When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("0987654321"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        await _repository!.GetByIdAsync<Client>(client.Id);
+    }
+
+    [TestMethod]
+    public async Task When_calling_GetById_after_every_10_events_a_new_snap_shot_will_be_created_11_events()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("0987654321"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        await _repository!.GetByIdAsync<Client>(client.Id);
+    }
+}

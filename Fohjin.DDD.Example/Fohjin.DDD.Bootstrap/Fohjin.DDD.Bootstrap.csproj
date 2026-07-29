@@ -12,7 +12,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Fohjin.DDD.EventStore.SQLite\Fohjin.DDD.EventStore.SQLite.csproj" />
+		<ProjectReference Include="..\Fohjin.DDD.EventStore.SqlServer\Fohjin.DDD.EventStore.SqlServer.csproj" />
 		<ProjectReference Include="..\Fohjin.DDD.Reporting\Fohjin.DDD.Reporting.csproj" />
 	</ItemGroup>
 

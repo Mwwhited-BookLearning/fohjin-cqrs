@@ -139,7 +139,7 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
 
 - `dotnet test Fohjin.DDD.sln --filter "FullyQualifiedName!~BankApplication.UI"` — the fast
   unit/integration suite (needs the dev SQL Server instance reachable at port 14330).
-- `Test.Fohjin.DDD.BankApplication.UI` (FlaUI + Playwright) drives the real compiled WinForms
+- `Fohjin.DDD.BankApplication.UITests` (FlaUI + Playwright) drives the real compiled WinForms
   and WPF `.exe`s end to end (`ClientAndAccountWorkflowTest.cs` /
   `WpfClientAndAccountWorkflowTest.cs`, sharing window-finding helpers in
   `Win32WindowFinder.cs`) — run this after anything touching either desktop client or shared

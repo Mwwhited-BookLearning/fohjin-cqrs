@@ -153,7 +153,7 @@ public class ActiveAccount : BaseAggregateRoot<IDomainEvent>, IOriginator
 
         foreach (var ledger in activeAccountMemento.Ledgers)
         {
-            var split = ledger.Value.Split(new[] { '|' });
+            var split = ledger.Value.Split(['|']);
             var amount = new Amount(Convert.ToDecimal(split[0]));
             var account = new AccountNumber(split[1]);
             var instance = InstantiateClassFromStringValue<Ledger>(ledger.Key, amount, account);

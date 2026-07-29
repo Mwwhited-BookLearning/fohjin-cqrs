@@ -3,78 +3,84 @@ using System;
 using Fohjin.DDD.EventStore.SQLite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Fohjin.DDD.EventStore.SQLite.Migrations;
-
-[DbContext(typeof(DomainEventStoreDbContext))]
-partial class DomainEventStoreDbContextModelSnapshot : ModelSnapshot
+namespace Fohjin.DDD.EventStore.SQLite.Migrations
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    [DbContext(typeof(DomainEventStoreDbContext))]
+    partial class DomainEventStoreDbContextModelSnapshot : ModelSnapshot
     {
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
 #pragma warning disable 612, 618
-        modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-        modelBuilder.Entity("Fohjin.DDD.EventStore.SQLite.Entities.EventProviderEntity", b =>
-            {
-                b.Property<Guid>("EventProviderId")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-                b.Property<string>("Type")
-                    .IsRequired()
-                    .HasColumnType("TEXT");
+            modelBuilder.Entity("Fohjin.DDD.EventStore.SQLite.Entities.EventProviderEntity", b =>
+                {
+                    b.Property<Guid>("EventProviderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<int>("Version")
-                    .HasColumnType("INTEGER");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
-                b.HasKey("EventProviderId");
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
 
-                b.ToTable("EventProviders", (string)null);
-            });
+                    b.HasKey("EventProviderId");
 
-        modelBuilder.Entity("Fohjin.DDD.EventStore.SQLite.Entities.EventRecordEntity", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    b.ToTable("EventProviders", (string)null);
+                });
 
-                b.Property<byte[]>("Event")
-                    .IsRequired()
-                    .HasColumnType("BLOB");
+            modelBuilder.Entity("Fohjin.DDD.EventStore.SQLite.Entities.EventRecordEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<Guid>("EventProviderId")
-                    .HasColumnType("TEXT");
+                    b.Property<byte[]>("Event")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
 
-                b.Property<int>("Version")
-                    .HasColumnType("INTEGER");
+                    b.Property<Guid>("EventProviderId")
+                        .HasColumnType("uniqueidentifier");
 
-                b.HasKey("Id");
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
 
-                b.HasIndex("EventProviderId", "Version");
+                    b.HasKey("Id");
 
-                b.ToTable("Events", (string)null);
-            });
+                    b.HasIndex("EventProviderId", "Version");
 
-        modelBuilder.Entity("Fohjin.DDD.EventStore.SQLite.Entities.SnapShotEntity", b =>
-            {
-                b.Property<Guid>("EventProviderId")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    b.ToTable("Events", (string)null);
+                });
 
-                b.Property<byte[]>("SnapShot")
-                    .IsRequired()
-                    .HasColumnType("BLOB");
+            modelBuilder.Entity("Fohjin.DDD.EventStore.SQLite.Entities.SnapShotEntity", b =>
+                {
+                    b.Property<Guid>("EventProviderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<int>("Version")
-                    .HasColumnType("INTEGER");
+                    b.Property<byte[]>("SnapShot")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
 
-                b.HasKey("EventProviderId");
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
 
-                b.ToTable("SnapShots", (string)null);
-            });
+                    b.HasKey("EventProviderId");
+
+                    b.ToTable("SnapShots", (string)null);
+                });
 #pragma warning restore 612, 618
+        }
     }
 }

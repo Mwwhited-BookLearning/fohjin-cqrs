@@ -1,0 +1,56 @@
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Docker Compose is generated OUTPUT from this AppHost model (`aspire publish` / `dotnet run --
+// --publisher docker-compose`), not a hand-maintained docker-compose.yml - same philosophy as
+// the OpenAPI/AsyncAPI docs and NSwag-generated clients elsewhere in this solution
+// (docs/supporting/hosting-aspire-docker-compose.md). This is a no-op for the normal
+// `dotnet run` (F5) inner-loop; it only matters when publishing.
+builder.AddDockerComposeEnvironment("docker-compose");
+
+// One SQL Server instance for every environment (docs/11-migration-plan.md Phase 8 - SQLite
+// doesn't containerize as a separate resource the way a real server engine does, so the whole
+// solution moved off it). Fixed port/password so the same docs/11-migration-plan.md dev
+// conventions (Server=127.0.0.1,14330;...;Password=Dev!Passw0rd) keep working whether the
+// database is started by this AppHost or by hand via `docker run` during Phase 8 development.
+var sqlPassword = builder.AddParameter("sql-password", "Dev!Passw0rd", secret: true);
+var sql = builder.AddSqlServer("sql", sqlPassword, port: 14330)
+    .WithDataVolume();
+
+var eventStoreDb = sql.AddDatabase("eventstoredb", "FohjinDomainEventStore");
+var reportingDb = sql.AddDatabase("reportingdb", "FohjinReporting");
+var stsDb = sql.AddDatabase("stsdb", "FohjinSts");
+
+// Fixed ports (5310/5320/5173) matching every other place in this solution that already hardcodes
+// them - STS's own seeded dev-client redirect URIs, the WebApi/Sts CORS policy, the Vue app's
+// .env.development, Fohjin.DDD.BankApplication's config, and the FlaUI UI-automation test fixture
+// all assume these exact addresses, so this AppHost pins them rather than letting Aspire assign
+// random ports the way it would for a resource with no other fixed-address consumers.
+var sts = builder.AddProject<Projects.Fohjin_DDD_Sts>("sts")
+    .WithHttpEndpoint(port: 5310, name: "http")
+    .WithExternalHttpEndpoints()
+    .WithReference(stsDb)
+    .WaitFor(stsDb);
+
+var webApi = builder.AddProject<Projects.Fohjin_DDD_WebApi>("webapi")
+    .WithHttpEndpoint(port: 5320, name: "http")
+    .WithExternalHttpEndpoints()
+    .WithReference(eventStoreDb)
+    .WithReference(reportingDb)
+    .WaitFor(eventStoreDb)
+    .WaitFor(reportingDb)
+    .WaitFor(sts);
+
+// The Vue dev server (Fohjin.DDD.WebUI) - modeled as an Aspire JavaScript/Vite resource so
+// `dotnet run` on this AppHost starts it alongside everything else instead of needing a separate
+// `npm run dev` in another terminal. Its own .env.development still works standalone for anyone
+// running it outside Aspire; these WithEnvironment calls just make the AppHost-orchestrated run
+// agree with the same values.
+var webUi = builder.AddViteApp("webui", "../Fohjin.DDD.WebUI")
+    .WithHttpEndpoint(port: 5173, env: "PORT")
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("VITE_API_BASE_URL", webApi.GetEndpoint("http"))
+    .WithEnvironment("VITE_STS_AUTHORITY", "http://127.0.0.1:5310/")
+    .WithEnvironment("VITE_STS_CLIENT_ID", "dev-client")
+    .WaitFor(webApi);
+
+builder.Build().Run();

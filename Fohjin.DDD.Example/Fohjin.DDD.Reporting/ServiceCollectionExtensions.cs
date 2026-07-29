@@ -8,15 +8,18 @@ namespace Fohjin.DDD.Reporting;
 
 public static class ServiceCollectionExtensions
 {
-    public const string ConnectionStringConfigKey = "Reporting:SqliteConnectionString";
-    private const string DefaultSqLiteConnectionString = "Data Source=reportingDataBase.db3";
+    // See Fohjin.DDD.EventStore.SQLite.DomainEventStorageConfig for why this uses Aspire's
+    // ConnectionStrings:<name> convention rather than a project-specific config section.
+    public const string ConnectionStringName = "reportingdb";
+    public const string ConnectionStringConfigKey = $"ConnectionStrings:{ConnectionStringName}";
+    private const string DefaultConnectionString = "Server=127.0.0.1,14330;Database=FohjinReporting;User Id=sa;Password=Dev!Passw0rd;TrustServerCertificate=True;Encrypt=False";
 
     public static T AddReportingServices<T>(this T service) where T : IServiceCollection
     {
         service.AddDbContextFactory<ReportingDbContext>((sp, options) =>
-            options.UseSqlite(sp.GetService<IConfiguration>()?[ConnectionStringConfigKey] ?? DefaultSqLiteConnectionString));
+            options.UseSqlServer(sp.GetService<IConfiguration>()?[ConnectionStringConfigKey] ?? DefaultConnectionString));
 
-        service.TryAddTransient<IReportingRepository, SqliteReportingRepository>();
+        service.TryAddTransient<IReportingRepository, SqlServerReportingRepository>();
 
         return service;
     }

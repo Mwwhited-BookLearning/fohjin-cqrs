@@ -27,9 +27,9 @@ public class When_a_client_is_moving : CommandTestFixture<ClientIsMovingCommand,
     [TestMethod]
     public void Then_the_published_event_will_contain_the_new_address_of_the_client()
     {
-        PublishedEvents?.Last<ClientMovedEvent>().Street.WillBe("Welhavens gate");
-        PublishedEvents?.Last<ClientMovedEvent>().StreetNumber.WillBe("49b");
-        PublishedEvents?.Last<ClientMovedEvent>().PostalCode.WillBe("5006");
-        PublishedEvents?.Last<ClientMovedEvent>().City.WillBe("Bergen");
+        PublishedEvents?.Last<ClientMovedEvent>()!.Street.WillBe("Welhavens gate");
+        PublishedEvents?.Last<ClientMovedEvent>()!.StreetNumber.WillBe("49b");
+        PublishedEvents?.Last<ClientMovedEvent>()!.PostalCode.WillBe("5006");
+        PublishedEvents?.Last<ClientMovedEvent>()!.City.WillBe("Bergen");
     }
 }

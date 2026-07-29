@@ -6,25 +6,18 @@ using System;
 
 namespace Fohjin.DDD.Configuration;
 
-public class CommandHandlerHelper : ICommandHandlerHelper
+public class CommandHandlerHelper(
+    IEnumerable<ICommandHandler> handlers,
+    IServiceProvider serviceProvider,
+    ILogger<CommandHandlerHelper> log
+        ) : ICommandHandlerHelper
 {
     private IDictionary<Type, IEnumerable<Type>>? _handlersCache;
     private IEnumerable<Type>? _commandCache;
 
-    private readonly IEnumerable<ICommandHandler> _handlers;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger _log;
-
-    public CommandHandlerHelper(
-        IEnumerable<ICommandHandler> handlers,
-        IServiceProvider serviceProvider,
-        ILogger<CommandHandlerHelper> log
-        )
-    {
-        _handlers = handlers;
-        _serviceProvider = serviceProvider;
-        _log = log;
-    }
+    private readonly IEnumerable<ICommandHandler> _handlers = handlers;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly ILogger _log = log;
 
     protected IDictionary<Type, IEnumerable<Type>> GetCommandHandlers() =>
         _handlersCache ??= _handlers.ToDictionary(

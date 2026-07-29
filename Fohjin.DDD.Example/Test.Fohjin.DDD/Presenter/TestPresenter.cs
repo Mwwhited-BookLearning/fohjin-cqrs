@@ -2,13 +2,9 @@
 
 namespace Test.Fohjin.DDD.Presenter;
 
-public class TestPresenter : Presenter<ITestView>
+public class TestPresenter(ITestView view) : Presenter<ITestView>(view)
 {
-    public bool TestValue { get; set; }
-    public TestPresenter(ITestView view) : base(view)
-    {
-        TestValue = false;
-    }
+    public bool TestValue { get; set; } = false;
 
     public void Test()
     {

@@ -55,8 +55,8 @@ public class When_cash_was_Depositd : EventTestFixture<CashDepositedEvent, CashD
     [TestMethod]
     public void Then_the_ledger_report_will_be_saved_with_the_expected_details()
     {
-        LedgerReportObject.AccountDetailsReportId.WillBe(_accountId);
-        LedgerReportObject.Amount.WillBe(10.5M);
-        LedgerReportObject.Action.WillBe("Deposit");
+        LedgerReportObject?.AccountDetailsReportId.WillBe(_accountId);
+        LedgerReportObject?.Amount.WillBe(10.5M);
+        LedgerReportObject?.Action.WillBe("Deposit");
     }
 }

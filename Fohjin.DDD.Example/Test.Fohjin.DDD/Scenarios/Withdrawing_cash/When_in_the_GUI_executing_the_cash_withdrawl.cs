@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
-using Fohjin.DDD.Commands;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -18,18 +16,22 @@ public class When_in_the_GUI_executing_the_cash_Withdrawal : PresenterTestFixtur
     protected override void SetupDependencies()
     {
         OnDependency<IPopupPresenter>()
-            .Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
-            .Callback<Action>(x => x());
+            .Setup(x => x.CatchPossibleExceptionAsync(It.IsAny<Func<Task>>()))
+            .Returns<Func<Task>>(action => action());
 
-        var accountDetailsReports = new List<AccountDetailsReport> { new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890") };
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
-            .ReturnsAsync(accountDetailsReports);
+        var accountDetailsReport = new AccountDetailsReport { Id = Guid.NewGuid(), ClientReportId = Guid.NewGuid(), AccountName = "Account name", Balance = 10.5, AccountNumber = "1234567890" };
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetAccountDetailsByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(accountDetailsReport);
+
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetAccountsAsync())
+            .ReturnsAsync(new List<AccountReport>());
     }
 
     protected override void Given()
     {
-        Presenter.SetAccount(new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890"));
+        Presenter.SetAccount(new AccountReport { Id = Guid.NewGuid(), ClientDetailsReportId = Guid.NewGuid(), AccountName = "Account name", AccountNumber = "1234567890" });
         Presenter.Display();
         On<IAccountDetailsView>().ValueFor(x => x.AccountName).IsSetTo("Account name");
         On<IAccountDetailsView>().ValueFor(x => x.WithdrawalAmount).IsSetTo(0M);
@@ -48,7 +50,7 @@ public class When_in_the_GUI_executing_the_cash_Withdrawal : PresenterTestFixtur
     [TestMethod]
     public void Then_a_change_account_name_command_will_be_published()
     {
-        On<IBus>().VerifyThat.Method(x => x.Publish(It.IsAny<WithdrawalCashCommand>())).WasCalled();
+        On<FohjinApiClient>().VerifyThat.Method(x => x.WithdrawalCashAsync(It.IsAny<Guid>(), It.IsAny<WithdrawalCashRequest>())).WasCalled();
     }
 
     [TestMethod]

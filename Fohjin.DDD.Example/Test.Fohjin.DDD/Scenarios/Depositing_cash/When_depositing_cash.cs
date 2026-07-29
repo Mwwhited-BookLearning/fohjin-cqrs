@@ -28,7 +28,7 @@ public class When_depositing_cash : CommandTestFixture<DepositCashCommand, Depos
     [TestMethod]
     public void Then_the_published_event_will_contain_the_amount_and_new_account_balance()
     {
-        PublishedEvents?.Last<CashDepositedEvent>().Balance.WillBe(30M);
-        PublishedEvents?.Last<CashDepositedEvent>().Amount.WillBe(20M);
+        PublishedEvents?.Last<CashDepositedEvent>()!.Balance.WillBe(30M);
+        PublishedEvents?.Last<CashDepositedEvent>()!.Amount.WillBe(20M);
     }
 }

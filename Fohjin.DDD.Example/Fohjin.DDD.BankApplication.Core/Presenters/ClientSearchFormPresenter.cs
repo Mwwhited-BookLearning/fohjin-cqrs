@@ -1,32 +1,22 @@
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Views;
 using Fohjin.DDD.Common;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
-public class ClientSearchFormPresenter : Presenter<IClientSearchFormView>, IClientSearchFormPresenter
+public class ClientSearchFormPresenter(
+    IClientSearchFormView clientSearchFormView,
+    IClientDetailsPresenter clientDetailsPresenter,
+    IPopupPresenter popupPresenter,
+    FohjinApiClient apiClient,
+    ISystemTimer systemTimer
+        ) : Presenter<IClientSearchFormView>(clientSearchFormView), IClientSearchFormPresenter
 {
-    private readonly IClientSearchFormView _clientSearchFormView;
-    private readonly IPopupPresenter _popupPresenter;
-    private readonly IClientDetailsPresenter _clientDetailsPresenter;
-    private readonly IReportingRepository _reportingRepository;
-    private readonly ISystemTimer _systemTimer;
-
-    public ClientSearchFormPresenter(
-        IClientSearchFormView clientSearchFormView,
-        IClientDetailsPresenter clientDetailsPresenter,
-        IPopupPresenter popupPresenter,
-        IReportingRepository reportingRepository,
-        ISystemTimer systemTimer
-        ) : base(clientSearchFormView)
-    {
-        _clientSearchFormView = clientSearchFormView;
-        _popupPresenter = popupPresenter;
-        _clientDetailsPresenter = clientDetailsPresenter;
-        _reportingRepository = reportingRepository;
-        _systemTimer = systemTimer;
-    }
+    private readonly IClientSearchFormView _clientSearchFormView = clientSearchFormView;
+    private readonly IPopupPresenter _popupPresenter = popupPresenter;
+    private readonly IClientDetailsPresenter _clientDetailsPresenter = clientDetailsPresenter;
+    private readonly FohjinApiClient _apiClient = apiClient;
+    private readonly ISystemTimer _systemTimer = systemTimer;
 
     public void CreateNewClient()
     {
@@ -60,6 +50,6 @@ public class ClientSearchFormPresenter : Presenter<IClientSearchFormView>, IClie
 
     private async Task LoadDataAsync()
     {
-        _clientSearchFormView.Clients = await _reportingRepository.GetByExampleAsync<ClientReport>(null);
+        _clientSearchFormView.Clients = await _apiClient.GetClientsAsync();
     }
 }

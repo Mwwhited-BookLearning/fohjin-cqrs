@@ -1,6 +1,6 @@
-﻿using Fohjin.DDD.BankApplication.Presenters;
+﻿using Fohjin.DDD.ApiClient;
+using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -18,7 +18,7 @@ public class When_in_the_GUI_opening_an_existing_client : PresenterTestFixture<C
             ?.Setup(x => x.CatchPossibleException(It.IsAny<Action>()))
             .Callback<Action>(x => x());
 
-        _clientReport = new ClientReport(Guid.NewGuid(), "Client Name");
+        _clientReport = new ClientReport { Id = Guid.NewGuid(), Name = "Client Name" };
 
         OnDependency<IClientSearchFormView>()
             ?.Setup(x => x.GetSelectedClient())

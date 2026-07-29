@@ -1,7 +1,6 @@
-﻿using Fohjin.DDD.BankApplication.Presenters;
+using Fohjin.DDD.ApiClient;
+using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -16,25 +15,24 @@ public class When_in_the_GUI_displaying_account_details : PresenterTestFixture<A
 
     protected override void SetupDependencies()
     {
-        _accountDetailsReport = new AccountDetailsReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", 10.5M, "1234567890");
-        var accountDetailsReports = new List<AccountDetailsReport> {_accountDetailsReport};
+        _accountDetailsReport = new AccountDetailsReport { Id = Guid.NewGuid(), ClientReportId = Guid.NewGuid(), AccountName = "Account name", Balance = 10.5, AccountNumber = "1234567890" };
 
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<AccountDetailsReport>(It.IsAny<object>()))
-            .ReturnsAsync(accountDetailsReports);
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetAccountDetailsByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(_accountDetailsReport);
 
-        var accountReport1 = new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 1", "1234567890");
-        var accountReport2 = new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name 2", "1234567890");
+        var accountReport1 = new AccountReport { Id = Guid.NewGuid(), ClientDetailsReportId = Guid.NewGuid(), AccountName = "Account name 1", AccountNumber = "1234567890" };
+        var accountReport2 = new AccountReport { Id = Guid.NewGuid(), ClientDetailsReportId = Guid.NewGuid(), AccountName = "Account name 2", AccountNumber = "1234567890" };
         _accountReports = new List<AccountReport> {accountReport1, accountReport2};
 
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetAccountsAsync())
             .ReturnsAsync(_accountReports);
     }
 
     protected override void When()
     {
-        Presenter?.SetAccount(new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Account name", "1234567890"));
+        Presenter?.SetAccount(new AccountReport { Id = Guid.NewGuid(), ClientDetailsReportId = Guid.NewGuid(), AccountName = "Account name", AccountNumber = "1234567890" });
         Presenter?.Display();
     }
 
@@ -62,7 +60,7 @@ public class When_in_the_GUI_displaying_account_details : PresenterTestFixture<A
         On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.AccountName = _accountDetailsReport.AccountName);
         On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.AccountNameLabel = _accountDetailsReport.AccountName);
         On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.AccountNumberLabel = _accountDetailsReport.AccountNumber);
-        On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.BalanceLabel = _accountDetailsReport.Balance);
+        On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.BalanceLabel = (decimal)_accountDetailsReport.Balance);
         On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.Ledgers = _accountDetailsReport.Ledgers);
         On<IAccountDetailsView>().VerifyThat.ValueIsSetFor(x => x.TransferAccounts = _accountReports);
     }

@@ -27,7 +27,7 @@ public class ClosedAccount : BaseAggregateRoot<IDomainEvent>, IOriginator
 
     private ClosedAccount(Guid accountId, Guid clientId, List<Ledger> ledgers, string? accountName, string? accountNumber) : this()
     {
-        var Ledgers = new List<KeyValuePair<string, string>>();
+        List<KeyValuePair<string, string>> Ledgers = [];
         ledgers.ForEach(x => Ledgers.Add(new KeyValuePair<string, string>(x.GetType().Name, string.Format("{0}|{1}", ((decimal)x.Amount), x.Account.Number))));
 
         Apply(new ClosedAccountCreatedEvent(Guid.NewGuid(), accountId, clientId, Ledgers, accountName, accountNumber));
@@ -51,7 +51,7 @@ public class ClosedAccount : BaseAggregateRoot<IDomainEvent>, IOriginator
 
         foreach (var ledger in closedAccountMemento.Ledgers)
         {
-            var split = ledger.Value.Split(new[] { '|' });
+            var split = ledger.Value.Split(['|']);
             var amount = new Amount(Convert.ToDecimal(split[0]));
             var account = new AccountNumber(split[1]);
             var instance = InstantiateClassFromStringValue<Ledger>(ledger.Key, amount, account);
@@ -89,7 +89,7 @@ public class ClosedAccount : BaseAggregateRoot<IDomainEvent>, IOriginator
 
         foreach (var ledger in closedAccountCreatedEvent.Ledgers)
         {
-            var split = ledger.Value.Split(new[] { '|' });
+            var split = ledger.Value.Split(['|']);
             var amount = new Amount(Convert.ToDecimal(split[0]));
             var account = new AccountNumber(split[1]);
             var instance = InstantiateClassFromStringValue<Ledger>(ledger.Key, amount, account);

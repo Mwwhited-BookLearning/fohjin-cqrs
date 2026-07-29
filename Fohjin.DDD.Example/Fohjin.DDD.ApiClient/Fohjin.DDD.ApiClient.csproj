@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NSwag.ApiDescription.Client" Version="14.7.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      openapi.json is a checked-in snapshot fetched from a running Fohjin.DDD.WebApi
+      (curl http://localhost:PORT/openapi/v1.json > openapi.json) - regenerate it by hand
+      after changing the API surface, then rebuild this project to refresh the client.
+      Automating that fetch is left for a later phase (Aspire/CI).
+    -->
+    <OpenApiReference Include="openapi.json" CodeGenerator="NSwagCSharp" Namespace="Fohjin.DDD.ApiClient" ClassName="FohjinApiClient" Options="/JsonLibrary:SystemTextJson" />
+
+    <!--
+      Same snapshot, second output: a TypeScript client generated straight into the Vue app
+      (Fohjin.DDD.WebUI has no native Node.js toolchain of its own to run NSwag's npm CLI on
+      this machine - see docs/11-migration-plan.md Phase 6 - so generation happens here, via
+      the same MSBuild-integrated NSwag.ApiDescription.Client this project already uses for
+      the C# client, just with a different CodeGenerator/OutputPath). Rebuild this project
+      after regenerating openapi.json to refresh both clients from the one snapshot.
+    -->
+    <OpenApiReference Include="openapi.json" CodeGenerator="NSwagTypeScript" ClassName="FohjinApiClient"
+                       OutputPath="../../Fohjin.DDD.WebUI/src/api/generated-client.ts"
+                       Options="/Template:Fetch /GenerateClientClasses:true /GenerateDtoTypes:true /TypeScriptVersion:5.0" />
+  </ItemGroup>
+
+  <!--
+    NSwag's TypeScript generator always wraps its output in "namespace X { ... }" (no setting
+    turns this off - see docs/11-migration-plan.md Phase 6), which esbuild - Vite's bundler -
+    can't compile (namespaces with runtime code aren't erasable). strip-ts-namespace.ps1
+    unwraps it into a flat ES module after every build that regenerates the TS client.
+  -->
+  <Target Name="StripTypeScriptNamespaceWrapper" AfterTargets="Build">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\strip-ts-namespace.ps1&quot;" />
+  </Target>
+
+</Project>

@@ -76,7 +76,7 @@ public class MoneyTransferService : ISendMoneyTransfer
     private Task MoneyTransferIsGoingToAnExternalNonExistingAccountAsync(MoneyTransfer moneyTransfer) =>
         _receiveMoneyTransfers.Receive(new MoneyTransfer(
             moneyTransfer.SourceAccount,
-            moneyTransfer.TargetAccount is null ? null : new string(moneyTransfer.TargetAccount.Reverse().ToArray()),
+            moneyTransfer.TargetAccount is null ? null : new string([.. moneyTransfer.TargetAccount.Reverse()]),
             moneyTransfer.Amount));
 
     private async Task CompensatingActionBecauseOfFailedMoneyTransferAsync(MoneyTransfer moneyTransfer)

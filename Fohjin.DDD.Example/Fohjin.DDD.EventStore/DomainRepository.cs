@@ -4,22 +4,15 @@ using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.EventStore;
 
-public class DomainRepository<TDomainEvent> : IDomainRepository<TDomainEvent> where TDomainEvent : IDomainEvent
+public class DomainRepository<TDomainEvent>(
+    IEventStoreUnitOfWork<TDomainEvent> eventStoreUnitOfWork,
+    IIdentityMap<TDomainEvent> identityMap,
+    ILogger<DomainRepository<TDomainEvent>> log
+        ) : IDomainRepository<TDomainEvent> where TDomainEvent : IDomainEvent
 {
-    private readonly IEventStoreUnitOfWork<TDomainEvent> _eventStoreUnitOfWork;
-    private readonly IIdentityMap<TDomainEvent> _identityMap;
-    private readonly ILogger _log;
-
-    public DomainRepository(
-        IEventStoreUnitOfWork<TDomainEvent> eventStoreUnitOfWork,
-        IIdentityMap<TDomainEvent> identityMap,
-        ILogger<DomainRepository<TDomainEvent>> log
-        )
-    {
-        _eventStoreUnitOfWork = eventStoreUnitOfWork;
-        _identityMap = identityMap;
-        _log = log;
-    }
+    private readonly IEventStoreUnitOfWork<TDomainEvent> _eventStoreUnitOfWork = eventStoreUnitOfWork;
+    private readonly IIdentityMap<TDomainEvent> _identityMap = identityMap;
+    private readonly ILogger _log = log;
 
     public async Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id)
         where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()

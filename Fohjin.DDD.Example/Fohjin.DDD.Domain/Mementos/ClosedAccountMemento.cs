@@ -32,7 +32,7 @@ public record ClosedAccountMemento : IMemento
         ClientId = clientId;
         AccountName = accountName;
         AccountNumber = accountNumber;
-        Ledgers = new List<KeyValuePair<string, string>>();
+        Ledgers = [];
         ledgers.ForEach(x => Ledgers.Add(new KeyValuePair<string, string>(x.GetType().Name, string.Format("{0}|{1}", ((decimal)x.Amount), x.Account.Number))));
     }
 }

@@ -4,14 +4,9 @@ using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class ClientPhoneNumberChangedEventHandler : EventHandlerBase<ClientPhoneNumberChangedEvent>
+public class ClientPhoneNumberChangedEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<ClientPhoneNumberChangedEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public ClientPhoneNumberChangedEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override async Task ExecuteAsync(ClientPhoneNumberChangedEvent theEvent)
     {

@@ -1,4 +1,4 @@
-using Fohjin.DDD.BankApplication;
+using Fohjin.DDD.Bootstrap;
 using Fohjin.DDD.Bus;
 using Fohjin.DDD.Common;
 using Fohjin.DDD.Domain.Client;
@@ -20,39 +20,29 @@ namespace Test.Fohjin.DDD.Domain.Repositories;
 [TestCategory("unit")]
 public class clientRepositoryTest
 {
-    private readonly IServiceCollection _services = new ServiceCollection()
-        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information))
-        ;
-    public IServiceCollection Services => _services;
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-    private IServiceProvider _provider;
-    public IServiceProvider Provider => _provider ??= _services.BuildServiceProvider();
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 
     public TestContext TestContext { get; set; } = null!;
 
-    private IDomainRepository<IDomainEvent> _repository;
-    private DomainEventStorage<IDomainEvent> _domainEventStorage;
-    private EventStoreIdentityMap<IDomainEvent> _eventStoreIdentityMap;
-    private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork;
+    private IDomainRepository<IDomainEvent> _repository = null!;
+    private DomainEventStorage<IDomainEvent> _domainEventStorage = null!;
+    private EventStoreIdentityMap<IDomainEvent> _eventStoreIdentityMap = null!;
+    private EventStoreUnitOfWork<IDomainEvent> _eventStoreUnitOfWork = null!;
 
     [TestInitialize]
     public async Task SetUp()
     {
-        TestContext.SetupWorkingDirectory();
-        var dataBaseFile = Path.Combine(
-            (string)TestContext.Properties[TestContextExtensions.TestWorkingDirectory]
-            ?? throw new NotSupportedException($"TestContext property is missing {nameof(TestContextExtensions.TestWorkingDirectory)}"),
-            DomainDatabaseBootStrapper.DataBaseFile
-            );
+        var connectionString = TestSqlServer.ConnectionStringFor(TestContext.GetDatabaseNameForTest("EventStore"));
 
-        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
-
-        var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
+        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(connectionString);
 
         var dbContextOptions = new DbContextOptionsBuilder<DomainEventStoreDbContext>()
-            .UseSqlite(sqliteConnectionString)
+            .UseSqlServer(connectionString)
             .Options;
 
         _domainEventStorage = new DomainEventStorage<IDomainEvent>(

@@ -1,3 +1,4 @@
+using Fohjin.DDD.ApiClient;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System.Linq.Expressions;
@@ -10,8 +11,8 @@ public abstract class PresenterTestFixture<TPresenter>
 {
     private IDictionary<Type, object> mocks = null!;
 
-    protected TPresenter Presenter;
-    protected Exception CaughtException;
+    protected TPresenter Presenter = default!;
+    protected Exception CaughtException = null!;
     protected virtual void SetupDependencies() { }
     protected virtual void Given() { }
     protected abstract void When();
@@ -63,19 +64,21 @@ public abstract class PresenterTestFixture<TPresenter>
 
     private static object CreateMock(Type type)
     {
+        // FohjinApiClient (Phase 7, docs/11-migration-plan.md) has no parameterless
+        // constructor - it's generated with exactly one, taking an HttpClient - so it needs
+        // its own Mock<T>(args) call instead of the reflection-based new Mock<T>() every other
+        // (interface-typed) presenter dependency uses.
+        if (type == typeof(FohjinApiClient))
+            return new Mock<FohjinApiClient>(new HttpClient());
+
         var constructorInfo = typeof(Mock<>).MakeGenericType(type).GetConstructors().First();
-        return constructorInfo.Invoke(new object[] { });
+        return constructorInfo.Invoke([]);
     }
 }
 
-public class MockDsl<TType> where TType : class
+public class MockDsl<TType>(IDictionary<Type, object> mocks) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-
-    public MockDsl(IDictionary<Type, object> mocks)
-    {
-        _mocks = mocks;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
 
     public ValueSetter<TType, TProperty> ValueFor<TProperty>(Expression<Func<TType, TProperty>> selector)
     {
@@ -94,14 +97,9 @@ public class MockDsl<TType> where TType : class
     public Verifier<TType> VerifyThat { get { return new Verifier<TType>(_mocks); } }
 }
 
-public class Verifier<TType> where TType : class
+public class Verifier<TType>(IDictionary<Type, object> mocks) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-
-    public Verifier(IDictionary<Type, object> mocks)
-    {
-        _mocks = mocks;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
 
     public void ValueIsSetFor(Action<TType> selector)
     {
@@ -118,16 +116,10 @@ public class Verifier<TType> where TType : class
     }
 }
 
-public class MethodVerifier<TType> where TType : class
+public class MethodVerifier<TType>(IDictionary<Type, object> mocks, Expression<Action<TType>> fieldSelector) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-    private readonly Expression<Action<TType>> _fieldSelector;
-
-    public MethodVerifier(IDictionary<Type, object> mocks, Expression<Action<TType>> fieldSelector)
-    {
-        _mocks = mocks;
-        _fieldSelector = fieldSelector;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
+    private readonly Expression<Action<TType>> _fieldSelector = fieldSelector;
 
     public void WasCalled()
     {
@@ -139,16 +131,10 @@ public class MethodVerifier<TType> where TType : class
     }
 }
 
-public class ValueSetter<TType, TProperty> where TType : class
+public class ValueSetter<TType, TProperty>(IDictionary<Type, object> mocks, Expression<Func<TType, TProperty>> fieldSelector) where TType : class
 {
-    private readonly IDictionary<Type, object> _mocks;
-    private readonly Expression<Func<TType, TProperty>> _fieldSelector;
-
-    public ValueSetter(IDictionary<Type, object> mocks, Expression<Func<TType, TProperty>> fieldSelector)
-    {
-        _mocks = mocks;
-        _fieldSelector = fieldSelector;
-    }
+    private readonly IDictionary<Type, object> _mocks = mocks;
+    private readonly Expression<Func<TType, TProperty>> _fieldSelector = fieldSelector;
 
     public void IsSetTo(TProperty value)
     {

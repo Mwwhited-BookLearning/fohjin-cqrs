@@ -3,169 +3,219 @@ using System;
 using Fohjin.DDD.Reporting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Fohjin.DDD.Reporting.Migrations;
-
-[DbContext(typeof(ReportingDbContext))]
-partial class ReportingDbContextModelSnapshot : ModelSnapshot
+namespace Fohjin.DDD.Reporting.Migrations
 {
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    [DbContext(typeof(ReportingDbContext))]
+    partial class ReportingDbContextModelSnapshot : ModelSnapshot
     {
+        protected override void BuildModel(ModelBuilder modelBuilder)
+        {
 #pragma warning disable 612, 618
-        modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "10.0.10")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountDetailsReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-                b.Property<string>("AccountName")
-                    .HasColumnType("TEXT");
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountDetailsReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<string>("AccountNumber")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("AccountName")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<decimal>("Balance")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("AccountNumber")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<Guid>("ClientReportId")
-                    .HasColumnType("TEXT");
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
 
-                b.HasKey("Id");
+                    b.Property<Guid>("ClientReportId")
+                        .HasColumnType("uniqueidentifier");
 
-                b.ToTable("AccountDetailsReport", (string)null);
-            });
+                    b.HasKey("Id");
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    b.ToTable("AccountDetailsReport", (string)null);
+                });
 
-                b.Property<string>("AccountName")
-                    .HasColumnType("TEXT");
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<string>("AccountNumber")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("AccountName")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<Guid>("ClientDetailsReportId")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("AccountNumber")
+                        .HasColumnType("nvarchar(max)");
 
-                b.HasKey("Id");
+                    b.Property<Guid>("ClientDetailsReportId")
+                        .HasColumnType("uniqueidentifier");
 
-                b.ToTable("AccountReport", (string)null);
-            });
+                    b.Property<long>("InsertionSequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InsertionSequence"));
 
-                b.Property<string>("City")
-                    .HasColumnType("TEXT");
+                    b.HasKey("Id");
 
-                b.Property<string>("ClientName")
-                    .HasColumnType("TEXT");
+                    b.ToTable("AccountReport", (string)null);
+                });
 
-                b.Property<string>("PhoneNumber")
-                    .HasColumnType("TEXT");
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.BankCardReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<string>("PostalCode")
-                    .HasColumnType("TEXT");
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<string>("Street")
-                    .HasColumnType("TEXT");
+                    b.Property<Guid>("ClientDetailsReportId")
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<string>("StreetNumber")
-                    .HasColumnType("TEXT");
+                    b.Property<long>("InsertionSequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
 
-                b.HasKey("Id");
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InsertionSequence"));
 
-                b.ToTable("ClientDetailsReport", (string)null);
-            });
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    b.HasKey("Id");
 
-                b.Property<string>("Name")
-                    .HasColumnType("TEXT");
+                    b.ToTable("BankCardReport", (string)null);
+                });
 
-                b.HasKey("Id");
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.ToTable("ClientReport", (string)null);
-            });
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountDetailsReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    b.Property<string>("ClientName")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<string>("AccountName")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<string>("AccountNumber")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("PostalCode")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<decimal>("Balance")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("Street")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<Guid>("ClientReportId")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("StreetNumber")
+                        .HasColumnType("nvarchar(max)");
 
-                b.HasKey("Id");
+                    b.HasKey("Id");
 
-                b.ToTable("ClosedAccountDetailsReport", (string)null);
-            });
+                    b.ToTable("ClientDetailsReport", (string)null);
+                });
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<string>("AccountName")
-                    .HasColumnType("TEXT");
+                    b.Property<string>("Name")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<string>("AccountNumber")
-                    .HasColumnType("TEXT");
+                    b.HasKey("Id");
 
-                b.Property<Guid>("ClientDetailsReportId")
-                    .HasColumnType("TEXT");
+                    b.ToTable("ClientReport", (string)null);
+                });
 
-                b.HasKey("Id");
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountDetailsReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                b.ToTable("ClosedAccountReport", (string)null);
-            });
+                    b.Property<string>("AccountName")
+                        .HasColumnType("nvarchar(max)");
 
-        modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.LedgerReport", b =>
-            {
-                b.Property<Guid>("Id")
-                    .ValueGeneratedOnAdd()
-                    .HasColumnType("TEXT");
+                    b.Property<string>("AccountNumber")
+                        .HasColumnType("nvarchar(max)");
 
-                b.Property<Guid>("AccountDetailsReportId")
-                    .HasColumnType("TEXT");
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
 
-                b.Property<string>("Action")
-                    .IsRequired()
-                    .HasColumnType("TEXT");
+                    b.Property<Guid>("ClientReportId")
+                        .HasColumnType("uniqueidentifier");
 
-                b.Property<decimal>("Amount")
-                    .HasColumnType("TEXT");
+                    b.HasKey("Id");
 
-                b.HasKey("Id");
+                    b.ToTable("ClosedAccountDetailsReport", (string)null);
+                });
 
-                b.ToTable("LedgerReport", (string)null);
-            });
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClosedAccountReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccountName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AccountNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ClientDetailsReportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<long>("InsertionSequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InsertionSequence"));
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClosedAccountReport", (string)null);
+                });
+
+            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.LedgerReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AccountDetailsReportId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long>("InsertionSequence")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InsertionSequence"));
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LedgerReport", (string)null);
+                });
 #pragma warning restore 612, 618
+        }
     }
 }

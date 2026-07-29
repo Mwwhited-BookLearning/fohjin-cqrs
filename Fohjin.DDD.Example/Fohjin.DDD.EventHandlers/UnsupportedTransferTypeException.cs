@@ -1,9 +1,5 @@
 namespace Fohjin.DDD.EventHandlers;
 
-public class UnsupportedTransferTypeException : Exception
+public class UnsupportedTransferTypeException(string transferType) : Exception(string.Format("Transfer type '{0}' is not implemented", transferType))
 {
-    public UnsupportedTransferTypeException(string transferType)
-        : base(string.Format("Transfer type '{0}' is not implemented", transferType))
-    {
-    }
 }

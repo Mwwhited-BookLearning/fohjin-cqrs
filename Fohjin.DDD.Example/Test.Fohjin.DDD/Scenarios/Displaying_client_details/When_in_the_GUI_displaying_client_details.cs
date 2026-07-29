@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -15,20 +13,27 @@ public class When_in_the_GUI_displaying_client_details : PresenterTestFixture<Cl
 {
     private readonly Guid _clientId = Guid.NewGuid();
     private ClientDetailsReport _clientDetailsReport = null!;
-    private List<ClientDetailsReport> _clientDetailsReports = new();
 
     protected override void SetupDependencies()
     {
-        _clientDetailsReport = new ClientDetailsReport(_clientId, "Client Name", "street", "123", "5000", "bergen", "1234567890");
-        _clientDetailsReports = new List<ClientDetailsReport> { _clientDetailsReport };
-        OnDependency<IReportingRepository>()
-            .Setup(x => x.GetByExampleAsync<ClientDetailsReport>(It.IsAny<object>()))
-            .ReturnsAsync(_clientDetailsReports);
+        _clientDetailsReport = new ClientDetailsReport
+        {
+            Id = _clientId,
+            ClientName = "Client Name",
+            Street = "street",
+            StreetNumber = "123",
+            PostalCode = "5000",
+            City = "bergen",
+            PhoneNumber = "1234567890",
+        };
+        OnDependency<FohjinApiClient>()
+            .Setup(x => x.GetClientDetailsByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(_clientDetailsReport);
     }
 
     protected override void When()
     {
-        Presenter.SetClient(new ClientReport(_clientId, "Client Name"));
+        Presenter.SetClient(new ClientReport { Id = _clientId, Name = "Client Name" });
         Presenter.Display();
     }
 

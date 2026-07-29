@@ -10,7 +10,8 @@ public class ReportingDbContextFactory : IDesignTimeDbContextFactory<ReportingDb
     public ReportingDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ReportingDbContext>();
-        optionsBuilder.UseSqlite("Data Source=reportingDataBase.db3");
+        optionsBuilder.UseSqlServer(Environment.GetEnvironmentVariable(ServiceCollectionExtensions.ConnectionStringConfigKey)
+            ?? "Server=127.0.0.1,14330;Database=FohjinReporting;User Id=sa;Password=Dev!Passw0rd;TrustServerCertificate=True;Encrypt=False");
         return new ReportingDbContext(optionsBuilder.Options);
     }
 }

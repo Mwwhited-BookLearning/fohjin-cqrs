@@ -1,6 +1,5 @@
 ﻿namespace Fohjin.DDD.Domain.Account;
 
-public class DebitMutation : Ledger
+public class DebitMutation(Amount amount, AccountNumber account) : Ledger(amount, account)
 {
-    public DebitMutation(Amount amount, AccountNumber account) : base(amount, account) { }
 }

@@ -1,7 +1,6 @@
+using Fohjin.DDD.ApiClient;
 using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -15,9 +14,9 @@ public class When_in_the_GUI_openeing_the_bank_application : PresenterTestFixtur
 
     protected override void SetupDependencies()
     {
-        _clientReports = new List<ClientReport> { new ClientReport(Guid.NewGuid(), "Client Name") };
-        OnDependency<IReportingRepository>()
-            ?.Setup(x => x.GetByExampleAsync<ClientReport>(null))
+        _clientReports = new List<ClientReport> { new ClientReport { Id = Guid.NewGuid(), Name = "Client Name" } };
+        OnDependency<FohjinApiClient>()
+            ?.Setup(x => x.GetClientsAsync())
             .ReturnsAsync(_clientReports);
     }
 

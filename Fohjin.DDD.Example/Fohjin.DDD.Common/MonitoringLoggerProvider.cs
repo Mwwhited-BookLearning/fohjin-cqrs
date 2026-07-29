@@ -11,16 +11,10 @@ public class MonitoringLoggerProvider : ILoggerProvider
 
     public void Dispose() { }
 
-    private sealed class MonitoringLogger : ILogger
+    private sealed class MonitoringLogger(string categoryName, Action<string> sink) : ILogger
     {
-        private readonly string _categoryName;
-        private readonly Action<string> _sink;
-
-        public MonitoringLogger(string categoryName, Action<string> sink)
-        {
-            _categoryName = categoryName;
-            _sink = sink;
-        }
+        private readonly string _categoryName = categoryName;
+        private readonly Action<string> _sink = sink;
 
         public IDisposable BeginScope<TState>(TState state) where TState : notnull => NullScope.Instance;
 

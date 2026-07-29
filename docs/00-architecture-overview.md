@@ -1,12 +1,18 @@
 # Architecture Overview
 
-Fohjin.DDD is a reference implementation of CQRS + Event Sourcing: a WinForms bank
-application where every state change is a domain command, every fact is a domain event,
-and the UI reads from a separate, denormalized read model rather than the write-side
-aggregates.
+Fohjin.DDD is a reference implementation of CQRS + Event Sourcing: a bank application —
+reachable from a retargeted WinForms desktop client and a Vue web client, both talking to
+the same ASP.NET Core API — where every state change is a domain command, every fact is a
+domain event, and the UI reads from a separate, denormalized read model rather than the
+write-side aggregates.
 
 This document gives the system-level (C4 Context/Container) view. Each bounded piece of
-functionality has its own doc alongside this one — see the index at the bottom.
+functionality has its own doc alongside this one — see the index at the bottom. This
+system reached its current shape (an ASP.NET Core API + Vue web client + a retargeted
+WinForms desktop client + SQL Server + Aspire hosting, from an original single-process
+WinForms app) through an incremental migration, phase by phase, each one shippable on its
+own; `docs/supporting/` holds the research behind each technology choice made along the
+way (OpenIddict vs. Duende, OData vs. hand-rolled filtering, Aspire/Docker Compose, NSwag).
 
 > **Diagram style note**: all C4-flavored diagrams in this doc set are hand-drawn with
 > plain PlantUML (colored `rectangle`/`database` blocks with `<<stereotype>>` labels)
@@ -31,10 +37,10 @@ skinparam wrapWidth 200
 skinparam maxMessageSize 200
 
 rectangle "Bank Employee\n<size:11><<Person>></size>\nManages clients, accounts, and money transfers" <<Person>> as employee
-rectangle "Fohjin Bank Application\n<size:11><<Software System>></size>\nWinForms desktop app demonstrating CQRS + Event Sourcing" <<System>> as bankApp
+rectangle "Fohjin Bank Application\n<size:11><<Software System>></size>\nWeb (Vue) and desktop (WinForms) clients over\na shared ASP.NET Core API, demonstrating\nCQRS + Event Sourcing" <<System>> as bankApp
 rectangle "\"External\" Bank\n<size:11><<Software System>></size>\nSimulated - actually the same process/database, see 05-money-transfers.md" <<External>> as fakeExternalBank
 
-employee --> bankApp : "Creates clients, opens accounts,\ndeposits/withdraws cash, transfers money"
+employee --> bankApp : "Creates clients, opens accounts,\ndeposits/withdraws cash, transfers money\n(via browser or desktop app)"
 bankApp --> fakeExternalBank : "Simulates outbound transfers to"
 fakeExternalBank --> bankApp : "Simulates inbound transfers from"
 @enduml
@@ -49,6 +55,8 @@ skinparam rectangle {
   FontColor<<Person>> white
   BackgroundColor<<Container>> #438dd5
   FontColor<<Container>> white
+  BackgroundColor<<Infra>> #6b6b6b
+  FontColor<<Infra>> white
   BorderColor black
 }
 skinparam database {
@@ -57,45 +65,95 @@ skinparam database {
   BorderColor black
 }
 skinparam defaultTextAlignment center
-skinparam wrapWidth 200
+skinparam wrapWidth 220
 skinparam maxMessageSize 200
 
 rectangle "Bank Employee\n<size:11><<Person>></size>" <<Person>> as employee
 
 rectangle "Fohjin Bank Application" {
-  rectangle "BankApplication\n<size:11><<WinForms, .NET 10>></size>\nPresenter/View screens: client search,\nclient details, account details" <<Container>> as winforms
-  rectangle "In-Process Bus\n<size:11><<.NET, Rx.NET>></size>\nRoutes commands to handlers; fans out\ndomain events to subscribers" <<Container>> as bus
-  rectangle "Domain + Command/Event Handlers\n<size:11><<.NET libraries>></size>\nAggregates, command handlers,\nevent handlers" <<Container>> as domain
-  database "Event Store\n<size:11><<SQLite via EF Core>></size>\nAppend-only domain events\n+ snapshots, keyed by aggregate id" <<Container>> as eventStoreDb
-  database "Reporting Store\n<size:11><<SQLite via EF Core>></size>\nDenormalized read-model DTOs\nthe UI queries directly" <<Container>> as reportingDb
+  rectangle "Fohjin.DDD.WebUI\n<size:11><<Vue 3 + Vite>></size>\nBrowser client: client search/create/details,\naccount details, live monitoring" <<Container>> as vue
+  rectangle "Fohjin.DDD.BankApplication\n<size:11><<WinForms, .NET 10>></size>\nSame screens as WebUI's Client/Account\nviews, as a desktop HTTP client" <<Container>> as winforms
+  rectangle "Fohjin.DDD.ApiClient\n<size:11><<NSwag-generated C#>></size>\nTyped client both WinForms projects\nuse to call the API" <<Container>> as csClient
+  rectangle "Fohjin.DDD.Sts\n<size:11><<ASP.NET Core + OpenIddict>></size>\nDev STS: OIDC discovery,\nauthorization/token endpoints, one\nseeded dev user + client" <<Container>> as sts
+  rectangle "Fohjin.DDD.WebApi\n<size:11><<ASP.NET Core>></size>\nOpenAPI, OData + QUERY, SSE,\nOAuth/OIDC resource server -\nhosts the CQRS core in-process" <<Container>> as api
+  rectangle "Bus, CommandHandlers,\nEventHandlers, Domain\n<size:11><<.NET libraries, unchanged>></size>" <<Container>> as core
+  database "SQL Server\n<size:11><<one instance, three databases>></size>\nEvent store + Reporting store + Sts's\nIdentity/OpenIddict tables" <<Container>> as db
 }
 
-employee --> winforms : "Uses"
-winforms --> bus : "Publishes commands to"
-bus --> domain : "Dispatches commands /\ndelivers events to"
-domain --> eventStoreDb : "Appends events to /\nloads aggregates from"
-domain --> reportingDb : "Updates read models in\n(event handlers only)"
-winforms --> reportingDb : "Queries directly\n(never touches the event store)"
+rectangle "Fohjin.DDD.AppHost\n<size:11><<.NET Aspire>></size>\nOrchestrates every piece above for\n`dotnet run` / `docker compose up`" <<Infra>> as apphost
+
+employee --> vue : "browser"
+employee --> winforms : "desktop"
+vue --> api : "REST + OData + QUERY,\nSSE, OIDC login"
+winforms --> csClient : "uses generated client"
+csClient --> api : "REST + OData + QUERY,\nSSE"
+api --> sts : "validates tokens\n(OIDC discovery only)"
+vue --> sts : "OIDC login (browser redirect)"
+winforms --> sts : "OIDC login\n(system browser + loopback redirect)"
+api --> core : "same in-process DI composition\nBankApplication used to do directly,\npre-Phase-7"
+core --> db
+sts --> db
+apphost .down.> vue
+apphost .down.> winforms
+apphost .down.> sts
+apphost .down.> api
+apphost .down.> db
 @enduml
 ```
 
-**The core CQRS rule enforced here**: `winforms` never reads from `eventStoreDb`, and
-command handlers never read from `reportingDb`. The only bridge between write and read
-sides is a domain event traveling through the bus.
+**The core CQRS rule enforced here**: neither client (`vue` nor `winforms`) ever reaches
+the event store or the reporting store directly — everything goes through `api`'s HTTP
+surface. Inside `api`, command handlers never read from the reporting store and event
+handlers never read from the event store; the only bridge between write and read sides is
+still a domain event traveling through the in-process bus (see
+`07-messaging-bus.md`) — that part of the picture is exactly what it was before this
+system had an HTTP front door at all.
+
+**What actually changed vs. what didn't**: the domain/command/event layer (`01`–`08`
+below) is untouched by the API/Vue/hosting work — every aggregate, command handler, and
+event handler still does exactly what it always did. What changed is *where that layer
+runs* (inside `Fohjin.DDD.WebApi` now, not inside `Fohjin.DDD.BankApplication`) and *how a
+client reaches it* (HTTP instead of an in-process `IBus` reference). `Fohjin.DDD.BankApplication`
+kept its Presenter/View screens (`09-winforms-ui.md`) but now drives them through
+`Fohjin.DDD.ApiClient` instead of injecting `IBus`/`IReportingRepository` directly.
+
+**Why each new piece looks the way it does** — the research behind these choices lives in
+`docs/supporting/`, written at the point each decision was made, not after the fact:
+- `Fohjin.DDD.Sts` being a small OpenIddict-based dev STS rather than a full identity
+  platform: `supporting/oidc-sts-openiddict-vs-duende.md`.
+- `Fohjin.DDD.WebApi`'s `GET`-with-a-body `QUERY` HTTP method for OData-style filtering
+  (rather than only supporting simple `GET` query strings): `supporting/rfc10008-http-query-method.md`.
+- The AsyncAPI document `Fohjin.DDD.WebApi` publishes describing its SSE event stream
+  (`GET /api/events`), and the Saunter library generating it: `supporting/asyncapi-saunter.md`.
+- `Fohjin.DDD.ApiClient` (WinForms) and `Fohjin.DDD.WebUI/src/api/generated-client.ts`
+  (Vue) both being generated from the same `openapi.json` via NSwag, rather than
+  hand-written per client: `supporting/nswag-client-codegen.md`.
+- `Fohjin.DDD.AppHost` orchestrating local `dotnet run` and generating (not
+  hand-maintaining) a `docker-compose.yaml` for deployment: `supporting/hosting-aspire-docker-compose.md`.
 
 ## Data flow, one sentence per stage
 
-1. A WinForms Presenter builds a command and calls `IBus.Publish` + `CommitAsync`.
-2. The bus routes the command (by its runtime type) to the one `ICommandHandler<T>` that
+1. A Presenter (WinForms) or a Vue component builds a request and calls the API — via the
+   generated `FohjinApiClient` for WinForms, or a `fetch`-based generated client for Vue —
+   carrying a bearer token from the OIDC login each client performed against `Fohjin.DDD.Sts`.
+2. `Fohjin.DDD.WebApi`'s minimal API endpoint validates the token, builds the corresponding
+   command, and calls `IBus.Publish` + `CommitAsync` — from here on, everything is exactly
+   what it always was pre-migration.
+3. The bus routes the command (by its runtime type) to the one `ICommandHandler<T>` that
    handles it, wrapped in a transaction against the event store.
-3. The handler loads (or creates) an aggregate, calls a domain method, which raises one or
+4. The handler loads (or creates) an aggregate, calls a domain method, which raises one or
    more domain events.
-4. The event store persists the new events (and updates a version counter used for
+5. The event store persists the new events (and updates a version counter used for
    optimistic concurrency and, in principle, snapshotting).
-5. Each persisted event is re-published on the bus, this time as an `IDomainEvent` — the
-   bus fans it out via Rx to every independently-subscribed event handler.
-6. Event handlers update the reporting store's DTOs; the UI's next query (or refresh
-   timer) picks up the change.
+6. Each persisted event is re-published on the bus's `IObservable<IDomainEvent>` stream —
+   every independently-subscribed event handler gets its own filtered Rx subscription (see
+   `07-messaging-bus.md`), fired detached from the original HTTP request, which has
+   already returned `202 Accepted` by this point.
+7. Event handlers update the reporting store's DTOs. A client's next query picks up the
+   change — WinForms via a fixed-delay poll (`ISystemTimer`), Vue by re-fetching on
+   navigation, and either could in principle watch `GET /api/events` (Server-Sent Events)
+   for a push-based refresh instead, which is what the Monitoring screen in both clients
+   already does.
 
 ## Doc index
 
@@ -109,5 +167,6 @@ sides is a domain event traveling through the bus.
 | `06-event-sourcing-infrastructure.md` | Aggregate roots, event store, snapshots |
 | `07-messaging-bus.md` | Command dispatch + Rx event fan-out |
 | `08-reporting-read-models.md` | Read-model DTOs and their event-driven updates |
-| `09-winforms-ui.md` | Presenter/View pattern, screen flows |
+| `09-winforms-ui.md` | Both UIs: WinForms Presenter/View pattern and screen flows, and the Vue frontend as a sibling client |
 | `10-patterns-and-practices.md` | Named architectural/design patterns used, with references |
+| `supporting/` | Research backing the technology choices made getting here |

@@ -1,7 +1,6 @@
 using Fohjin.DDD.BankApplication.Views;
-using Fohjin.DDD.Bus;
 using Fohjin.DDD.Common;
-using Fohjin.DDD.EventStore;
+using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.BankApplication.Presenters;
 
@@ -12,20 +11,45 @@ public class MonitoringPresenter : Presenter<IMonitoringView>, IMonitoringPresen
     public MonitoringPresenter(
         IMonitoringView monitoringView,
         MonitoringLoggerProvider monitoringLoggerProvider,
-        IBus bus
+        EventStreamClient eventStreamClient,
+        ILogger<MonitoringPresenter> logger
         ) : base(monitoringView)
     {
         _monitoringView = monitoringView;
 
-        // Subscribe immediately (not in Display()) so nothing logged/published before the
-        // window is first shown is lost - the view itself buffers everything it's given.
+        // Subscribe/connect immediately (not in Display()) so nothing logged/published before
+        // the window is first shown is lost - the view itself buffers everything it's given.
+        // Phase 7 (docs/11-migration-plan.md): this used to be bus.Events.Subscribe(...), the
+        // same in-process IObservable<IDomainEvent> Fohjin.DDD.WebApi's SSE endpoint also
+        // subscribes to server-side - now that WinForms doesn't host the CQRS core itself
+        // anymore, it reaches the same events the same way Fohjin.DDD.WebUI's Monitoring.vue
+        // does: as a client of GET /api/events. The log half (MonitoringLoggerProvider) needed
+        // no change - it now captures HttpCallLoggingHandler's per-request log lines instead of
+        // in-process bus/command-handler logging (see HttpCallLoggingHandler's own comment).
         monitoringLoggerProvider.LineLogged += _monitoringView.AppendLogLine;
-        bus.Events.Subscribe(OnDomainEvent);
+        _ = ConsumeEventStreamAsync(eventStreamClient, logger);
     }
 
-    private void OnDomainEvent(IDomainEvent domainEvent) =>
-        _monitoringView.AppendEventLine(
-            $"{DateTime.Now:HH:mm:ss.fff}  {domainEvent.GetType().Name}  AggregateId={domainEvent.AggregateId}  Version={domainEvent.Version}");
+    private async Task ConsumeEventStreamAsync(EventStreamClient eventStreamClient, ILogger logger)
+    {
+        while (true)
+        {
+            try
+            {
+                await foreach (var domainEvent in eventStreamClient.StreamEventsAsync())
+                {
+                    _monitoringView.AppendEventLine(
+                        $"{domainEvent.OccurredAt:HH:mm:ss.fff}  {domainEvent.EventType}  AggregateId={domainEvent.AggregateId}  Version={domainEvent.Version}");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Event stream disconnected; retrying in 5s");
+            }
+
+            await Task.Delay(5000);
+        }
+    }
 
     public void Display() => _monitoringView.Show();
 }

@@ -1,6 +1,5 @@
 namespace Fohjin.DDD.Domain.Account;
 
-public class AccountBalanceNotZeroException : Exception
+public class AccountBalanceNotZeroException(string message) : Exception(message)
 {
-    public AccountBalanceNotZeroException(string message) : base(message) { }
 }

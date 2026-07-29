@@ -1,16 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace Fohjin.DDD.Commands;
 
-public record WithdrawalCashCommand : CommandBase
-{
-    public decimal Amount { get; init; }
-
-
-    [JsonConstructor]
-    public WithdrawalCashCommand() : base() { }
-    public WithdrawalCashCommand(Guid id, decimal amount) : base(id)
-    {
-        Amount = amount;
-    }
-}
+public record WithdrawalCashCommand(Guid Id, decimal Amount) : CommandBase(Id);

@@ -9,7 +9,7 @@ namespace Test.Fohjin.DDD;
 [TestCategory("unit")]
 public abstract class BaseTestFixture
 {
-    protected Exception CaughtException;
+    protected Exception CaughtException = null!;
     protected virtual void Given() { }
     protected abstract void When();
     protected virtual void Finally() { }
@@ -40,22 +40,18 @@ public abstract class BaseTestFixture
 public abstract class BaseTestFixture<TSubjectUnderTest>
 {
     public TestContext TestContext { get; set; } = null!;
+    public IServiceCollection Services { get; } = new ServiceCollection()
+        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information));
 
-    private readonly IServiceCollection _services = new ServiceCollection()
-        .AddLogging(opt => opt.AddConsole().SetMinimumLevel(LogLevel.Information))
-        ;
-    public IServiceCollection Services => _services;
-
-    private IServiceProvider _provider;
-    public IServiceProvider Provider => _provider ??= _services.BuildServiceProvider();
+    public IServiceProvider Provider => field ??= Services.BuildServiceProvider();
 
     public ILogger<T> Logger<T>() => Provider.GetRequiredService<ILogger<T>>();
 
-    private Dictionary<Type, object> mocks;
+    private Dictionary<Type, object> mocks = null!;
 
-    protected Dictionary<Type, object> DoNotMock;
-    protected TSubjectUnderTest SubjectUnderTest;
-    protected Exception CaughtException;
+    protected Dictionary<Type, object> DoNotMock = null!;
+    protected TSubjectUnderTest SubjectUnderTest = default!;
+    protected Exception CaughtException = null!;
     protected virtual void SetupDependencies() { }
     protected virtual void Given() { }
     protected abstract Task WhenAsync();
@@ -90,14 +86,14 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
 
     public Mock<TType> OnDependency<TType>() where TType : class
     {
-        return (Mock<TType>)mocks?[typeof(TType)];
+        return (Mock<TType>)mocks?[typeof(TType)]!;
     }
 
     private TSubjectUnderTest BuildSubjectUnderTest()
     {
         var constructorInfo = typeof(TSubjectUnderTest).GetConstructors().First();
 
-        var parameters = new List<object>();
+        List<object> parameters = [];
         foreach (var mock in mocks ?? Enumerable.Empty<KeyValuePair<Type, object>>())
         {
             if (DoNotMock == null )
@@ -112,7 +108,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
             parameters.Add(theObject);
         }
 
-        return (TSubjectUnderTest)constructorInfo.Invoke([.. parameters]);
+        return (TSubjectUnderTest)constructorInfo.Invoke([.. parameters])!;
     }
 
     private void BuildMocks()
@@ -128,7 +124,7 @@ public abstract class BaseTestFixture<TSubjectUnderTest>
     private static object CreateMock(Type type)
     {
         var constructorInfo = typeof(Mock<>).MakeGenericType(type).GetConstructors().First();
-        return constructorInfo.Invoke(new object[] { });
+        return constructorInfo.Invoke([]);
     }
 }
 

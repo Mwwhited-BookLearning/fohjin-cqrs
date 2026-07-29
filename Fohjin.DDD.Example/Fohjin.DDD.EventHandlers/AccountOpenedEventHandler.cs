@@ -4,14 +4,9 @@ using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class AccountOpenedEventHandler : EventHandlerBase<AccountOpenedEvent>
+public class AccountOpenedEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<AccountOpenedEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public AccountOpenedEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override async Task ExecuteAsync(AccountOpenedEvent theEvent)
     {

@@ -26,7 +26,7 @@ public record AccountDetailsReport
     {
         Id = id;
         ClientReportId = clientReportId;
-        Ledgers = new List<LedgerReport>();
+        Ledgers = [];
         AccountName = accountName;
         Balance = balance;
         AccountNumber = accountNumber;

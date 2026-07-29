@@ -29,8 +29,8 @@ public class When_opening_a_new_account : CommandTestFixture<OpenNewAccountForCl
     [TestMethod]
     public void Then_the_published_event_will_contain_the_expected_details_of_the_account()
     {
-        PublishedEvents?.Last<AccountToClientAssignedEvent>().AggregateId.WillBe(AggregateRoot?.Id);
-        PublishedEvents?.Last<AccountToClientAssignedEvent>().AccountId.WillNotBe(Guid.Empty);
+        PublishedEvents?.Last<AccountToClientAssignedEvent>()!.AggregateId.WillBe(AggregateRoot?.Id);
+        PublishedEvents?.Last<AccountToClientAssignedEvent>()!.AccountId.WillNotBe(Guid.Empty);
     }
 
     [TestMethod]

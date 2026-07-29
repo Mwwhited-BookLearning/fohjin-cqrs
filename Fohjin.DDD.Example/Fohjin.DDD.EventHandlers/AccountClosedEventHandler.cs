@@ -4,14 +4,9 @@ using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class AccountClosedEventHandler : EventHandlerBase<AccountClosedEvent>
+public class AccountClosedEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<AccountClosedEvent>
 {
-    private readonly IReportingRepository _reportingRepository;
-
-    public AccountClosedEventHandler(IReportingRepository reportingRepository)
-    {
-        _reportingRepository = reportingRepository;
-    }
+    private readonly IReportingRepository _reportingRepository = reportingRepository;
 
     public override async Task ExecuteAsync(AccountClosedEvent theEvent)
     {

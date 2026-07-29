@@ -1,6 +1,5 @@
 ﻿namespace Fohjin.DDD.Domain.Client;
 
-public class NonExistingBankCardException : Exception
+public class NonExistingBankCardException(string message) : Exception(message)
 {
-    public NonExistingBankCardException(string message) : base(message) { }
 }

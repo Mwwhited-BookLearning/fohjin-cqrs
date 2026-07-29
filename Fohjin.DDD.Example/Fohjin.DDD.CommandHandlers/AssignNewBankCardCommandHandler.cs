@@ -4,14 +4,9 @@ using Fohjin.DDD.EventStore;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class AssignNewBankCardCommandHandler : CommandHandlerBase<AssignNewBankCardCommand>
+public class AssignNewBankCardCommandHandler(IDomainRepository<IDomainEvent> repository) : CommandHandlerBase<AssignNewBankCardCommand>
 {
-    private readonly IDomainRepository<IDomainEvent> _repository;
-
-    public AssignNewBankCardCommandHandler(IDomainRepository<IDomainEvent> repository)
-    {
-        _repository = repository;
-    }
+    private readonly IDomainRepository<IDomainEvent> _repository = repository;
 
     public override async Task ExecuteAsync(AssignNewBankCardCommand assignNewCancelReportStolenBankCardCommand)
     {

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      FlaUI drives the real compiled Fohjin.DDD.BankApplication.exe through Windows UI Automation
+      (WinForms Control.Name maps to AutomationId automatically, no extra wiring needed in the
+      app itself). Microsoft.Playwright is used only to attach (via connectOverCDP) to the real
+      browser window DesktopAuthService opens for the STS login step - see
+      Fohjin.DDD.BankApplication/Auth/DesktopAuthService.cs's FOHJIN_TEST_BROWSER_EXECUTABLE seam
+      and this project's WinFormsAppFixture.cs - since driving an arbitrary rendered login form
+      through raw UI Automation is far more fragile than Playwright's DOM-aware locators.
+    -->
+    <PackageReference Include="FlaUI.Core" Version="5.0.0" />
+    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
+    <PackageReference Include="Microsoft.Playwright" Version="1.51.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.3.3" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.3.3" />
+  </ItemGroup>
+
+</Project>

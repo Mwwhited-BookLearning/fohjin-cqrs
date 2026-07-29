@@ -10,7 +10,7 @@ public class FirstTestEventHandler : IEventHandler<TestEvent>
 
     public FirstTestEventHandler()
     {
-        Ids = new List<Guid>();
+        Ids = [];
     }
 
     public Task ExecuteAsync(TestEvent @event)

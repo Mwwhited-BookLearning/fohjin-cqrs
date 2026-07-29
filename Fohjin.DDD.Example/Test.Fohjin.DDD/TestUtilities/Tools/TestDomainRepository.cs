@@ -3,30 +3,25 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Test.Fohjin.DDD.TestUtilities.Tools;
 
-public class TestDomainRepository<TDomainEvent> : IDomainRepository<TDomainEvent>
+public class TestDomainRepository<TDomainEvent>(
+    TestContext testContext,
+    IServiceProvider serviceProvider
+        ) : IDomainRepository<TDomainEvent>
      where TDomainEvent : IDomainEvent
 {
-    private readonly TestContext _testContext;
-    private readonly IServiceProvider _serviceProvider;
-
-    public TestDomainRepository(
-        TestContext testContext,
-        IServiceProvider serviceProvider
-        )
-    {
-        _testContext = testContext;
-        _serviceProvider = serviceProvider;
-    }
+    private readonly TestContext _testContext = testContext;
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
 
     void IDomainRepository<TDomainEvent>.Add<TAggregate>(TAggregate aggregateRoot)
     {
         _testContext.AddResults(typeof(TAggregate).Name, aggregateRoot);
     }
 
-    Task<TAggregate> IDomainRepository<TDomainEvent>.GetByIdAsync<TAggregate>(Guid id)
+    Task<TAggregate?> IDomainRepository<TDomainEvent>.GetByIdAsync<TAggregate>(Guid id)
+        where TAggregate : class
     {
         var aggregate = (TAggregate)typeof(TAggregate).FillObject(_serviceProvider);
         aggregate.Id = id;
-        return Task.FromResult(aggregate);
+        return Task.FromResult<TAggregate?>(aggregate);
     }
 }

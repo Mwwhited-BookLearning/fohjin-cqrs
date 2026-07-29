@@ -143,7 +143,10 @@ in `Fohjin.DDD.Configuration`).
 
 ## Startup wiring
 
-`Program.cs`: `services.BuildServiceProvider().BootStrapApplicationAsync()` (migrations,
-etc.) runs first, then `.SubscribeEventHandlers()` — every `IEventHandler` registered in
-DI gets its reflection-derived `IEventHandler<TEvent>` inspected once, and one Rx
-subscription created, *before* the UI is shown.
+This bus, and every command/event handler it dispatches to, now lives inside
+`Fohjin.DDD.WebApi`'s process rather than the WinForms exe's (see
+`00-architecture-overview.md`) — `Fohjin.DDD.WebApi/Program.cs`:
+`app.Services.BootStrapApplicationAsync()` (event-store/reporting database migrations)
+runs first, then `app.Services.SubscribeEventHandlers()` — every `IEventHandler`
+registered in DI gets its reflection-derived `IEventHandler<TEvent>` inspected once, and
+one Rx subscription created, *before* the API starts accepting requests.

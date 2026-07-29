@@ -1,13 +1,8 @@
 namespace Fohjin.DDD.Domain.Account;
 
-public class Amount
+public class Amount(decimal decimalAmount)
 {
-    private readonly decimal _decimalAmount;
-
-    public Amount(decimal decimalAmount)
-    {
-        _decimalAmount = decimalAmount;
-    }
+    private readonly decimal _decimalAmount = decimalAmount;
 
     public Amount Substract(Amount amount)
     {

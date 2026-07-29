@@ -4,14 +4,9 @@ using Fohjin.DDD.EventStore;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class ClientIsMovingCommandHandler : CommandHandlerBase<ClientIsMovingCommand>
+public class ClientIsMovingCommandHandler(IDomainRepository<IDomainEvent> repository) : CommandHandlerBase<ClientIsMovingCommand>
 {
-    private readonly IDomainRepository<IDomainEvent> _repository;
-
-    public ClientIsMovingCommandHandler(IDomainRepository<IDomainEvent> repository)
-    {
-        _repository = repository;
-    }
+    private readonly IDomainRepository<IDomainEvent> _repository = repository;
 
     public override async Task ExecuteAsync(ClientIsMovingCommand compensatingCommand)
     {

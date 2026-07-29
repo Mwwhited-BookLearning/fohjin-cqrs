@@ -4,14 +4,9 @@ using Fohjin.DDD.Services.Models;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class SendMoneyTransferFurtherEventHandler : EventHandlerBase<MoneyTransferSendEvent>
+public class SendMoneyTransferFurtherEventHandler(ISendMoneyTransfer sendMoneyTransfer) : EventHandlerBase<MoneyTransferSendEvent>
 {
-    private readonly ISendMoneyTransfer _sendMoneyTransfer;
-
-    public SendMoneyTransferFurtherEventHandler(ISendMoneyTransfer sendMoneyTransfer)
-    {
-        _sendMoneyTransfer = sendMoneyTransfer;
-    }
+    private readonly ISendMoneyTransfer _sendMoneyTransfer = sendMoneyTransfer;
 
     public override Task ExecuteAsync(MoneyTransferSendEvent theEvent)
     {

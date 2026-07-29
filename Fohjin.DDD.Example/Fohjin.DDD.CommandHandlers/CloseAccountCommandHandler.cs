@@ -4,14 +4,9 @@ using Fohjin.DDD.EventStore;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class CloseAccountCommandHandler : CommandHandlerBase<CloseAccountCommand>
+public class CloseAccountCommandHandler(IDomainRepository<IDomainEvent> repository) : CommandHandlerBase<CloseAccountCommand>
 {
-    private readonly IDomainRepository<IDomainEvent> _repository;
-
-    public CloseAccountCommandHandler(IDomainRepository<IDomainEvent> repository)
-    {
-        _repository = repository;
-    }
+    private readonly IDomainRepository<IDomainEvent> _repository = repository;
 
     public override async Task ExecuteAsync(CloseAccountCommand compensatingCommand)
     {

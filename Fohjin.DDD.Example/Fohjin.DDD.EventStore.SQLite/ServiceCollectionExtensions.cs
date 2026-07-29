@@ -8,10 +8,10 @@ namespace Fohjin.DDD.EventStore.SQLite;
 
 public static class ServiceCollectionExtensions
 {
-    public static T AddEventStoreSqliteServices<T>(this T service) where T : IServiceCollection
+    public static T AddEventStoreSqlServerServices<T>(this T service) where T : IServiceCollection
     {
         service.AddDbContextFactory<DomainEventStoreDbContext>((sp, options) =>
-            options.UseSqlite(sp.GetRequiredService<IConfiguration>()[DomainEventStorageConfig.ConnectionStringConfigKey]
+            options.UseSqlServer(sp.GetRequiredService<IConfiguration>()[DomainEventStorageConfig.ConnectionStringConfigKey]
                 ?? throw new NotSupportedException($"configuration for {nameof(DomainEventStorageConfig.ConnectionStringConfigKey)} is missing")));
 
         service.TryAddSingleton(typeof(IDomainEventStorage<>), typeof(DomainEventStorage<>));

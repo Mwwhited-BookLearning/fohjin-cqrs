@@ -91,7 +91,7 @@ public class Client : BaseAggregateRoot<IDomainEvent>, IOriginator
 
     IMemento IOriginator.CreateMemento()
     {
-        var bankCardMementos = new List<IMemento>();
+        List<IMemento> bankCardMementos = [];
         _bankCards.ForEach(x => bankCardMementos.Add(((IOriginator)x).CreateMemento()));
 
         return new ClientMemento(Id, Version, _clientName?.Name, _address?.Street, _address?.StreetNumber, _address?.PostalCode, _address?.City, _phoneNumber?.Number, _accounts, bankCardMementos);
@@ -133,7 +133,7 @@ public class Client : BaseAggregateRoot<IDomainEvent>, IOriginator
         if (!_bankCards.TryGetValueById(domainEvent.AggregateId, out IEntityEventProvider<IDomainEvent>? bankCard))
             throw new NonExistingBankCardException("The requested bank card does not exist!");
 
-        bankCard?.LoadFromHistory(new[] { domainEvent });
+        bankCard?.LoadFromHistory([domainEvent]);
     }
 
     private void OnNewBankCardForAccountAssigned(NewBankCardForAccountAsignedEvent newBankCardForAccountAssignedEvent)

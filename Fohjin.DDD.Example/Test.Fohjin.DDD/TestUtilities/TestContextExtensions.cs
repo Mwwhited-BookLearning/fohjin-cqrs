@@ -45,6 +45,17 @@ public static class TestContextExtensions
          context.TestName?.Length <= maxLenght ? context.TestName :
             context.TestName?[..(maxLenght / 2 - 1)] + "-" + context.TestName?[^(maxLenght / 2 - 1)..];
 
+    // A distinct SQL Server database per test (mirrors the old distinct-.db3-file-per-test
+    // scheme) - sanitized down to characters that are always safe as a bare (non-bracketed)
+    // database name, since a test name can be arbitrarily long/punctuated.
+    public static string GetDatabaseNameForTest(this TestContext context, string prefix)
+    {
+        var testClass = Type.GetType(context.FullyQualifiedTestClassName ?? "")?.Name ?? "UnknownClass";
+        var raw = $"{prefix}_{testClass}_{context.GetFileNameForTest()}";
+        var sanitized = System.Text.RegularExpressions.Regex.Replace(raw, "[^A-Za-z0-9_]", "_");
+        return sanitized.Length > 110 ? sanitized[..110] : sanitized;
+    }
+
     public static T? GetTestProperty<T>(this TestContext context, string key) =>
          context.Properties.TryGetValue(key, out var value) ? (T?)value : default;
 

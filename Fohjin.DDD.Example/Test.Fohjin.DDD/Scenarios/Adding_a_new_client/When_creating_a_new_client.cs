@@ -37,6 +37,6 @@ public class When_creating_a_new_client : CommandTestFixture<CreateClientCommand
     [TestMethod]
     public void Then_the_published_event_will_contain_the_phone_number_of_the_client()
     {
-        PublishedEvents?.Last<ClientCreatedEvent>().PhoneNumber.WillBe("95009937");
+        PublishedEvents?.Last<ClientCreatedEvent>()!.PhoneNumber.WillBe("95009937");
     }
 }

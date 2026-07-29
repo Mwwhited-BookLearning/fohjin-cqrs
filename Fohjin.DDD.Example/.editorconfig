@@ -1,0 +1,13 @@
+root = true
+
+[*.cs]
+# C# 12+ idiom modernization - see docs/11-migration-plan.md
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_primary_constructors = true:warning
+csharp_prefer_simple_using_statement = true:warning
+csharp_style_prefer_switch_expression = true:warning
+dotnet_style_prefer_collection_expression = when_types_loosely_match:warning
+dotnet_style_prefer_auto_properties = true:warning
+csharp_style_prefer_range_operator = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_expression_bodied_constructors = when_on_single_line:suggestion

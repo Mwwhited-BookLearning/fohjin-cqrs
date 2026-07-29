@@ -4,29 +4,21 @@ using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.EventStore.Storage;
 
-public class EventStoreUnitOfWork<TDomainEvent> : IEventStoreUnitOfWork<TDomainEvent> where TDomainEvent : IDomainEvent
+public class EventStoreUnitOfWork<TDomainEvent>(
+    IDomainEventStorage<TDomainEvent> domainEventStorage,
+    IIdentityMap<TDomainEvent> identityMap,
+    IBus bus,
+    ILogger<EventStoreUnitOfWork<TDomainEvent>> log
+        ) : IEventStoreUnitOfWork<TDomainEvent> where TDomainEvent : IDomainEvent
 {
     private static int _seed;
     private readonly int _id = _seed++;
 
-    private readonly IDomainEventStorage<TDomainEvent> _domainEventStorage;
-    private readonly IIdentityMap<TDomainEvent> _identityMap;
-    private readonly IBus _bus;
+    private readonly IDomainEventStorage<TDomainEvent> _domainEventStorage = domainEventStorage;
+    private readonly IIdentityMap<TDomainEvent> _identityMap = identityMap;
+    private readonly IBus _bus = bus;
     private readonly List<IEventProvider<TDomainEvent>> _eventProviders = new ();
-    private readonly ILogger _log;
-
-    public EventStoreUnitOfWork(
-        IDomainEventStorage<TDomainEvent> domainEventStorage,
-        IIdentityMap<TDomainEvent> identityMap,
-        IBus bus,
-        ILogger<EventStoreUnitOfWork<TDomainEvent>> log
-        )
-    {
-        _domainEventStorage = domainEventStorage;
-        _identityMap = identityMap;
-        _bus = bus;
-        _log = log;
-    }
+    private readonly ILogger _log = log;
 
     public async Task<TAggregate?> GetByIdAsync<TAggregate>(Guid id) where TAggregate : class, IOriginator, IEventProvider<TDomainEvent>, new()
     {

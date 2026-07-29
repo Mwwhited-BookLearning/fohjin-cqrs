@@ -1,0 +1,28 @@
+@Fohjin.DDD.WebApi_HostAddress = http://localhost:5284
+
+GET {{Fohjin.DDD.WebApi_HostAddress}}/api/clients
+Accept: application/json
+
+###
+
+POST {{Fohjin.DDD.WebApi_HostAddress}}/api/clients
+Content-Type: application/json
+
+{
+  "clientName": "Mark Nijhof",
+  "street": "Welhavens gate",
+  "streetNumber": "49b",
+  "postalCode": "5006",
+  "city": "Bergen",
+  "phoneNumber": "95009937"
+}
+
+###
+
+# CommitAsync is fire-and-forget, so re-run the GET above a moment later to see the new
+# client; copy its "id" from the response and paste it below to try the by-id lookup.
+@clientId = 00000000-0000-0000-0000-000000000000
+GET {{Fohjin.DDD.WebApi_HostAddress}}/api/clients/{{clientId}}
+Accept: application/json
+
+###

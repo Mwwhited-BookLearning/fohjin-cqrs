@@ -28,8 +28,8 @@ public class When_sending_a_money_transfer : CommandTestFixture<SendMoneyTransfe
     [TestMethod]
     public void Then_the_published_event_will_contain_the_amount_and_new_account_balance()
     {
-        PublishedEvents?.Last<MoneyTransferSendEvent>().Amount.WillBe(5.0M);
-        PublishedEvents?.Last<MoneyTransferSendEvent>().Balance.WillBe(15.0M);
-        PublishedEvents?.Last<MoneyTransferSendEvent>().TargetAccount.WillBe("1234567890");
+        PublishedEvents?.Last<MoneyTransferSendEvent>()!.Amount.WillBe(5.0M);
+        PublishedEvents?.Last<MoneyTransferSendEvent>()!.Balance.WillBe(15.0M);
+        PublishedEvents?.Last<MoneyTransferSendEvent>()!.TargetAccount.WillBe("1234567890");
     }
 }

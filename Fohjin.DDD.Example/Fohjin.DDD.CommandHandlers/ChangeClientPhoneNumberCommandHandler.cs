@@ -4,14 +4,9 @@ using Fohjin.DDD.EventStore;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class ChangeClientPhoneNumberCommandHandler : CommandHandlerBase<ChangeClientPhoneNumberCommand>
+public class ChangeClientPhoneNumberCommandHandler(IDomainRepository<IDomainEvent> repository) : CommandHandlerBase<ChangeClientPhoneNumberCommand>
 {
-    private readonly IDomainRepository<IDomainEvent> _repository;
-
-    public ChangeClientPhoneNumberCommandHandler(IDomainRepository<IDomainEvent> repository)
-    {
-        _repository = repository;
-    }
+    private readonly IDomainRepository<IDomainEvent> _repository = repository;
 
     public override async Task ExecuteAsync(ChangeClientPhoneNumberCommand compensatingCommand)
     {

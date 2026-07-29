@@ -9,13 +9,29 @@ public static class TypeExtensions
 {
     public static object BuildObject(this Type type, IServiceProvider? serviceProvider = null)
     {
-        var defaultConstructor = type.GetDefaultConstructorInfo() ?? throw new NotSupportedException($"{type}");
+        var defaultConstructor = type.GetDefaultConstructorInfo();
+        if (defaultConstructor == null)
+            return type.BuildFromPositionalConstructor(serviceProvider);
 
         var obj = defaultConstructor.Invoke([]);
 
         var properties = type.GetSetterProperties();
-        obj.FillObject(properties ,serviceProvider);
+        obj.FillObject(properties, serviceProvider);
         return obj;
+    }
+
+    // For positional records/primary-constructor types with no parameterless constructor
+    // (e.g. commands, since the C# 12 modernization pass) - synthesize each constructor
+    // argument the same way a property value would be synthesized.
+    private static object BuildFromPositionalConstructor(this Type type, IServiceProvider? serviceProvider)
+    {
+        var positionalCtor = type.GetConstructors().OrderByDescending(c => c.GetParameters().Length).FirstOrDefault()
+            ?? throw new NotSupportedException($"{type}");
+
+        var args = positionalCtor.GetParameters()
+            .Select(p => p.ParameterType.GetNonDefaultValue(serviceProvider))
+            .ToArray();
+        return positionalCtor.Invoke(args);
     }
 
     public static ConstructorInfo? GetDefaultConstructorInfo(this Type type) =>
@@ -69,7 +85,7 @@ public static class TypeExtensions
         {
             var list = type?.GetDefaultConstructorInfo()?.Invoke([]);
             var item = type?.GetGenericArguments()[0].GetNonDefaultValue(serviceProvider);
-            type?.GetMethod("Add")?.Invoke(list, new object?[] { item });
+            type?.GetMethod("Add")?.Invoke(list, [item]);
             return list;
         }
         else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(KeyValuePair<,>))
@@ -88,20 +104,29 @@ public static class TypeExtensions
         else
         {
             var ctor = type.GetDefaultConstructorInfo();
-            if (ctor == null && serviceProvider != null)
+            if (ctor == null)
             {
-                try
+                // No parameterless constructor - either a DI-resolvable service (try the
+                // container first) or a positional record/primary-constructor type with plain
+                // data parameters (e.g. commands since the C# 12 modernization pass), where
+                // there's nothing for the container to resolve and each argument needs to be
+                // synthesized the same way a property value would be.
+                if (serviceProvider != null)
                 {
-                    return ActivatorUtilities.CreateInstance(serviceProvider, type);
+                    try
+                    {
+                        return ActivatorUtilities.CreateInstance(serviceProvider, type);
+                    }
+                    catch (Exception)
+                    {
+                        // fall through to positional-constructor synthesis below
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"{type}:> {ex.Message}");
-                    throw;
-                }
+
+                return type.BuildFromPositionalConstructor(serviceProvider);
             }
 
-            return type.GetDefaultConstructorInfo()?
+            return ctor
                 .Invoke([])
                 .FillObject(serviceProvider);
         }
@@ -122,8 +147,8 @@ public static class TypeExtensions
             if (property.PropertyType.IsGenericType && property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 var list = property.GetValue(instance, []);
-                var value = list.GetType().GetProperty("Item").GetValue(list, new object[] { 0 });
-                value.GetType().EnsureNotDefault(value);
+                var value = list!.GetType().GetProperty("Item")!.GetValue(list, [0]);
+                value!.GetType().EnsureNotDefault(value);
             }
             else
             {

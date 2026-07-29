@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Fohjin.DDD.Reporting;
 
-public class ReportingDbContext : DbContext
+public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : DbContext(options)
 {
-    public ReportingDbContext(DbContextOptions<ReportingDbContext> options) : base(options)
-    {
-    }
-
     public DbSet<ClientReport> ClientReports => Set<ClientReport>();
     public DbSet<ClientDetailsReport> ClientDetailsReports => Set<ClientDetailsReport>();
     public DbSet<AccountReport> AccountReports => Set<AccountReport>();
@@ -16,6 +12,7 @@ public class ReportingDbContext : DbContext
     public DbSet<ClosedAccountReport> ClosedAccountReports => Set<ClosedAccountReport>();
     public DbSet<ClosedAccountDetailsReport> ClosedAccountDetailsReports => Set<ClosedAccountDetailsReport>();
     public DbSet<LedgerReport> LedgerReports => Set<LedgerReport>();
+    public DbSet<BankCardReport> BankCardReports => Set<BankCardReport>();
 
     // Child collections (Accounts/ClosedAccounts/Ledgers) are populated by the repository with
     // a follow-up query keyed on the existing "{ParentTypeName}Id" convention instead of being
@@ -37,12 +34,14 @@ public class ReportingDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.Ignore(x => x.Accounts);
             entity.Ignore(x => x.ClosedAccounts);
+            entity.Ignore(x => x.BankCards);
         });
 
         modelBuilder.Entity<AccountReport>(entity =>
         {
             entity.ToTable(nameof(AccountReport));
             entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });
 
         modelBuilder.Entity<AccountDetailsReport>(entity =>
@@ -57,6 +56,7 @@ public class ReportingDbContext : DbContext
             entity.HasBaseType((Type?)null);
             entity.ToTable(nameof(ClosedAccountReport));
             entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });
 
         modelBuilder.Entity<ClosedAccountDetailsReport>(entity =>
@@ -71,6 +71,22 @@ public class ReportingDbContext : DbContext
         {
             entity.ToTable(nameof(LedgerReport));
             entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<BankCardReport>(entity =>
+        {
+            entity.ToTable(nameof(BankCardReport));
+            entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });
     }
+
+    // Reflection-loaded child collections (SqlServerReportingRepository.GetChildrenOfTypeAsync)
+    // need a deterministic order - e.g. an account's Ledgers must read back in the order the
+    // transactions happened. SQLite happened to return rows in insertion (rowid) order with no
+    // ORDER BY; SQL Server does not make that guarantee. A shadow property (not a real CLR
+    // property on the DTO) gives every "child" entity a DB-assigned insertion order without
+    // adding a field to the public DTO/OpenAPI/NSwag-generated client contract.
+    public const string InsertionSequenceShadowProperty = "InsertionSequence";
 }

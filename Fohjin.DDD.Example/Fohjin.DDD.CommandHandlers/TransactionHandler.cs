@@ -4,22 +4,16 @@ using Microsoft.Extensions.Logging;
 
 namespace Fohjin.DDD.CommandHandlers;
 
-public class TransactionHandler<TCommand, TCommandHandler> :
+public class TransactionHandler<TCommand, TCommandHandler>(
+    IUnitOfWork unitOfWork,
+    ILogger<TransactionHandler<TCommand, TCommandHandler>> log
+        ) :
     ITransactionHandler<TCommand, TCommandHandler>
     where TCommandHandler : CommandHandlerBase<TCommand>
     where TCommand : class, ICommand
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly ILogger _log;
-
-    public TransactionHandler(
-        IUnitOfWork unitOfWork,
-        ILogger<TransactionHandler<TCommand, TCommandHandler>> log
-        )
-    {
-        _unitOfWork = unitOfWork;
-        _log = log;
-    }
+    private readonly IUnitOfWork _unitOfWork = unitOfWork;
+    private readonly ILogger _log = log;
 
     public async Task ExecuteAsync(TCommand command, TCommandHandler commandHandler)
     {

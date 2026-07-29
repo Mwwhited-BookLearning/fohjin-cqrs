@@ -72,6 +72,6 @@ public abstract class EventTestFixture<TEvent, TEventHandler>
     private static object CreateMock(Type type)
     {
         var constructorInfo = typeof(Mock<>).MakeGenericType(type).GetConstructors().First();
-        return constructorInfo.Invoke(new object[] { });
+        return constructorInfo.Invoke([]);
     }
 }

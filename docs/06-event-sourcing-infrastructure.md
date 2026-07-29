@@ -1,7 +1,11 @@
 # Event Sourcing Infrastructure
 
 The plumbing every aggregate in `01`–`05` sits on top of: how an aggregate raises and
-replays events, how it's loaded and saved, and how that's persisted to SQLite.
+replays events, how it's loaded and saved, and how that's persisted to SQL Server. None of
+this changed when this system grew an HTTP front door — it's reached today from
+`Fohjin.DDD.WebApi`'s minimal API endpoints (`00-architecture-overview.md`'s data-flow
+section) instead of directly from WinForms presenters, but the code in this document is
+untouched.
 
 ## Components
 
@@ -21,7 +25,7 @@ rectangle "DomainRepository<T>\n<size:11><<Component>></size>\nGetByIdAsync/Add,
 rectangle "EventStoreIdentityMap<T>\n<size:11><<Component>></size>\nIn-memory Type -> Guid -> instance cache" <<Component>> as idmap
 rectangle "EventStoreUnitOfWork<T>\n<size:11><<Component>></size>\nCommitAsync/RollbackAsync,\nsnapshot load, tracks dirty aggregates" <<Component>> as uow
 rectangle "DomainEventStorage<T>\n<size:11><<Component>></size>\nEF Core reads/writes,\nconcurrency check, transactions" <<Component>> as storage
-database "DomainEventStoreDbContext\n<size:11><<EF Core, SQLite>></size>" <<Component>> as dbcontext
+database "DomainEventStoreDbContext\n<size:11><<EF Core, SQL Server>></size>" <<Component>> as dbcontext
 
 aggRoot o-- entityList
 repo --> idmap : checks first
@@ -202,10 +206,15 @@ loop each tracked aggregate
     Storage -> Storage : concurrency check:\nstoredVersion != aggregate.Version\n&& aggregate.Version > 0\n-> throw ConcurrencyViolationException
     Storage -> Storage : insert one EventRecordEntity\nper change
     Storage -> Agg : UpdateVersion(newVersion)
-    Uow -> Bus : Publish(aggregate.GetChanges())
+    Uow -> Bus : Publish(aggregate.GetChanges())\n(just enqueues - see 07-messaging-bus.md)
     Uow -> Agg : Clear()
 end
-Uow -> Bus : CommitAsync() (flush to subscribers)
+Uow -> Bus : CommitAsync()\n(fire-and-forget: hands queued messages\nto the post-commit queue and returns\nwithout waiting for dispatch)
 Uow -> Storage : CommitAsync() (DB transaction commit)
 @enduml
 ```
+
+`Bus.CommitAsync()` returning does **not** mean event handlers have run yet — see
+`07-messaging-bus.md` for the fire-and-forget dispatch this hands off to, which is also
+why `Fohjin.DDD.WebApi`'s command endpoints return `202 Accepted` rather than `200 OK`
+with a result.

@@ -12,7 +12,10 @@ pattern* it's an instance of and *why* that pattern was the right tool.
 Every write goes in through a `Command` (`Fohjin.DDD.Commands`) and every read comes back
 out through a `Report` DTO (`Fohjin.DDD.Reporting.Dtos`) — never the reverse, and never
 the same object doing both jobs. This is the organizing principle of the whole codebase;
-see `00-architecture-overview.md` for the container-level view of the split.
+see `00-architecture-overview.md` for the container-level view of the split. Both clients
+(WinForms and Vue, `09-winforms-ui.md`) reach this split over HTTP now rather than an
+in-process reference, but the split itself — enforced inside `Fohjin.DDD.WebApi` — is
+exactly the same rule it always was.
 
 - **Reference**: Greg Young, *CQRS Documents* (the original write-up:
   https://cqrs.wordpress.com/documents/cqrs-documents/); this project is itself derived
@@ -72,7 +75,7 @@ Core, or the event store's serialization format.
 - **Reference**: Eric Evans, *DDD* (as above); also GoF's underlying idea of encapsulating
   data access behind an interface.
 - **In this repo**: `DomainRepository<T>` (write side, `06-event-sourcing-infrastructure.md`),
-  `SqliteReportingRepository` (read side, `08-reporting-read-models.md`).
+  `SqlServerReportingRepository` (read side, `08-reporting-read-models.md`).
 
 ### Unit of Work
 
@@ -115,7 +118,10 @@ caring who's listening or how many there are.
 The View is a passive interface (`IClientDetailsView`, etc.) with events and settable
 properties; the Presenter contains all the logic and is unit-testable without any real
 UI. This codebase's specific flavor auto-wires View events to Presenter methods by naming
-convention (`OnXxx` ↔ `Xxx`) via reflection, rather than manual event subscriptions.
+convention (`OnXxx` ↔ `Xxx`) via reflection, rather than manual event subscriptions. This
+is a WinForms-only pattern — Vue's equivalent (`Fohjin.DDD.WebUI`) is a plain Vue 3
+Options/Composition-API SPA with no MVP-style indirection; it's a sibling client, not a
+second implementation of this pattern.
 
 - **Reference**: Martin Fowler, *GUI Architectures*
   (https://martinfowler.com/eaaDev/uiArchs.html) — covers MVP alongside MVC and
@@ -132,10 +138,10 @@ generic query mechanism instead of N hand-written ones.
 
 - **Reference**: Eric Evans & Martin Fowler, *Specification*
   (https://martinfowler.com/apsupp/spec.pdf) — the general idea of representing a business
-  rule/query as a composable object rather than inline code. `SqliteReportingRepository`'s
+  rule/query as a composable object rather than inline code. `SqlServerReportingRepository`'s
   version is a simplified, reflection-driven take on the same idea (equality-only
   predicates, not full boolean composition).
-- **In this repo**: `SqliteReportingRepository.BuildPredicate<TDto>`. See
+- **In this repo**: `SqlServerReportingRepository.BuildPredicate<TDto>`. See
   `08-reporting-read-models.md`.
 
 ### Compensating transaction

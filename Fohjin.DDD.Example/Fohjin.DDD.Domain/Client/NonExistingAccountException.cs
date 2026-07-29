@@ -1,6 +1,5 @@
 ﻿namespace Fohjin.DDD.Domain.Client;
 
-public class NonExistingAccountException : Exception
+public class NonExistingAccountException(string message) : Exception(message)
 {
-    public NonExistingAccountException(string message) : base(message) { }
 }

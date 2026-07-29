@@ -23,6 +23,10 @@ public interface IClientDetailsView : IView
     IEnumerable<ClosedAccountReport>? ClosedAccounts { get; set; }
     ClosedAccountReport? GetSelectedClosedAccount();
 
+    IEnumerable<BankCardReport>? BankCards { get; set; }
+    BankCardReport? GetSelectedBankCard();
+    AccountReport? GetSelectedNewBankCardAccount();
+
     void EnableAddNewAccountMenu();
     void DisableAddNewAccountMenu();
     void EnableClientHasMovedMenu();
@@ -31,6 +35,8 @@ public interface IClientDetailsView : IView
     void DisableNameChangedMenu();
     void EnablePhoneNumberChangedMenu();
     void DisablePhoneNumberChangedMenu();
+    void EnableAddNewBankCardMenu();
+    void DisableAddNewBankCardMenu();
 
     void EnableSaveButton();
     void DisableSaveButton();
@@ -39,6 +45,11 @@ public interface IClientDetailsView : IView
     void EnableClientNamePanel();
     void EnablePhoneNumberPanel();
     void EnableAddNewAccountPanel();
+    void EnableAddNewBankCardPanel();
+    void EnableCancelBankCardButton();
+    void DisableCancelBankCardButton();
+    void EnableReportBankCardStolenButton();
+    void DisableReportBankCardStolenButton();
 
     event Action OnOpenSelectedAccount;
     event Action OnFormElementGotChanged;
@@ -51,4 +62,9 @@ public interface IClientDetailsView : IView
     event Action OnInitiateClientPhoneNumberChanged;
     event Action OnInitiateOpenNewAccount;
     event Action OnCreateNewAccount;
+    event Action OnInitiateAssignNewBankCard;
+    event Action OnAssignNewBankCard;
+    event Action OnBankCardSelectionChanged;
+    event Action OnCancelSelectedBankCard;
+    event Action OnReportSelectedBankCardStolen;
 }

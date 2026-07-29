@@ -25,6 +25,11 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
     public event Action? OnInitiateClientPhoneNumberChanged;
     public event Action? OnInitiateOpenNewAccount;
     public event Action? OnCreateNewAccount;
+    public event Action? OnInitiateAssignNewBankCard;
+    public event Action? OnAssignNewBankCard;
+    public event Action? OnBankCardSelectionChanged;
+    public event Action? OnCancelSelectedBankCard;
+    public event Action? OnReportSelectedBankCardStolen;
 
     private void RegisterClientEvents()
     {
@@ -41,6 +46,13 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
         _addressSaveButton.Click += (s, e) => OnSaveNewAddress?.Invoke();
         _phoneNumberCancelButton.Click += (s, e) => OnCancel?.Invoke();
         _phoneNumberSaveButton.Click += (s, e) => OnSaveNewPhoneNumber?.Invoke();
+        addNewBankCardToolStripMenuItem.Click += (s, e) => OnInitiateAssignNewBankCard?.Invoke();
+        _newBankCardAssignButton.Click += (s, e) => OnAssignNewBankCard?.Invoke();
+        _newBankCardCancelButton.Click += (s, e) => OnCancel?.Invoke();
+        _newBankCardAccount.SelectedIndexChanged += (s, e) => OnFormElementGotChanged?.Invoke();
+        _bankCards.SelectedIndexChanged += (s, e) => OnBankCardSelectionChanged?.Invoke();
+        _cancelBankCardButton.Click += (s, e) => OnCancelSelectedBankCard?.Invoke();
+        _reportBankCardStolenButton.Click += (s, e) => OnReportSelectedBankCardStolen?.Invoke();
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -82,7 +94,14 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
     public IEnumerable<AccountReport>? Accounts
     {
         get { return _accounts.DataSource as IEnumerable<AccountReport>; }
-        set { _accounts.DataSource = value; }
+        set
+        {
+            _accounts.DataSource = value;
+            // AssignNewBankCardForAccount only accepts one of this client's own open accounts
+            // (docs/02-bank-cards.md) - reusing the same list keeps that restriction implicit
+            // rather than needing a second lookup.
+            _newBankCardAccount.DataSource = value?.ToList();
+        }
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -97,6 +116,19 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
 
     public ClosedAccountReport? GetSelectedClosedAccount() =>
         _closedAccounts.SelectedItem as ClosedAccountReport;
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public IEnumerable<BankCardReport>? BankCards
+    {
+        get { return _bankCards.DataSource as IEnumerable<BankCardReport>; }
+        set { _bankCards.DataSource = value; }
+    }
+
+    public BankCardReport? GetSelectedBankCard() =>
+        _bankCards.SelectedItem as BankCardReport;
+
+    public AccountReport? GetSelectedNewBankCardAccount() =>
+        _newBankCardAccount.SelectedItem as AccountReport;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string? PhoneNumber
@@ -176,12 +208,43 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
         addNewAccountToolStripMenuItem.Enabled = true;
     }
 
+    public void EnableAddNewBankCardMenu()
+    {
+        addNewBankCardToolStripMenuItem.Enabled = true;
+    }
+
+    public void DisableAddNewBankCardMenu()
+    {
+        addNewBankCardToolStripMenuItem.Enabled = false;
+    }
+
+    public void EnableCancelBankCardButton()
+    {
+        _cancelBankCardButton.Enabled = true;
+    }
+
+    public void DisableCancelBankCardButton()
+    {
+        _cancelBankCardButton.Enabled = false;
+    }
+
+    public void EnableReportBankCardStolenButton()
+    {
+        _reportBankCardStolenButton.Enabled = true;
+    }
+
+    public void DisableReportBankCardStolenButton()
+    {
+        _reportBankCardStolenButton.Enabled = false;
+    }
+
     public void EnableSaveButton()
     {
         _addressSaveButton.Enabled = true;
         _phoneNumberSaveButton.Enabled = true;
         _clientNameSaveButton.Enabled = true;
         _newAccountCreateButton.Enabled = true;
+        _newBankCardAssignButton.Enabled = true;
     }
 
     public void DisableSaveButton()
@@ -190,6 +253,7 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
         _phoneNumberSaveButton.Enabled = false;
         _clientNameSaveButton.Enabled = false;
         _newAccountCreateButton.Enabled = false;
+        _newBankCardAssignButton.Enabled = false;
     }
 
     public void EnableOverviewPanel()
@@ -219,6 +283,12 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
     {
         tabControl1.SelectedIndex = 4;
         _newAccountName.Focus();
+    }
+
+    public void EnableAddNewBankCardPanel()
+    {
+        tabControl1.SelectedIndex = 5;
+        _newBankCardAccount.Focus();
     }
 
     private void ClientChanged(object sender, EventArgs e) =>

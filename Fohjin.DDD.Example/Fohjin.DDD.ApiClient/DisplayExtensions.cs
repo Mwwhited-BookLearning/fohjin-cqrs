@@ -31,3 +31,10 @@ public partial class LedgerReport
 {
     public override string ToString() => $"{Action} - {Amount:C}";
 }
+
+public partial class BankCardReport
+{
+    // No card number/expiry/type in the read model to show (docs/02-bank-cards.md) - this is
+    // everything that actually exists: which account it's linked to, and its status.
+    public override string ToString() => $"{Status} - account {AccountId}";
+}

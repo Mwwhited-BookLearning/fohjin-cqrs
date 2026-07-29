@@ -14,6 +14,7 @@ public class ClientDetailsPresenter(
 {
     private bool _createNewProcess = false;
     private bool _addNewAccountProcess = false;
+    private bool _addNewBankCardProcess = false;
     private int _editStep = 0;
     private ClientReport? _clientReport;
     private ClientDetailsReport _clientDetailsReport = new();
@@ -84,6 +85,12 @@ public class ClientDetailsPresenter(
         }
 
         if (_addNewAccountProcess)
+        {
+            _clientDetailsView.EnableSaveButton();
+            return;
+        }
+
+        if (_addNewBankCardProcess)
         {
             _clientDetailsView.EnableSaveButton();
             return;
@@ -216,6 +223,75 @@ public class ClientDetailsPresenter(
         });
     }
 
+    // AssignNewBankCardForAccount (Fohjin.DDD.Domain/Client.cs) guards that the account belongs
+    // to this client - only open accounts are ever in Client's own _accounts list, so only those
+    // are offered here (docs/02-bank-cards.md: this whole feature has no read-model card
+    // number/type, just an id + linked account + status - nothing here is invented beyond what
+    // the domain has, matching Vue's ClientDetails.vue).
+    public void InitiateAssignNewBankCard()
+    {
+        _editStep = 5;
+        _addNewBankCardProcess = true;
+
+        DisableAllMenuButtons();
+        _clientDetailsView.EnableAddNewBankCardPanel();
+    }
+
+    public async void AssignNewBankCard()
+    {
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
+        {
+            var account = _clientDetailsView.GetSelectedNewBankCardAccount();
+            await _apiClient.AssignNewBankCardAsync(_clientDetailsReport.Id, new AssignNewBankCardRequest
+            {
+                AccountId = account!.Id,
+            });
+
+            _addNewBankCardProcess = false;
+            EnableAllMenuButtons();
+            _clientDetailsView.EnableOverviewPanel();
+            _systemTimer.Trigger(LoadDataAsync, 2000);
+        });
+    }
+
+    // Bank-card cancel/report-stolen events carry the BANK CARD's own id as AggregateId, not the
+    // client's (docs/02-bank-cards.md) - irrelevant here since these call the API directly by
+    // the selected card's own Id, not by watching a live event stream the way Vue's client-side
+    // event bus does.
+    public void BankCardSelectionChanged()
+    {
+        var selected = _clientDetailsView.GetSelectedBankCard();
+        if (selected is not null && selected.Status == "Active")
+        {
+            _clientDetailsView.EnableCancelBankCardButton();
+            _clientDetailsView.EnableReportBankCardStolenButton();
+            return;
+        }
+
+        _clientDetailsView.DisableCancelBankCardButton();
+        _clientDetailsView.DisableReportBankCardStolenButton();
+    }
+
+    public async void CancelSelectedBankCard()
+    {
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
+        {
+            var card = _clientDetailsView.GetSelectedBankCard();
+            await _apiClient.CancelBankCardAsync(_clientDetailsReport.Id, card!.Id);
+            _systemTimer.Trigger(LoadDataAsync, 1000);
+        });
+    }
+
+    public async void ReportSelectedBankCardStolen()
+    {
+        await _popupPresenter.CatchPossibleExceptionAsync(async () =>
+        {
+            var card = _clientDetailsView.GetSelectedBankCard();
+            await _apiClient.ReportStolenBankCardAsync(_clientDetailsReport.Id, card!.Id);
+            _systemTimer.Trigger(LoadDataAsync, 1000);
+        });
+    }
+
     public void Cancel()
     {
         if (_createNewProcess)
@@ -225,6 +301,7 @@ public class ClientDetailsPresenter(
         }
 
         _addNewAccountProcess = false;
+        _addNewBankCardProcess = false;
         EnableAllMenuButtons();
         _clientDetailsView.EnableOverviewPanel();
         _clientDetailsView.DisableSaveButton();
@@ -281,6 +358,7 @@ public class ClientDetailsPresenter(
         _clientDetailsView.PhoneNumber = string.Empty;
         _clientDetailsView.Accounts = null;
         _clientDetailsView.ClosedAccounts = null;
+        _clientDetailsView.BankCards = null;
     }
 
     private void DisableAllMenuButtons()
@@ -289,6 +367,7 @@ public class ClientDetailsPresenter(
         _clientDetailsView.DisableClientHasMovedMenu();
         _clientDetailsView.DisableNameChangedMenu();
         _clientDetailsView.DisablePhoneNumberChangedMenu();
+        _clientDetailsView.DisableAddNewBankCardMenu();
     }
 
     private void SetClientDetailsData()
@@ -301,6 +380,7 @@ public class ClientDetailsPresenter(
         _clientDetailsView.PhoneNumber = _clientDetailsReport.PhoneNumber;
         _clientDetailsView.Accounts = _clientDetailsReport.Accounts;
         _clientDetailsView.ClosedAccounts = _clientDetailsReport.ClosedAccounts;
+        _clientDetailsView.BankCards = _clientDetailsReport.BankCards;
     }
 
     private void EnableAllMenuButtons()
@@ -309,6 +389,7 @@ public class ClientDetailsPresenter(
         _clientDetailsView.EnableClientHasMovedMenu();
         _clientDetailsView.EnableNameChangedMenu();
         _clientDetailsView.EnablePhoneNumberChangedMenu();
+        _clientDetailsView.EnableAddNewBankCardMenu();
     }
 
     private bool FormIsValid()
@@ -332,6 +413,9 @@ public class ClientDetailsPresenter(
         if (_editStep == 4)
             return
                 !string.IsNullOrEmpty(_clientDetailsView.NewAccountName);
+
+        if (_editStep == 5)
+            return _clientDetailsView.GetSelectedNewBankCardAccount() != null;
 
         throw new Exception("Edit step was not properly initialized!");
     }

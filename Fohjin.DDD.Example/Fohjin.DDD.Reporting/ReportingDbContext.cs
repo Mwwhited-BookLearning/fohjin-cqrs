@@ -39,6 +39,7 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
         {
             entity.ToTable(nameof(AccountReport));
             entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });
 
         modelBuilder.Entity<AccountDetailsReport>(entity =>
@@ -53,6 +54,7 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
             entity.HasBaseType((Type?)null);
             entity.ToTable(nameof(ClosedAccountReport));
             entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });
 
         modelBuilder.Entity<ClosedAccountDetailsReport>(entity =>
@@ -67,6 +69,15 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
         {
             entity.ToTable(nameof(LedgerReport));
             entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });
     }
+
+    // Reflection-loaded child collections (SqlServerReportingRepository.GetChildrenOfTypeAsync)
+    // need a deterministic order - e.g. an account's Ledgers must read back in the order the
+    // transactions happened. SQLite happened to return rows in insertion (rowid) order with no
+    // ORDER BY; SQL Server does not make that guarantee. A shadow property (not a real CLR
+    // property on the DTO) gives every "child" entity a DB-assigned insertion order without
+    // adding a field to the public DTO/OpenAPI/NSwag-generated client contract.
+    public const string InsertionSequenceShadowProperty = "InsertionSequence";
 }

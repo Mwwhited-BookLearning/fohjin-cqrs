@@ -37,19 +37,12 @@ public class clientRepositoryTest
     [TestInitialize]
     public async Task SetUp()
     {
-        TestContext.SetupWorkingDirectory();
-        var dataBaseFile = Path.Combine(
-            TestContext.Properties[TestContextExtensions.TestWorkingDirectory] as string
-            ?? throw new NotSupportedException($"TestContext property is missing {nameof(TestContextExtensions.TestWorkingDirectory)}"),
-            DomainDatabaseBootStrapper.DataBaseFile
-            );
+        var connectionString = TestSqlServer.ConnectionStringFor(TestContext.GetDatabaseNameForTest("EventStore"));
 
-        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
-
-        var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
+        await new DomainDatabaseBootStrapper().ReCreateDatabaseSchema(connectionString);
 
         var dbContextOptions = new DbContextOptionsBuilder<DomainEventStoreDbContext>()
-            .UseSqlite(sqliteConnectionString)
+            .UseSqlServer(connectionString)
             .Options;
 
         _domainEventStorage = new DomainEventStorage<IDomainEvent>(

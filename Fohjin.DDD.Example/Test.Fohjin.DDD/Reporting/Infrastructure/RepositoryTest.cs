@@ -15,27 +15,20 @@ public class RepositoryTest
 {
     public TestContext TestContext { get; set; } = null!;
 
-    private SqliteReportingRepository? _repository;
+    private SqlServerReportingRepository? _repository;
 
     [TestInitialize]
     public async Task SetUp()
     {
-        TestContext.SetupWorkingDirectory();
-        var dataBaseFile = Path.Combine(
-            (string?)TestContext.Properties[TestContextExtensions.TestWorkingDirectory] ??
-                throw new NotSupportedException($"TestContext.Property is missing {nameof(TestContextExtensions.TestWorkingDirectory)}"),
-            DomainDatabaseBootStrapper.DataBaseFile
-            );
+        var connectionString = TestSqlServer.ConnectionStringFor(TestContext.GetDatabaseNameForTest("Reporting"));
 
-        await new ReportingDatabaseBootStrapper().ReCreateDatabaseSchema(dataBaseFile);
-
-        var sqliteConnectionString = string.Format("Data Source={0}", dataBaseFile);
+        await new ReportingDatabaseBootStrapper().ReCreateDatabaseSchema(connectionString);
 
         var dbContextOptions = new DbContextOptionsBuilder<ReportingDbContext>()
-            .UseSqlite(sqliteConnectionString)
+            .UseSqlServer(connectionString)
             .Options;
 
-        _repository = new SqliteReportingRepository(new PooledDbContextFactory<ReportingDbContext>(dbContextOptions));
+        _repository = new SqlServerReportingRepository(new PooledDbContextFactory<ReportingDbContext>(dbContextOptions));
     }
 
     [TestMethod]

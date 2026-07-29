@@ -6,6 +6,8 @@ using static OpenIddict.Abstractions.OpenIddictConstants;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
@@ -23,8 +25,8 @@ builder.Services.AddCors(options => options.AddPolicy(VueDevCorsPolicy, policy =
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    options.UseSqlite(builder.Configuration["Sts:SqliteConnectionString"]
-        ?? throw new NotSupportedException("configuration for Sts:SqliteConnectionString is missing"));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("stsdb")
+        ?? throw new NotSupportedException("configuration for ConnectionStrings:stsdb is missing"));
 
     // Registers the entity sets OpenIddict needs (applications, authorizations, scopes, tokens)
     // into the same DbContext/database as ASP.NET Core Identity's own tables.
@@ -88,6 +90,8 @@ else
 {
     app.UseExceptionHandler("/Home/Error");
 }
+
+app.MapDefaultEndpoints();
 
 app.UseStaticFiles();
 app.UseRouting();

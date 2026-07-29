@@ -396,3 +396,9 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Aspire `aspire publish` / `dotnet run -- publish` output - generated deployment artifacts
+# (docker-compose.yaml + .env with real connection-string secrets filled in), not hand-maintained
+# source (docs/11-migration-plan.md Phase 8).
+**/publish-output/
+**/aspire-output/

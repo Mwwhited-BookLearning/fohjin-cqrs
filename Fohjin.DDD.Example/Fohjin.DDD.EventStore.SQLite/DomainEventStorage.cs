@@ -9,7 +9,12 @@ namespace Fohjin.DDD.EventStore.SQLite;
 
 public static class DomainEventStorageConfig
 {
-    public const string ConnectionStringConfigKey = "DomainEventStorage:SqliteConnectionString";
+    // Aspire's WithReference(sqlDb) on a project resource injects the connection string as
+    // ConnectionStrings__eventstoredb, which ASP.NET Core's config system maps to
+    // ConnectionStrings:eventstoredb - using that same key outside Aspire (docker-compose .env,
+    // plain appsettings.json) keeps one connection-string wiring convention everywhere.
+    public const string ConnectionStringName = "eventstoredb";
+    public const string ConnectionStringConfigKey = $"ConnectionStrings:{ConnectionStringName}";
 }
 
 public class DomainEventStorage<TDomainEvent>(IDbContextFactory<DomainEventStoreDbContext> dbContextFactory, IExtendedFormatter formatter) : IDomainEventStorage<TDomainEvent> where TDomainEvent : IDomainEvent

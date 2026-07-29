@@ -30,6 +30,8 @@ using System.Threading.Channels;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.AddOpenApi();
 
 // The Vue SPA (Fohjin.DDD.WebUI) calls this API directly from the browser - needs CORS, unlike
@@ -50,7 +52,7 @@ builder.Services
     .AddConfigurationServices()
     .AddEventHandlersServices()
     .AddEventStoreServices()
-    .AddEventStoreSqliteServices()
+    .AddEventStoreSqlServerServices()
     .AddReportingServices()
     .AddDddServices()
     ;
@@ -114,6 +116,8 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
+app.MapDefaultEndpoints();
+
 app.MapAsyncApiDocuments();
 app.MapAsyncApiUi();
 
@@ -174,7 +178,7 @@ app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository reposi
 
 // Phase 6: the Client Details screen needs the richer ClientDetailsReport (address, phone
 // number, linked accounts) rather than the bare id+name ClientReport above. Same
-// IReportingRepository.GetByExampleAsync read pattern as GetClientById - SqliteReportingRepository
+// IReportingRepository.GetByExampleAsync read pattern as GetClientById - SqlServerReportingRepository
 // auto-loads ClientDetailsReport.Accounts/ClosedAccounts via its "{ParentTypeName}Id" convention,
 // so no extra join code is needed here.
 app.MapGet("/api/clients/{id:guid}/details", async (Guid id, IReportingRepository repository) =>

@@ -10,7 +10,8 @@ public class DomainEventStoreDbContextFactory : IDesignTimeDbContextFactory<Doma
     public DomainEventStoreDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DomainEventStoreDbContext>();
-        optionsBuilder.UseSqlite(Environment.GetEnvironmentVariable(DomainEventStorageConfig.ConnectionStringConfigKey) ?? "Data Source=domainDataBase.db3");
+        optionsBuilder.UseSqlServer(Environment.GetEnvironmentVariable(DomainEventStorageConfig.ConnectionStringConfigKey)
+            ?? "Server=127.0.0.1,14330;Database=FohjinDomainEventStore;User Id=sa;Password=Dev!Passw0rd;TrustServerCertificate=True;Encrypt=False");
         return new DomainEventStoreDbContext(optionsBuilder.Options);
     }
 }

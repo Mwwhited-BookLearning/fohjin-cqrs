@@ -5,25 +5,23 @@ namespace Fohjin.DDD.BankApplication;
 
 public class DomainDatabaseBootStrapper
 {
-    public const string DataBaseFile = "domainDataBase.db3";
-
-    public async Task ReCreateDatabaseSchema(string dataBaseFile)
+    public async Task ReCreateDatabaseSchema(string connectionString)
     {
-        await using var context = CreateContext(dataBaseFile);
+        await using var context = CreateContext(connectionString);
         await context.Database.EnsureDeletedAsync();
         await context.Database.MigrateAsync();
     }
 
-    public async Task CreateDatabaseSchemaIfNeeded(string dataBaseFile)
+    public async Task CreateDatabaseSchemaIfNeeded(string connectionString)
     {
-        await using var context = CreateContext(dataBaseFile);
+        await using var context = CreateContext(connectionString);
         await context.Database.MigrateAsync();
     }
 
-    private static DomainEventStoreDbContext CreateContext(string dataBaseFile)
+    private static DomainEventStoreDbContext CreateContext(string connectionString)
     {
         var optionsBuilder = new DbContextOptionsBuilder<DomainEventStoreDbContext>();
-        optionsBuilder.UseSqlite($"Data Source={dataBaseFile}");
+        optionsBuilder.UseSqlServer(connectionString);
         return new DomainEventStoreDbContext(optionsBuilder.Options);
     }
 }

@@ -1,4 +1,6 @@
 using Fohjin.DDD.Configuration;
+using Fohjin.DDD.EventStore.SQLite;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Fohjin.DDD.BankApplication;
@@ -7,13 +9,16 @@ public static class ServiceProviderExtensions
 {
     public static async Task<T> BootStrapApplicationAsync<T>(this T serviceProvider) where T : IServiceProvider
     {
-        var dataBaseFile = Path.GetFullPath(DomainDatabaseBootStrapper.DataBaseFile);
-        var reportingFile = Path.GetFullPath(ReportingDatabaseBootStrapper.ReportingDataBaseFile);
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        var domainConnectionString = configuration[DomainEventStorageConfig.ConnectionStringConfigKey]
+            ?? throw new NotSupportedException($"configuration for {DomainEventStorageConfig.ConnectionStringConfigKey} is missing");
+        var reportingConnectionString = configuration[Fohjin.DDD.Reporting.ServiceCollectionExtensions.ConnectionStringConfigKey]
+            ?? throw new NotSupportedException($"configuration for {Fohjin.DDD.Reporting.ServiceCollectionExtensions.ConnectionStringConfigKey} is missing");
 
         await ActivatorUtilities.CreateInstance<DomainDatabaseBootStrapper>(serviceProvider)
-            .CreateDatabaseSchemaIfNeeded(dataBaseFile);
+            .CreateDatabaseSchemaIfNeeded(domainConnectionString);
         await ActivatorUtilities.CreateInstance<ReportingDatabaseBootStrapper>(serviceProvider)
-            .CreateDatabaseSchemaIfNeeded(reportingFile);
+            .CreateDatabaseSchemaIfNeeded(reportingConnectionString);
 
         return serviceProvider;
     }

@@ -495,22 +495,127 @@ SSE instead of the in-process `IObservable<IDomainEvent>`). Full solution build 
 413 + 14 passed (unit/integration), 4 skipped, 0 failed, plus 1/1 passed in the new UI
 automation suite.
 
-### Phase 8 — Hosting: Aspire + Docker Compose
+### Phase 8 — Hosting: Aspire + Docker Compose (done)
 
-`Fohjin.DDD.AppHost` + `Fohjin.DDD.ServiceDefaults` (Aspire convention), modeling
-STS → WebApi → WebUI startup order. Publish to `docker-compose.yml` via
-`Aspire.Hosting.Docker` (`docs/supporting/hosting-aspire-docker-compose.md`).
+**SQL Server migration (groundwork, done first as planned)**: `Microsoft.EntityFrameworkCore.Sqlite`
+replaced 1:1 by `Microsoft.EntityFrameworkCore.SqlServer` in `Fohjin.DDD.EventStore.SQLite`,
+`Fohjin.DDD.Reporting`, `Fohjin.DDD.Sts`, and `Test.Fohjin.DDD` (the dead `Microsoft.Data.Sqlite`
+reference in `Fohjin.DDD.Configuration` was also removed — unused, a leftover from an earlier
+phase). All three SQLite-shaped `Migrations/` folders were deleted and regenerated fresh against
+SQL Server (`dotnet ef migrations add InitialCreate` per project — a hand-edit of the old
+migrations wasn't viable: SQLite-only annotations like `Sqlite:Autoincrement` don't translate, and
+`decimal` columns need to go from SQLite's `TEXT` storage to a real `decimal(18,2)`). Connection
+string config switched from ad-hoc keys (`Reporting:SqliteConnectionString`, etc.) to Aspire's
+standard `ConnectionStrings:<name>` convention (`eventstoredb`/`reportingdb`/`stsdb`) — this is the
+exact shape `WithReference(sqlDb)` injects for a project resource, so using it outside Aspire too
+(plain `appsettings.json`, docker-compose `.env`) keeps one connection-string convention everywhere
+instead of two. `DomainDatabaseBootStrapper`/`ReportingDatabaseBootStrapper` (`Fohjin.DDD.BankApplication.Core`)
+were simplified to take a connection string directly instead of a SQLite file path, collapsing what
+used to be two independent `UseSqlite(...)` call sites (one in DI registration, one hand-rolled in
+the bootstrapper) down to callers always supplying a real connection string. `SqliteReportingRepository`
+renamed to `SqlServerReportingRepository` (zero SQLite-specific code in it either way — it's a pure
+reflection-based `IQueryable` wrapper).
 
-**Decided**: move off SQLite entirely, to SQL Server running in a **Linux** container
-(Aspire has a first-class `AddSqlServer(...)` resource for this). One database engine for
-every environment — no SQLite-for-dev/SQL-Server-for-prod split to keep in sync. This
-touches both `Fohjin.DDD.EventStore.SQLite` and `Fohjin.DDD.Reporting`'s EF Core
-provider/migrations (`Microsoft.EntityFrameworkCore.Sqlite` → `Microsoft.EntityFrameworkCore.SqlServer`,
-new migrations generated against SQL Server) — likely worth its own step at the start of
-this phase, before wiring up the Aspire resource itself.
+**Real bug found by the provider swap** (same story as Phase 7's UI automation catching real bugs):
+`SqlServerReportingRepository`'s reflection-loaded child collections (`AccountDetailsReport.Ledgers`,
+`ClientDetailsReport.Accounts`/`ClosedAccounts`) had no `ORDER BY` — SQLite happened to return rows
+in rowid/insertion order with a plain unordered `SELECT`, so a test asserting ledger entries came
+back in the order they were deposited passed by accident, not by any real guarantee. SQL Server
+doesn't preserve insertion order without an explicit order column, and the test failed immediately
+after the swap (`RepositoryTest.When_calling_GetByExample_it_will_return_a_list_with_dtos_matching_the_example_inclusing_child_objects`).
+Fixed at the source, not just in the test: `ReportingDbContext` now configures an
+`InsertionSequence` EF Core *shadow property* (`ValueGeneratedOnAdd()`, becomes a SQL Server
+`IDENTITY` column) on every entity type that's ever loaded as a "child" — a shadow property has no
+corresponding CLR property, so it never appears in the DTO, the OpenAPI contract, or the
+NSwag-generated TypeScript client; `GetChildrenOfTypeAsync` orders by
+`EF.Property<long>(x, "InsertionSequence")`. This matters for real users, not just this test: an
+account's ledger/transaction history needs to display chronologically.
 
-**Exit criteria**: `dotnet run` on the AppHost boots the whole system with one command;
-publishing produces a working `docker-compose up`.
+**Test isolation reworked from files to database names**: `Test.Fohjin.DDD`'s repository tests used
+to give each test its own `.db3` file (`TestContext`-derived path); they now give each test its own
+SQL Server *database name* (`TestContextExtensions.GetDatabaseNameForTest`, sanitized/truncated to
+a safe bare identifier) against the one shared dev SQL Server instance, with the same
+drop-then-migrate (`EnsureDeletedAsync` + `MigrateAsync`) pattern as before. `Test.Fohjin.DDD.ApiClient`'s
+`WebApiIntegrationTestFixture` used to swap the whole process's current directory to a fresh temp
+folder per test — a workaround for two independent SQLite path-resolution mechanisms (the
+bootstrapper's hand-rolled path, the DI-registered connection string) needing to agree on the same
+`.db3` file. With a single `ConnectionStrings:*`-driven connection string and no file involved, that
+whole class of problem disappears: the fixture now overrides `ConnectionStrings:eventstoredb`/
+`reportingdb` via `ConfigureAppConfiguration` to a per-run database name and drops it in
+`TestCleanup` via a raw `ALTER DATABASE ... SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE`.
+
+**Aspire resource model** (`Fohjin.DDD.AppHost`, `Fohjin.DDD.ServiceDefaults` — standard Aspire
+convention projects, `ServiceDefaults` wired into both `Fohjin.DDD.Sts` and `Fohjin.DDD.WebApi` via
+`AddServiceDefaults()`/`MapDefaultEndpoints()` for OpenTelemetry/health checks/service discovery):
+one `AddSqlServer("sql", ...)` resource (fixed port 14330, fixed dev password, named data volume)
+with three `AddDatabase(...)` children (`eventstoredb`/`reportingdb`/`stsdb`); `sts` and `webapi`
+project resources with **fixed** ports (5310/5320) rather than Aspire's usual random-port
+assignment — every other place in this solution already hardcodes these exact addresses (the STS's
+seeded dev-client redirect URIs, the WebApi/Sts CORS policy, the Vue app's `.env.development`, the
+FlaUI UI-automation fixture), so pinning them here keeps all of that working unchanged; the two
+projects' `launchSettings.json` were updated to match, so a plain `dotnet run` outside Aspire
+defaults to the same ports too. The Vue dev server (`Fohjin.DDD.WebUI`) is modeled via
+`AddViteApp("webui", "../Fohjin.DDD.WebUI")` with the same fixed port (5173) and its
+`VITE_API_BASE_URL`/`VITE_STS_AUTHORITY`/`VITE_STS_CLIENT_ID` env vars wired from the `webapi`
+resource's endpoint — `dotnet run` on the AppHost now starts *all four* pieces (SQL Server
+container, STS, WebApi, Vue dev server) with one command, verified live: all four ports reachable,
+all three databases created and migrated automatically.
+
+One real environment gotcha hit while verifying this: the Vite child process launched via
+`npm`/`node` silently failed to start at all, because this machine's `PATH` still resolves an old,
+broken `C:\repo\oobdev\RunScripts\npm.bat` wrapper (the same one Phase 6 already worked around by
+running its Node tooling in Docker) ahead of the native Node.js install mentioned earlier in this
+session — `AddViteApp` inherits whatever `PATH` the AppHost process itself was launched with, so
+this isn't an Aspire bug, just this workstation's `PATH` ordering; prepending the real
+`C:\Program Files\nodejs` ahead of it fixed it immediately.
+
+**Docker Compose publish** (`Aspire.Hosting.Docker`, `builder.AddDockerComposeEnvironment(...)`),
+run via the separate `aspire` CLI tool (`aspire publish --output-path ...` — `dotnet run --
+publish` does *not* work; the AppHost executable itself has no `publish`/`--publisher` argument
+parsing, that lives entirely in the `aspire` CLI, installed as the `aspire.cli` global dotnet tool)
+generates `docker-compose.yaml` + a `.env` template (image names/ports/the SQL password as
+placeholders to fill in — this output is git-ignored, both because it's generated and because a
+filled-in `.env` holds a real, if dev-only, password). Two real gaps found and fixed along the way:
+- **`AddViteApp`'s resource was silently missing from the generated compose file entirely** — a
+  known upstream Aspire limitation ([microsoft/aspire#15621](https://github.com/microsoft/aspire/issues/15621)),
+  not something misconfigured here. The documented workaround is exactly what fixed it: adding a
+  hand-written `Dockerfile` to `Fohjin.DDD.WebUI` (Aspire's JS hosting integration "backs off" and
+  uses a real Dockerfile if one exists instead of generating its own, and that's also what actually
+  got the resource included in the compose output). The Dockerfile builds the Vite app
+  (`npm run build`) and serves the static output via `nginx:alpine` — a production Vite app is
+  static assets, not a running dev server, so this is the architecturally-correct shape regardless
+  of the Aspire limitation. One follow-on fix: `nginx` listens on port 80 by default, but the
+  compose-generated port mapping assumes 5173 (this resource's Aspire-modeled port) — the
+  Dockerfile now rewrites nginx's `listen` directive to 5173 so the two agree.
+- **`sts`/`webapi`/`webui` had no host-reachable `ports:` mapping**, only `expose:` (container-network-only)
+  — fixed by adding `.WithExternalHttpEndpoints()` to all three resources in `AppHost.cs`, which
+  makes Aspire's Docker Compose publisher emit real `"5310:${STS_PORT}"`-style host port mappings.
+
+**Verified end-to-end**: built real Linux container images for `sts`/`webapi` via the .NET SDK's
+built-in container publish (`dotnet publish -p:PublishProfile=DefaultContainer`, no extra package
+needed) and for `webui` via `docker build` against the new Dockerfile; filled in the generated
+`.env`; ran `docker compose up` on the *published, generated* `docker-compose.yaml` (not the
+AppHost, not `dotnet run`) and confirmed all five containers (SQL Server, STS, WebApi, WebUI, the
+Aspire dashboard) start, STS/WebApi both connect to SQL Server and complete their EF Core migrations
+successfully, and all three user-facing endpoints (STS discovery document, WebApi, WebUI) respond
+correctly from the host machine on their published ports.
+
+**Known operational caveat, left as-is rather than hand-patched**: the generated compose file's
+`depends_on: sql: condition: service_started` only waits for the SQL Server *container process* to
+start, not for the SQL Server *engine* to actually be ready to accept queries — this worked
+reliably against a brand-new empty data volume but failed once (`SqlServerDatabaseCreator.CreateAsync`
+hit SQL error 1801, "database already exists") when reattaching an *existing* data volume, where
+recovery apparently takes long enough for the app's first connection attempt to race it. A real fix
+would need a proper SQL Server healthcheck + `condition: service_healthy` baked into the *generated*
+compose output (Aspire's `AddSqlServer` doesn't currently emit one) — since this repo treats
+`docker-compose.yaml` as generated, not hand-maintained, patching the generated file directly isn't
+the right lever, and it wasn't reproducible on a second attempt against the same (now-recovered)
+volume. Worth revisiting if it recurs.
+
+**Exit criteria — met**: `dotnet run` on `Fohjin.DDD.AppHost` boots the whole system (SQL Server,
+STS, WebApi, Vue dev server) with one command; `aspire publish` produces a `docker-compose.yaml` +
+`.env` that, once the three application images are built and `.env` is filled in, boots via plain
+`docker compose up` into a fully working system reachable from the host on its published ports.
 
 ### Phase 9 — Decommission the direct in-process wiring
 

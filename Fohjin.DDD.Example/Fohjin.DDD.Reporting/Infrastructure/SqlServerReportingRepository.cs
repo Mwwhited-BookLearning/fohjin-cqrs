@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace Fohjin.DDD.Reporting.Infrastructure;
 
-public class SqliteReportingRepository(IDbContextFactory<ReportingDbContext> dbContextFactory) : IReportingRepository
+public class SqlServerReportingRepository(IDbContextFactory<ReportingDbContext> dbContextFactory) : IReportingRepository
 {
     private readonly IDbContextFactory<ReportingDbContext> _dbContextFactory = dbContextFactory;
 
@@ -93,7 +93,10 @@ public class SqliteReportingRepository(IDbContextFactory<ReportingDbContext> dbC
     private static async Task<List<TChild>> GetChildrenOfTypeAsync<TChild>(ReportingDbContext context, string fkPropertyName, object parentId) where TChild : class
     {
         var predicate = BuildPredicate<TChild>(new Dictionary<string, object?> { [fkPropertyName] = parentId });
-        return await context.Set<TChild>().Where(predicate).ToListAsync();
+        return await context.Set<TChild>()
+            .Where(predicate)
+            .OrderBy(x => EF.Property<long>(x, ReportingDbContext.InsertionSequenceShadowProperty))
+            .ToListAsync();
     }
 
     private static Expression<Func<TDto, bool>> BuildPredicate<TDto>(IReadOnlyDictionary<string, object?> example)

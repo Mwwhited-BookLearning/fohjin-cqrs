@@ -13,19 +13,12 @@ namespace Test.Fohjin.DDD.ApiClient;
 [TestCategory("integration")]
 public class AuthenticationRequiredTest
 {
-    private string _originalDirectory = null!;
-    private string _tempDirectory = null!;
     private WebApplicationFactory<Program> _factory = null!;
     private HttpClient _httpClient = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _originalDirectory = Directory.GetCurrentDirectory();
-        _tempDirectory = Path.Combine(Path.GetTempPath(), $"Fohjin.DDD.ApiClient.Tests_{Guid.NewGuid()}");
-        Directory.CreateDirectory(_tempDirectory);
-        Directory.SetCurrentDirectory(_tempDirectory);
-
         _factory = new WebApplicationFactory<Program>();
         _httpClient = _factory.CreateClient();
     }
@@ -35,9 +28,6 @@ public class AuthenticationRequiredTest
     {
         _httpClient.Dispose();
         _factory.Dispose();
-        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
-        Directory.SetCurrentDirectory(_originalDirectory);
-        Directory.Delete(_tempDirectory, recursive: true);
     }
 
     [TestMethod]

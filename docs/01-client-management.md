@@ -84,66 +84,80 @@ Each event has a matching event handler that updates the read model (`ClientRepo
 
 ## Sequence: creating a new client
 
-The WinForms wizard (`ClientDetailsPresenter`, see `09-winforms-ui.md`) collects name,
-address, and phone number across three panels before publishing anything — only the last
-step actually talks to the bus.
+Both clients collect the same four fields (name, address, phone) but present them
+differently: the WinForms wizard (`ClientDetailsPresenter`, see `09-winforms-ui.md`)
+gathers them across three panels before sending anything, while Vue's `ClientCreate.vue`
+is a single form submitted all at once — either way, exactly one `POST /api/clients` call
+reaches `Fohjin.DDD.WebApi`, which is where everything below the HTTP line is unchanged
+from before this system had a web front door at all.
 
 ```plantuml
 @startuml
 actor Employee
-participant "ClientDetailsPresenter" as Presenter
+participant "ClientDetailsPresenter\n(WinForms) or ClientCreate.vue" as Client
+participant "FohjinApiClient\n(generated, either client)" as ApiClient
+participant "Fohjin.DDD.WebApi\nPOST /api/clients" as Endpoint
 participant "IBus\n(DirectBus)" as Bus
 participant "CreateClientCommandHandler" as Handler
-participant "Client\n(aggregate)" as Client
+participant "Client\n(aggregate)" as Aggregate
 participant "Event Store" as Store
 participant "ClientCreatedEventHandler" as EvtHandler
 participant "Reporting Store" as Reporting
 
-Employee -> Presenter : fill name, address, phone\n(3 wizard steps, no bus calls yet)
-Employee -> Presenter : SaveNewPhoneNumber() (final step)
-Presenter -> Bus : Publish(CreateClientCommand)
-Presenter -> Bus : CommitAsync()
+Employee -> Client : fill name, address, phone,\nsubmit (wizard step 3, or the one form)
+Client -> ApiClient : CreateClientAsync(request)\n/ createClient(request)
+ApiClient -> Endpoint : POST /api/clients\n(Authorization: Bearer <token from Sts login>)
+Endpoint -> Bus : Publish(CreateClientCommand)
+Endpoint -> Bus : CommitAsync()
+Endpoint --> ApiClient : 202 Accepted
 activate Bus
 Bus -> Handler : RouteAsync -> ExecuteAsync(command)
-Handler -> Client : Client.CreateNew(name, address, phone)
-Client --> Client : Apply(ClientCreatedEvent)
+Handler -> Aggregate : Client.CreateNew(name, address, phone)
+Aggregate --> Aggregate : Apply(ClientCreatedEvent)
 Handler -> Store : repository.Add(client)
 Store -> Store : SaveAsync (persist ClientCreatedEvent)
 Store -> Bus : Publish(ClientCreatedEvent)
 deactivate Bus
-Bus ->> EvtHandler : OnNext(ClientCreatedEvent) (Rx, async)
+Bus ->> EvtHandler : OnNext(ClientCreatedEvent) (Rx, async,\ndetached from the request above -\nsee 07-messaging-bus.md)
 EvtHandler -> Reporting : SaveAsync(ClientReport)
 EvtHandler -> Reporting : SaveAsync(ClientDetailsReport)
 @enduml
 ```
 
-The dashed/async arrow into `ClientCreatedEventHandler` matters: it runs on its own Rx
-subscription, decoupled in time from the command that triggered it (see
-`07-messaging-bus.md`). The UI's refresh timer (`09-winforms-ui.md`) is what eventually
-picks up the new row — there's no direct callback from event handler to UI.
+The `202 Accepted` matters: it comes back as soon as `CommitAsync()` returns, which is
+fire-and-forget (`07-messaging-bus.md`) — the HTTP response does **not** wait for
+`ClientCreatedEventHandler` to run. Both clients handle this the same way conceptually:
+WinForms' fixed-delay `ISystemTimer` refresh (`09-winforms-ui.md`) and Vue's
+navigate-back-to-the-search-list-and-refetch are both just "poll again a bit later,"
+because there's no id or confirmation to navigate straight to yet.
 
 ## Editing an existing client
 
 `ChangeClientNameCommand`/`ClientIsMovingCommand`/`ChangeClientPhoneNumberCommand` follow
-the same shape as each other: publish immediately (no batching across wizard steps, unlike
-create), `CommitAsync`, then a fixed-delay UI refresh. One representative sequence stands
-in for all three:
+the same shape as each other and as create: one API call per edit (no batching across
+wizard steps, unlike WinForms' create flow), then a refresh. One representative sequence
+stands in for all three:
 
 ```plantuml
 @startuml
 actor Employee
-participant "ClientDetailsPresenter" as Presenter
+participant "ClientDetailsPresenter\n(WinForms) or ClientDetails.vue" as Client
+participant "FohjinApiClient" as ApiClient
+participant "Fohjin.DDD.WebApi\nPOST /api/clients/{id}/name" as Endpoint
 participant "IBus" as Bus
 participant "ChangeClientNameCommandHandler" as Handler
-participant "Client" as Client
+participant "Client\n(aggregate)" as Aggregate
 
-Employee -> Presenter : edit name, Save
-Presenter -> Bus : Publish(ChangeClientNameCommand)
-Presenter -> Bus : CommitAsync()
+Employee -> Client : edit name, Save
+Client -> ApiClient : ChangeClientNameAsync(id, request)
+ApiClient -> Endpoint : POST /api/clients/{id}/name
+Endpoint -> Bus : Publish(ChangeClientNameCommand)
+Endpoint -> Bus : CommitAsync()
+Endpoint --> ApiClient : 202 Accepted
 Bus -> Handler : ExecuteAsync(command)
-Handler -> Client : GetByIdAsync(Id)
-Handler -> Client : client.UpdateClientName(new ClientName(...))
-Client --> Client : Apply(ClientNameChangedEvent)
-Presenter -> Presenter : ISystemTimer.Trigger(LoadDataAsync, 1000ms)
+Handler -> Aggregate : GetByIdAsync(Id)
+Handler -> Aggregate : client.UpdateClientName(new ClientName(...))
+Aggregate --> Aggregate : Apply(ClientNameChangedEvent)
+Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 1000ms);\nVue: re-fetch on navigation)
 @enduml
 ```

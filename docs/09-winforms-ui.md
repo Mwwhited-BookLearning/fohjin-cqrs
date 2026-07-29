@@ -1,13 +1,22 @@
-# WinForms UI
+# Client UIs: WinForms and Vue
 
-The four screens, the Presenter/View pattern they're all built on, and the wizard-style
-multi-step flow for creating a new client.
+Two client applications drive the same `Fohjin.DDD.WebApi`: `Fohjin.DDD.BankApplication`
+(WinForms desktop, retargeted from an in-process app to an HTTP client) and
+`Fohjin.DDD.WebUI` (Vue 3 + Vite, the newer of the two). Neither ever touches the domain,
+the bus, or either database directly anymore — both go through a generated API client and
+sign in against `Fohjin.DDD.Sts` before making any call (see `00-architecture-overview.md`).
+This doc covers WinForms first (the original UI, and the one with more architectural
+machinery worth explaining — the Presenter/View reflection wiring), then Vue as a sibling
+client covering the same screens.
 
-## Presenter/View wiring
+## WinForms
+
+### Presenter/View wiring
 
 `Presenter<TView>`'s constructor wires up every view event to a matching presenter method
 purely by reflection and naming convention — no manual `+=` anywhere in a concrete
-presenter:
+presenter. This is unchanged by the HTTP retargeting below; it's purely a UI-layer
+mechanism.
 
 ```plantuml
 @startuml
@@ -26,7 +35,22 @@ So `IClientDetailsView.OnSaveNewClientName` auto-binds to
 `ClientDetailsPresenter.SaveNewClientName()` purely because the names match — this is what
 `PresenterTest.cs` verifies.
 
-## Components
+### Sign-in, before any window opens
+
+There's no WinForms login screen. `Fohjin.DDD.BankApplication/Program.cs` calls
+`DesktopAuthService.LoginAsync()` once, synchronously, before building any presenter or
+showing any window — every presenter's `FohjinApiClient` calls assume a token is already
+sitting in `AuthorizationHandler.AccessToken` by the time they run. `LoginAsync()` opens
+the STS's real login page in the user's actual default browser
+(`Process.Start(..., UseShellExecute: true)`) and catches the authorization-code redirect
+on a local `HttpListener` bound to a loopback address — the same authorization-code + PKCE
+flow Vue drives via `oidc-client-ts` (below), against the same seeded `dev-client`, just
+without a browser tab of its own. No refresh token is requested; the access token
+(OpenIddict's default 1-hour lifetime) is held in memory for the process's lifetime, so a
+session outlasting that needs signing in again — an accepted limitation for this dev
+sample, not something this codebase builds silent-renewal machinery for.
+
+### Components
 
 ```plantuml
 @startuml
@@ -44,11 +68,14 @@ rectangle "ClientDetailsPresenter\n<size:11><<Component>></size>\nwizard state m
 rectangle "ClientDetails\n<size:11><<WinForms Form>></size>" <<Component>> as v2
 rectangle "AccountDetailsPresenter\n<size:11><<Component>></size>" <<Component>> as p3
 rectangle "AccountDetails\n<size:11><<WinForms Form>></size>" <<Component>> as v3
-rectangle "PopupPresenter\n<size:11><<Component>></size>\nCatchPossibleException" <<Component>> as p4
+rectangle "PopupPresenter\n<size:11><<Component>></size>\nCatchPossibleExceptionAsync" <<Component>> as p4
 rectangle "Popup\n<size:11><<WinForms Form>></size>" <<Component>> as v4
-rectangle "MonitoringPresenter\n<size:11><<Component>></size>\nsubscribes at startup,\nlives for the app's lifetime" <<Component>> as p5
+rectangle "MonitoringPresenter\n<size:11><<Component>></size>\nconnects at startup,\nlives for the app's lifetime" <<Component>> as p5
 rectangle "MonitoringForm\n<size:11><<WinForms Form,\nnon-modal>></size>" <<Component>> as v5
 rectangle "MonitoringLoggerProvider\n<size:11><<Fohjin.DDD.Common>></size>\nILoggerProvider, raises\na line per log call" <<Component>> as logProvider
+rectangle "FohjinApiClient\n<size:11><<NSwag-generated>></size>" <<Component>> as apiClient
+rectangle "EventStreamClient\n<size:11><<hand-rolled SSE consumer>></size>" <<Component>> as sse
+rectangle "DesktopAuthService\n<size:11><<Component>></size>\nsystem browser + loopback\nPKCE login" <<Component>> as auth
 
 p1 --> v1 : hooks up via reflection
 p2 --> v2 : hooks up via reflection
@@ -57,22 +84,28 @@ p4 --> v4 : hooks up via reflection
 p5 --> v5 : hooks up via reflection
 p1 --> p2 : SetClient() + Display()
 p2 --> p3 : OpenSelectedAccount()
-p1 --> p4 : wraps command-publishing\nblocks in CatchPossibleException
+p1 --> p4 : wraps command-publishing\nblocks in CatchPossibleExceptionAsync
 p2 --> p4 : "
 p3 --> p4 : "
-logProvider --> p5 : LineLogged event
-"IBus" --> p5 : Events (Rx)
+logProvider --> p5 : LineLogged event\n(now: HttpCallLoggingHandler's\nper-request log lines)
+p5 --> sse : consumes StreamEventsAsync()
+p1 --> apiClient : GetClientsAsync, CreateClientAsync, ...
+p2 --> apiClient : "
+p3 --> apiClient : "
+apiClient --> auth : AuthorizationHandler attaches\nDesktopAuthService.AccessToken
+sse --> auth : same AuthorizationHandler
 @enduml
 ```
 
 `IAccountDetailsPresenter` has no bank-card methods — `AssignNewBankCardCommand` /
 `CancelBankCardCommand` / `ReportStolenBankCardCommand` (see `02-bank-cards.md`) are not
-wired to any button or menu anywhere in this UI.
+wired to any button or menu anywhere in this UI (or in Vue's).
 
-## Screens
+### Screens
 
 **Client Search** — the main window. A hidden single-tab `TabControl` hosts a `ListBox`
-bound to `ClientReport`s; a menu item starts the "add new client" flow.
+bound to `ClientReport`s (fetched via `FohjinApiClient.GetClientsAsync()`); a menu item
+starts the "add new client" flow.
 
 ```plantuml
 @startsalt
@@ -91,7 +124,7 @@ bound to `ClientReport`s; a menu item starts the "add new client" flow.
 
 **Client Details — create-new wizard.** Three steps, shown one panel at a time. Steps 1
 and 2 only mutate an in-memory DTO (`_clientDetailsReport = ... with { ... }`) — nothing is
-published to the bus until step 3.
+sent to the API until step 3.
 
 ```plantuml
 @startsalt
@@ -133,8 +166,8 @@ published to the bus until step 3.
 ```
 
 **Client Details — editing an existing client.** Every field is visible at once; each
-"initiate change" action opens the relevant panel and publishes its command immediately on
-save (no batching, unlike create).
+"initiate change" action opens the relevant panel and calls the API immediately on save
+(no batching, unlike create).
 
 ```plantuml
 @startsalt
@@ -182,7 +215,10 @@ save (no batching, unlike create).
 @endsalt
 ```
 
-**Popup** — the shared error dialog every presenter routes exceptions through.
+**Popup** — the shared error dialog every presenter routes exceptions through, now via
+`PopupPresenter.CatchPossibleExceptionAsync(Func<Task>)` (an async overload was added
+alongside the original sync `CatchPossibleException(Action)` in Phase 7, since every
+presenter method wrapping an API call needed to `await` it).
 
 ```plantuml
 @startsalt
@@ -200,10 +236,9 @@ save (no batching, unlike create).
 
 **Monitoring** — a non-modal companion window, opened alongside the main window at
 startup (`MonitoringPresenter.Display()` calls `Show()`, not `ShowDialog()`, so it never
-blocks the rest of the UI). Two bounded, auto-scrolling lists: every `ILogger` call in the
-app on the left, every domain event that crosses `IBus.Events` on the right. Capped at a
-fixed entry count (oldest trimmed) so a long-running session doesn't grow memory or the
-control unboundedly.
+blocks the rest of the UI). Two bounded, auto-scrolling lists: every HTTP call the app
+makes on the left, every domain event on the right. Capped at a fixed entry count (oldest
+trimmed) so a long-running session doesn't grow memory or the control unboundedly.
 
 ```plantuml
 @startsalt
@@ -213,15 +248,14 @@ control unboundedly.
   {
     Logs
     {
-      "10:03:41.201 [Information] DirectBus: Publish: CreateClientCommand"
-      "10:03:41.205 [Information] CommandHandlerHelper: RouteAsync -> CreateClientCommandHandler"
-      "10:03:41.212 [Information] EventStoreUnitOfWork: CommitAsync"
+      "10:03:41.201 [Information] POST /api/clients -> 202 (14 ms)"
+      "10:03:41.212 [Information] GET /api/clients -> 200 (9 ms)"
     }
   } | {
     Events
     {
-      "10:03:41.215  ClientCreatedEvent  AggregateId=3f2a..."
-      "10:03:41.240  AccountOpenedEvent  AggregateId=91cd..."
+      "10:03:41.215  ClientCreatedEvent  AggregateId=3f2a...  Version=0"
+      "10:03:41.240  AccountOpenedEvent  AggregateId=91cd...  Version=0"
     }
   }
 }
@@ -232,15 +266,21 @@ Design notes (see the components diagram above for how the pieces connect):
 
 - `MonitoringLoggerProvider` (`Fohjin.DDD.Common`) is a custom `ILoggerProvider` registered
   alongside the existing console/debug providers in `Program.cs` — it doesn't replace them,
-  it's a third listener. It raises a plain `event Action<string>? LineLogged` per log call
-  (not an `IObservable`, since this project only needs simple fan-out here and the
-  `Microsoft.Extensions.Logging` provider model is already the "many listeners" mechanism).
-- `MonitoringPresenter` subscribes to `LineLogged` **and** `IBus.Events` once, in its
-  constructor, so capture starts at app boot (before the main window is even shown) rather
-  than only after the user opens the pane.
-- Both subscriptions can fire from any thread — log calls happen everywhere, and
-  `IBus.Events` deliveries run on whatever thread `DirectBus`'s consumer loop happens to be
-  on (see `07-messaging-bus.md`), never guaranteed to be the UI thread. `MonitoringForm`'s
+  it's a third listener. It raises a plain `event Action<string>? LineLogged` per log call.
+  Since Phase 7, what it captures changed: there's no more in-process bus/command-handler
+  logging to listen to (that all runs inside `Fohjin.DDD.WebApi`'s process now), so the log
+  half is fed by a new `HttpCallLoggingHandler` — a `DelegatingHandler` in
+  `FohjinApiClient`'s pipeline that logs `"{Method} {Path} -> {StatusCode} ({ElapsedMs} ms)"`
+  per outgoing request.
+- The event half used to be a direct `IBus.Events` subscription (`Subject<IDomainEvent>`,
+  in-process). Since WinForms doesn't host the CQRS core anymore, `MonitoringPresenter`
+  instead consumes `GET /api/events` through `EventStreamClient` — a hand-rolled
+  `System.Net.ServerSentEvents.SseParser<T>`-based consumer, because the NSwag-generated
+  `FohjinApiClient.StreamEventsAsync()` does a one-shot `SendAsync` and discards the
+  response body without ever reading it (NSwag has no real streaming-response support).
+  `ConsumeEventStreamAsync` runs an infinite retry loop with a 5-second backoff on
+  disconnect, since the SSE connection can drop independently of the rest of the app.
+- Both subscriptions can fire from any thread. `MonitoringForm`'s
   `AppendLogLine`/`AppendEventLine` marshal to the UI thread themselves
   (`InvokeRequired`/`BeginInvoke`) before touching a control — the same fix already applied
   to `SystemTimer` for the same reason.
@@ -249,31 +289,37 @@ Design notes (see the components diagram above for how the pieces connect):
 @startuml
 participant "anything that logs" as Logger
 participant "MonitoringLoggerProvider" as Provider
+participant "HttpCallLoggingHandler" as HttpLog
 participant "MonitoringPresenter" as Presenter
 participant "MonitoringForm" as View
-participant "IBus" as Bus
+participant "EventStreamClient" as Sse
+participant "GET /api/events\n(Fohjin.DDD.WebApi)" as Endpoint
 
 Logger -> Provider : ILogger.Log(...)\n(any thread)
+HttpLog -> Provider : per-request log line,\nvia the same ILogger pipeline
 Provider -> Presenter : LineLogged(formattedLine)
 Presenter -> View : AppendLogLine(line)
 View -> View : InvokeRequired? BeginInvoke to UI thread
-View -> View : add to bounded ListBox,\nscroll to bottom
+View -> View : add to bounded ListBox, scroll to bottom
 
-Bus ->> Presenter : OnNext(domainEvent) (Rx, any thread)
+Sse -> Endpoint : GET /api/events (SSE, long-lived)
+Endpoint ->> Sse : SseItem<EventEnvelope> per domain event
+Sse ->> Presenter : yielded from StreamEventsAsync()\n(any thread)
 Presenter -> View : AppendEventLine(line)
 View -> View : InvokeRequired? BeginInvoke to UI thread
-View -> View : add to bounded ListBox,\nscroll to bottom
+View -> View : add to bounded ListBox, scroll to bottom
 @enduml
 ```
 
-## Sequence: create new client, full UI-to-refresh flow
+### Sequence: create new client, full UI-to-refresh flow
 
 ```plantuml
 @startuml
 actor Employee
 participant "ClientSearchFormPresenter" as Search
 participant "ClientDetailsPresenter" as Details
-participant "IBus" as Bus
+participant "FohjinApiClient" as ApiClient
+participant "Fohjin.DDD.WebApi\nPOST /api/clients" as Endpoint
 participant "ClientCreatedEventHandler" as EvtHandler
 participant "Reporting Store" as Reporting
 participant "ClientSearchForm" as SearchView
@@ -284,28 +330,87 @@ Details -> Details : _editStep=1, _createNewProcess=true
 Details -> Details : show client-name panel (ShowDialog - modal)
 
 Employee -> Details : fill name -> Save
-Details -> Details : SaveNewClientName()\n(local only, no publish)
+Details -> Details : SaveNewClientName()\n(local only, no API call)
 Employee -> Details : fill address -> Save
-Details -> Details : SaveNewAddress()\n(local only, no publish)
+Details -> Details : SaveNewAddress()\n(local only, no API call)
 Employee -> Details : fill phone -> Save
-Details -> Bus : Publish(CreateClientCommand)
-Details -> Bus : CommitAsync()
+Details -> ApiClient : CreateClientAsync(request)
+ApiClient -> Endpoint : POST /api/clients\n(Authorization: Bearer <token>)
+Endpoint --> ApiClient : 202 Accepted
 Details -> Details : dialog Close()
 
-Bus ->> EvtHandler : OnNext(ClientCreatedEvent) (Rx, async,\ntiming decoupled from the above)
+Endpoint ->> EvtHandler : (detached - see 01-client-management.md\nand 07-messaging-bus.md)
 EvtHandler -> Reporting : SaveAsync(ClientReport + ClientDetailsReport)
 
 Search -> Search : ISystemTimer.Trigger(LoadDataAsync, 2000ms)\n(started when the dialog was OPENED,\nnot when it closed)
-Search -> Reporting : GetByExampleAsync<ClientReport>(null)
+Search -> ApiClient : GetClientsAsync()
+ApiClient -> Endpoint : GET /api/clients
+Endpoint --> ApiClient : ClientReport[]
 Search -> SearchView : Clients = results
 @enduml
 ```
 
 The 2-second timer is a blind fixed-delay poll, not correlated with when the command/event
 pipeline actually finishes — on a slow event handler the new client may not appear yet, and
-there's no retry. Historically this refresh also silently failed outright: `ISystemTimer`'s
-production implementation ran the delayed callback via `Task.Run`, off the UI thread, and
-setting a WinForms control's `DataSource` from a non-UI thread throws — invisibly, because
-nothing observed the fire-and-forget task's exception. `SystemTimer.Trigger` now captures
-the UI `SynchronizationContext` when scheduled and marshals the callback back onto it, so
-the poll itself works again; the timing/correlation issue described above is unchanged.
+there's no retry. `ISystemTimer.Trigger` captures the UI `SynchronizationContext` when
+scheduled and marshals the callback back onto it, so setting a WinForms control's
+`DataSource` from the timer's background thread doesn't throw invisibly.
+
+## Vue (`Fohjin.DDD.WebUI`)
+
+A single-page app (Vue 3 + Vite + Vue Router) covering the same screens as WinForms, built
+against the same `Fohjin.DDD.WebApi` and the same generated client story — NSwag generates
+a `fetch`-based TypeScript client (`src/api/generated-client.ts`) instead of the C#
+`FohjinApiClient` WinForms uses, from the same `openapi.json`.
+
+| Route | Component | Covers |
+|---|---|---|
+| `/login` | `Login.vue` | Redirects into the STS's real login page |
+| `/callback` | `LoginCallback.vue` | OIDC authorization-code redirect target |
+| `/` | `ClientSearch.vue` | Client list (equivalent of WinForms' Client Search) |
+| `/clients/new` | `ClientCreate.vue` | Single form for all three fields — no wizard, one `POST /api/clients` on submit |
+| `/clients/:id` | `ClientDetails.vue` | Equivalent of WinForms' Client Details (edit + accounts list), **plus a bank-cards section WinForms doesn't have** (`02-bank-cards.md`) |
+| `/accounts/:id` | `AccountDetails.vue` | Equivalent of WinForms' Account Details |
+| `/monitoring` | `Monitoring.vue` | Live event stream, connect/disconnect/filter controls |
+
+`router/index.ts`'s `beforeEach` guard redirects any non-public route to `/login` unless
+`getUser()` (from `oidc-client-ts`'s `UserManager`) returns a non-expired user — this is
+Vue's equivalent of WinForms blocking on `DesktopAuthService.LoginAsync()` before showing
+any window, just enforced per-navigation instead of once at startup.
+
+### Sign-in: browser redirect, not a loopback listener
+
+`src/auth/authService.ts` wraps `oidc-client-ts`'s `UserManager` — `login()` calls
+`signinRedirect()` (full-page redirect to the STS, PKCE handled automatically for
+`response_type: "code"`), and `LoginCallback.vue` calls `completeLogin()` (`signinRedirectCallback()`)
+to exchange the code for tokens once the STS redirects back to `/callback`. This is the
+same authorization-code + PKCE flow WinForms drives through `DesktopAuthService` and the
+same seeded `dev-client`, against the same `Fohjin.DDD.Sts` — the difference is purely
+mechanical: a real browser tab doing a page redirect vs. a desktop process opening a
+system browser and listening on a loopback port for the same redirect.
+
+### Monitoring: hand-rolled SSE, same reason as WinForms
+
+`Monitoring.vue` can't use the NSwag-generated client's `streamEvents()` either (same gap:
+NSwag has no real SSE support) and can't use the browser's native `EventSource` (it can't
+attach an `Authorization` header) — so it reads `GET /api/events` by hand: a `fetch()` call
+with a bearer token attached, then a hand-parsed reader over
+`Results.ServerSentEvents`'s wire format (`event:`/`data:` lines, blank line between
+records). It filters out the synthetic `"StreamConnected"` marker event the same way
+`EventStreamClient` does on the WinForms side, and caps its list at 200 entries — the Vue
+equivalent of WinForms' bounded `ListBox`.
+
+### What's genuinely different between the two UIs
+
+- **Create-client UX**: WinForms uses a three-step modal wizard; Vue uses one form. Same
+  single `CreateClientCommand`/`POST /api/clients` either way (`01-client-management.md`).
+- **Refresh strategy**: WinForms polls on a fixed-delay timer after every mutating action;
+  Vue re-fetches on navigation (e.g. returning to the client list after create/edit) rather
+  than polling.
+- **Auth flow shape**: loopback `HttpListener` + system browser (desktop) vs. full-page
+  redirect (web) — same authorization-code + PKCE grant underneath either way.
+- **Bank cards**: Vue-only (`ClientDetails.vue`'s "Bank cards" section). WinForms has no
+  bank-card screen at all — `IAccountDetailsPresenter` never got assign/cancel/report-stolen
+  methods, and no menu item calls them (`02-bank-cards.md`).
+- **Everything else** — the domain, the commands, the events, the read models, and the
+  API surface itself — is identical regardless of which client is calling it.

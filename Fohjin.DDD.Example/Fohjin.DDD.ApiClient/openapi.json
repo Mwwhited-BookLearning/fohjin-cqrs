@@ -1052,8 +1052,30 @@
           }
         }
       }
+    },
+    "securitySchemes": {
+      "OAuth2": {
+        "type": "oauth2",
+        "description": "Client ID: dev-client (public client, PKCE - Fohjin.DDD.Sts's seeded dev client).",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "https://sts.example.com/connect/authorize",
+            "tokenUrl": "https://sts.example.com/connect/token",
+            "scopes": {
+              "openid": "OpenID",
+              "profile": "Profile",
+              "email": "Email"
+            }
+          }
+        }
+      }
     }
   },
+  "security": [
+    {
+      "OAuth2": [ ]
+    }
+  ],
   "tags": [
     {
       "name": "Fohjin.DDD.WebApi"

@@ -32,6 +32,33 @@ build rather than hand-maintained.
 - The Vue app's TypeScript client lives inside the Vue project's own source tree,
   regenerated via an npm script wired to the same `nswag` config.
 
+## What was actually implemented
+
+Two things ended up differently than this research originally proposed:
+
+- The Vue TypeScript client is **not** regenerated via its own npm script/`nswag` CLI
+  config. `Fohjin.DDD.WebUI` has no Node.js-based NSwag CLI wired up at all — instead,
+  `Fohjin.DDD.ApiClient.csproj` has a *second* `OpenApiReference` item
+  (`CodeGenerator="NSwagTypeScript"`) that writes straight into
+  `Fohjin.DDD.WebUI/src/api/generated-client.ts`, reusing the same
+  `NSwag.ApiDescription.Client` MSBuild machinery the C# client already needed. One
+  codegen mechanism, two outputs, rather than two separate toolchains.
+- Generating `openapi.json` itself is now build-time automated too, closing the one gap
+  this doc didn't originally address: `Fohjin.DDD.WebApi.csproj` uses
+  `Microsoft.Extensions.ApiDescription.Server` (the build-time counterpart to
+  `NSwag.ApiDescription.Client` — same idea Microsoft's own docs describe for
+  `Microsoft.AspNetCore.OpenApi`) to generate the document at build time, no running
+  server or manual `curl` required, then moves it into
+  `Fohjin.DDD.ApiClient/openapi.json`. A `ReferenceOutputAssembly="false"`
+  `ProjectReference` from `Fohjin.DDD.ApiClient` to `Fohjin.DDD.WebApi` forces build
+  order (WebApi's doc regenerates before ApiClient regenerates both clients from it)
+  without creating a real compile-time dependency between the two. See
+  `00-architecture-overview.md`.
+
+There's no equivalent gap on the AsyncAPI side (`asyncapi-saunter.md`) - it's served
+entirely at runtime by Saunter, with no static snapshot file to ever drift out of sync in
+the first place.
+
 ## Sources
 
 - [Get started with NSwag and ASP.NET Core (Microsoft Learn)](https://learn.microsoft.com/en-us/aspnet/core/tutorials/getting-started-with-nswag?view=aspnetcore-8.0)

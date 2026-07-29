@@ -13,12 +13,25 @@
     </PackageReference>
   </ItemGroup>
 
+  <!--
+    Build-order-only reference (ReferenceOutputAssembly=false, so WebApi's DLL is never linked
+    into this client project - that would be a backwards dependency): forces
+    Fohjin.DDD.WebApi's own build-time OpenAPI generation (Microsoft.Extensions.ApiDescription.Server,
+    see its csproj) to run and refresh openapi.json below BEFORE this project's own OpenApiReference
+    items regenerate both clients from it. Without this, plain project-level `dotnet build` here
+    has no ordering guarantee against WebApi and could regenerate from a stale openapi.json.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\Fohjin.DDD.WebApi\Fohjin.DDD.WebApi.csproj" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
   <ItemGroup>
     <!--
-      openapi.json is a checked-in snapshot fetched from a running Fohjin.DDD.WebApi
-      (curl http://localhost:PORT/openapi/v1.json > openapi.json) - regenerate it by hand
-      after changing the API surface, then rebuild this project to refresh the client.
-      Automating that fetch is left for a later phase (Aspire/CI).
+      openapi.json is generated at build time by Fohjin.DDD.WebApi.csproj
+      (Microsoft.Extensions.ApiDescription.Server + a move/rename target - no more manually
+      curling a running server, see docs/supporting/nswag-client-codegen.md) and checked in here
+      so both the C# and TypeScript clients below can be regenerated from it, and so it's
+      browsable without building anything.
     -->
     <OpenApiReference Include="openapi.json" CodeGenerator="NSwagCSharp" Namespace="Fohjin.DDD.ApiClient" ClassName="FohjinApiClient" Options="/JsonLibrary:SystemTextJson" />
 

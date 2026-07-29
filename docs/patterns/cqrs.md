@@ -77,7 +77,7 @@ skinparam rectangle {
 skinparam defaultTextAlignment center
 skinparam wrapWidth 220
 
-rectangle "Fohjin.DDD.Commands\n(CreateClientCommand, DepositCashCommand, ...)" <<Write>> as commands
+rectangle "Fohjin.DDD.Commands namespace\n(in Fohjin.DDD.Abstractions/Commands)\nCreateClientCommand, DepositCashCommand, ..." <<Write>> as commands
 rectangle "Fohjin.DDD.CommandHandlers\n(one handler per command,\ncalls domain methods)" <<Write>> as handlers
 rectangle "Fohjin.DDD.Domain\n(Client, ActiveAccount - aggregate\nroots enforcing invariants)" <<Write>> as domain
 database "Event Store\n(EventProviders/Events tables)" <<Write>> as eventstore
@@ -105,6 +105,15 @@ note bottom of eventhandlers
 end note
 @enduml
 ```
+
+`Fohjin.DDD.Commands` is a namespace, not a project — the command record types physically
+live in `Fohjin.DDD.Abstractions/Commands`, alongside `Fohjin.DDD.Abstractions`'s other
+cross-cutting interfaces/DTOs, using the same `<RootNamespace>` trick
+`Fohjin.DDD.BankApplication.Core` uses to keep its own types under the un-suffixed
+`Fohjin.DDD.BankApplication` namespace (`patterns/winforms-architecture.md`). An earlier,
+genuinely standalone `Fohjin.DDD.Commands` project predates that split, was never deleted
+after `Abstractions` took over the same namespace, and had drifted out of `Fohjin.DDD.sln`
+entirely — removed as dead, confusing weight during a naming-conventions pass.
 
 The rule that makes this real rather than aspirational: **command handlers and event
 handlers are two different type hierarchies that never reference each other's storage

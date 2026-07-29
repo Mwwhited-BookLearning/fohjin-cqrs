@@ -6,15 +6,47 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!--
+    Generates this API's OpenAPI document at BUILD time (Microsoft.Extensions.ApiDescription.Server
+    loads the app in a lightweight host and calls the same Microsoft.AspNetCore.OpenApi document
+    provider AddOpenApi()/MapOpenApi() use at runtime - no port binding, no running server needed).
+    Replaces the old "curl a running Fohjin.DDD.WebApi by hand" step Fohjin.DDD.ApiClient.csproj
+    used to require - see docs/supporting/nswag-client-codegen.md. The package's own default output
+    filename is "{ProjectName}.json"; RenameGeneratedOpenApiDocument below renames+moves it to
+    Fohjin.DDD.ApiClient/openapi.json so that project's existing OpenApiReference needs no change.
+  -->
+  <PropertyGroup>
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)</OpenApiDocumentsDirectory>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.OData" Version="9.5.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.10">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.OpenApi" Version="2.7.5" />
     <PackageReference Include="Saunter" Version="0.13.0" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.16.16" />
     <PackageReference Include="System.Reactive" Version="7.0.0" />
   </ItemGroup>
+
+  <!--
+    Microsoft.Extensions.ApiDescription.Server always names its output "{ProjectName}.json" in
+    OpenApiDocumentsDirectory - move+rename it into Fohjin.DDD.ApiClient/openapi.json (the name
+    that project's own OpenApiReference items already expect) right after it's generated.
+  -->
+  <Target Name="MoveGeneratedOpenApiDocumentToApiClient" AfterTargets="GenerateOpenApiDocuments">
+    <PropertyGroup>
+      <_GeneratedOpenApiDocument>$(MSBuildProjectDirectory)\$(MSBuildProjectName).json</_GeneratedOpenApiDocument>
+      <_ApiClientOpenApiDocument>$(MSBuildProjectDirectory)\..\Fohjin.DDD.ApiClient\openapi.json</_ApiClientOpenApiDocument>
+    </PropertyGroup>
+    <Copy SourceFiles="$(_GeneratedOpenApiDocument)" DestinationFiles="$(_ApiClientOpenApiDocument)" Condition="Exists('$(_GeneratedOpenApiDocument)')" />
+    <Delete Files="$(_GeneratedOpenApiDocument)" Condition="Exists('$(_GeneratedOpenApiDocument)')" />
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\Fohjin.DDD.Abstractions\Fohjin.DDD.Abstractions.csproj" />

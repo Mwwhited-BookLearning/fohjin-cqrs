@@ -1,13 +1,14 @@
-# Client UIs: WinForms and Vue
+# Client UIs: WinForms, Vue, and WPF
 
-Two client applications drive the same `Fohjin.DDD.WebApi`: `Fohjin.DDD.BankApplication`
-(WinForms desktop, retargeted from an in-process app to an HTTP client) and
-`Fohjin.DDD.WebUI` (Vue 3 + Vite, the newer of the two). Neither ever touches the domain,
-the bus, or either database directly anymore — both go through a generated API client and
-sign in against `Fohjin.DDD.Sts` before making any call (see `00-architecture-overview.md`).
+Three client applications drive the same `Fohjin.DDD.WebApi`: `Fohjin.DDD.BankApplication`
+(WinForms desktop, retargeted from an in-process app to an HTTP client),
+`Fohjin.DDD.WebUI` (Vue 3 + Vite), and `Fohjin.DDD.BankApplication.Wpf` (WPF desktop, the
+newest of the three — full MVVM via CommunityToolkit.Mvvm). None of them ever touch the
+domain, the bus, or either database directly — all three go through a generated API client
+and sign in against `Fohjin.DDD.Sts` before making any call (see `00-architecture-overview.md`).
 This doc covers WinForms first (the original UI, and the one with more architectural
-machinery worth explaining — the Presenter/View reflection wiring), then Vue as a sibling
-client covering the same screens.
+machinery worth explaining — the Presenter/View reflection wiring), then Vue, then WPF, as
+three siblings covering the same screens.
 
 ## WinForms
 
@@ -192,6 +193,30 @@ sent to the API until step 3.
 @endsalt
 ```
 
+**Client Details — bank cards**, reached via the "Bank Cards" menu (a separate tab from the
+overview, unlike Accounts/Closed accounts, which sit inline — see
+`docs/patterns/winforms-architecture.md` for the Presenter/View pair this added). Existing
+cards show which account they're linked to and their status, with Cancel/Report-stolen
+buttons on `Active` ones (`docs/02-bank-cards.md`: no card number/type/expiry exists in the
+read model to show, same as Vue's equivalent section).
+
+```plantuml
+@startsalt
+{
+  Client bank cards
+  {
+    "Checking - Active"       | [Cancel] | [Report stolen]
+    "Savings - Cancelled"     |          |
+  }
+  --
+  Assign a new bank card to an account
+  Account | "^Checking^"
+  --
+  [Assign]  [Close]
+}
+@endsalt
+```
+
 **Account Details.**
 
 ```plantuml
@@ -366,13 +391,16 @@ against the same `Fohjin.DDD.WebApi` and the same generated client story — NSw
 a `fetch`-based TypeScript client (`src/api/generated-client.ts`) instead of the C#
 `FohjinApiClient` WinForms uses, from the same `openapi.json`.
 
+> The layered (Pinia store / composable / config / component) architecture every screen
+> below follows, explained from first principles: `patterns/vue-architecture.md`.
+
 | Route | Component | Covers |
 |---|---|---|
 | `/login` | `Login.vue` | Redirects into the STS's real login page |
 | `/callback` | `LoginCallback.vue` | OIDC authorization-code redirect target |
 | `/` | `ClientSearch.vue` | Client list (equivalent of WinForms' Client Search) |
 | `/clients/new` | `ClientCreate.vue` | Single form for all three fields — no wizard, one `POST /api/clients` on submit |
-| `/clients/:id` | `ClientDetails.vue` | Equivalent of WinForms' Client Details (edit + accounts list), **plus a bank-cards section WinForms doesn't have** (`02-bank-cards.md`) |
+| `/clients/:id` | `ClientDetails.vue` | Equivalent of WinForms' Client Details (edit + accounts list + bank cards — all three clients have feature parity, `02-bank-cards.md`) |
 | `/accounts/:id` | `AccountDetails.vue` | Equivalent of WinForms' Account Details |
 | `/monitoring` | `Monitoring.vue` | Live event stream, connect/disconnect/filter controls |
 
@@ -448,18 +476,109 @@ simplest subscriber — no filter, no reconciliation reload (it has nothing to "
 a live list) — and its "Pause"/"Resume" buttons only stop appending to its own list; they
 don't touch the shared connection other screens are also using.
 
-### What's genuinely different between the two UIs
+## WPF (`Fohjin.DDD.BankApplication.Wpf`)
 
-- **Create-client UX**: WinForms uses a three-step modal wizard; Vue uses one form. Same
-  single `CreateClientCommand`/`POST /api/clients` either way (`01-client-management.md`).
+The third client, and the only one that's MVVM from the start (WinForms stays MVP, Vue's
+reactivity is already MVVM-flavored but organized differently — see
+`patterns/winforms-architecture.md` and `patterns/vue-architecture.md` for why). Same
+screens as the other two, same `FohjinApiClient`, same `dev-client` OIDC login — a desktop
+loopback listener like WinForms (port 5340, not 5330, so both can run side by side), not a
+browser redirect like Vue.
+
+> The Model/ViewModel/View/Structure/Styling layering every screen below follows, explained
+> from first principles: `patterns/wpf-architecture.md`.
+
+**ViewModel-first navigation**: `MainWindow.xaml` is just `<ContentControl Content="{Binding
+CurrentViewModel}" />`, bound to `INavigationService.CurrentViewModel` (an `ObservableObject`).
+`Resources/ViewModelTemplates.xaml` maps each ViewModel type to a `DataTemplate` wrapping its
+View — `ClientSearchViewModel` → `ClientSearchView`, and so on. Views never construct a
+ViewModel or another View; `NavigationService.Show*()` resolves the next ViewModel from DI,
+calls `Initialize(id)` where one's needed, and swaps `CurrentViewModel`.
+
+**Live refresh**: a shared `DomainEventBus` (`Fohjin.DDD.DesktopClient`) wraps the same
+`EventStreamClient` WinForms' `MonitoringPresenter` uses, but here every navigable ViewModel
+consumes it (not just Monitoring) — `NavigationService`'s constructor subscribes to
+`EventReceived` once and dispatches by pattern-matching on whichever ViewModel is currently
+`CurrentViewModel`, so there's never a per-navigation subscribe/unsubscribe to leak. Each
+ViewModel's `OnDomainEvent(...)` mirrors the exact same event-name/aggregate-id filter rules
+`refreshRules.ts` encodes for Vue, and reloads twice (immediately, then again after 750ms) —
+the same reconciliation-retry fix already applied to Vue for the SSE-vs-read-model race
+(`07-messaging-bus.md`).
+
+Screens: `ClientSearchView` (a live-filtered `ICollectionView` over the client list),
+`ClientCreateView` (one form, like Vue — no wizard), `ClientDetailsView` (edit fields +
+accounts + bank cards, same three-groupbox layout WinForms uses on its Overview tab, all on
+one scrollable page instead of separate tabs), `AccountDetailsView`, and a separate
+non-modal `MonitoringWindow` (WPF's equivalent of WinForms' `MonitoringForm`) shown alongside
+the main window at startup.
+
+### Bugs found live-verifying the WPF client
+
+None of these were caught by `dotnet build`/`dotnet test` — all three surfaced only once a
+FlaUI+Playwright harness actually drove the compiled `.exe` end to end (the same discipline
+CLAUDE.md's bug list documents for the other two clients):
+
+- **SSE event envelopes deserialized to all-default values, breaking every event-driven
+  reload.** `Fohjin.DDD.WebApi`'s `Results.ServerSentEvents` serializes each item with
+  ASP.NET Core's default `JsonSerializerDefaults.Web` (camelCase), but
+  `EventStreamClient.StreamEventsAsync()` (shared by WinForms and WPF) called
+  `JsonSerializer.Deserialize<EventEnvelope>(data)` with no matching options — case-sensitive
+  PascalCase-only by default. This doesn't throw; it silently binds nothing, so every event
+  arrived with `EventType=""`, `AggregateId=Guid.Empty`. The wire-level `"StreamConnected"`
+  sentinel filter (keyed off the SSE `event:` field, not the deserialized body) still worked,
+  masking the bug until a WPF ViewModel's `OnDomainEvent(eventType, ...)` check against that
+  always-empty `eventType` never matched anything real. Fixed by deserializing with
+  `JsonSerializerOptions.Web`.
+- **A ListBox's double-click command never fired.** `ClientSearchView`/`ClientDetailsView`
+  originally wired "open on double-click" via `<ListBox.InputBindings><MouseBinding
+  MouseAction="LeftDoubleClick" .../></ListBox.InputBindings>` on the `ListBox` itself — a
+  commonly-suggested WPF pattern that turns out not to fire here: `ListBoxItem`'s own
+  `MouseLeftButtonDown` handling (selection) never lets the bubbled double-click reach the
+  ListBox's `InputBindings` gesture recognition. Selection worked, the command never
+  executed, with no exception anywhere. Fixed with an `ItemContainerStyle`
+  `EventSetter Event="MouseDoubleClick"` targeting `ListBoxItem` directly, handled in
+  code-behind (the item *is* the event source, so it always fires).
+- **The bank-card Assign button could get stuck permanently disabled** (WinForms, not
+  WPF — see below) once discovered while cross-checking the two implementations.
+
+### Bug found live-verifying the WinForms bank-cards feature
+
+- **The "Assign" bank-card button could stay disabled forever if a client had exactly one
+  open account.** `ClientDetailsPresenter`'s `EnableSaveButton()`/`DisableSaveButton()` toggle
+  one shared "current step's save button" set (all five step buttons together), driven by
+  `FormElementGotChanged()` reacting to real user input events. `_newBankCardAccount` auto-
+  selects its first item the instant its `DataSource` is (re)assigned — including during the
+  *account-creation* background refresh that lands while the Bank Cards tab isn't even open
+  yet, which fires `SelectedIndexChanged` → `FormElementGotChanged()` with none of the
+  "current process" flags set → `DisableSaveButton()`, disabling the not-yet-visible Assign
+  button too. If that auto-selected account is the client's *only* one, the user never
+  changes the selection, so `SelectedIndexChanged` never fires again to re-enable it — the
+  button opens already disabled and stays that way. Fixed by having
+  `InitiateAssignNewBankCard()` explicitly re-validate against the current selection
+  (`if (FormIsValid()) EnableSaveButton();`) when the panel opens, instead of only reacting to
+  a change event that may never come.
+
+### What's genuinely different across the three UIs
+
+- **Create-client UX**: WinForms uses a three-step modal wizard; Vue and WPF each use one
+  form. Same single `CreateClientCommand`/`POST /api/clients` either way
+  (`01-client-management.md`).
 - **Refresh strategy**: WinForms polls on a fixed-delay timer after every mutating action.
-  Vue subscribes to the relevant domain events on the shared event bus above and reloads
-  when one arrives — no timer, no fixed delay, refresh happens as soon as the read model
-  actually catches up rather than after a guessed interval.
-- **Auth flow shape**: loopback `HttpListener` + system browser (desktop) vs. full-page
-  redirect (web) — same authorization-code + PKCE grant underneath either way.
-- **Bank cards**: Vue-only (`ClientDetails.vue`'s "Bank cards" section). WinForms has no
-  bank-card screen at all — `IAccountDetailsPresenter` never got assign/cancel/report-stolen
-  methods, and no menu item calls them (`02-bank-cards.md`).
+  Vue and WPF both subscribe to the relevant domain events on their own client-side event bus
+  and reload when one arrives — no timer, no fixed delay, refresh happens as soon as the read
+  model actually catches up rather than after a guessed interval.
+- **Auth flow shape**: loopback `HttpListener` + system browser (WinForms and WPF, on
+  different ports so both can run at once) vs. full-page redirect (Vue) — same
+  authorization-code + PKCE grant underneath either way.
+- **Bank cards**: full feature parity now (`02-bank-cards.md`) — added to Vue first, then
+  WinForms, then built into WPF from the start.
+- **Refresh-vs-read-model race**: both Vue's and WPF's event-driven refresh can (rarely)
+  reload before the reporting-store event handler has actually finished writing, since the
+  SSE notification and that handler are independent subscriptions on the same event with no
+  ordering guarantee — found live in Vue first, fixed with a short reconciliation retry
+  (`07-messaging-bus.md`), and applied to WPF proactively from the start for the same reason.
+  WinForms' fixed-delay poll has the same theoretical race (nothing guarantees the delay is
+  long enough either) but it's less visible in practice since polling naturally retries on
+  its own next tick.
 - **Everything else** — the domain, the commands, the events, the read models, and the
   API surface itself — is identical regardless of which client is calling it.

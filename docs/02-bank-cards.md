@@ -2,14 +2,15 @@
 
 Covers assigning a new bank card to an account, cancelling it, and reporting it stolen.
 
-> **Vue only, not WinForms.** For most of this migration this domain/command layer had no
-> UI at all in either client — a pre-existing gap from the original CQRS demo, predating
-> this migration entirely. A Vue-only bank-cards section (`ClientDetails.vue`, under
-> Client Details) and three `Fohjin.DDD.WebApi` endpoints (`POST /api/clients/{id}/bank-cards`,
-> `.../{bankCardId}/cancel`, `.../{bankCardId}/report-stolen`) were added later, once a real
-> read model (`BankCardReport`, below) existed to back a list screen — WinForms still has no
-> bank-card screen, menu item, or button anywhere. The domain itself never changed: only a
-> read model and a UI got added on top of commands/handlers/events that already existed.
+> **History**: for most of this migration this domain/command layer had no UI at all in
+> either client — a pre-existing gap from the original CQRS demo, predating this migration
+> entirely. A bank-cards section was added to Vue's `ClientDetails.vue` first, once a real
+> read model (`BankCardReport`, below) existed to back a list screen; WinForms' equivalent
+> (`ClientDetails.Views`/`ClientDetailsPresenter`, a "Client bank cards" tab plus a "Bank
+> Cards" menu) was added afterward to reach feature parity across every client, and the WPF
+> client (`09-client-uis.md`) implements it from the start. The domain itself never changed
+> throughout any of this: only a read model and three UIs got added on top of
+> commands/handlers/events that already existed.
 
 ## Entity relationship
 
@@ -108,7 +109,7 @@ either method again (from either terminal state) throws
 `AssignNewBankCardForAccount` guards `DoesAccountBelongToClient(accountId)` before raising
 its event — see `01-client-management.md` for the guard/exception table.
 
-## Web API endpoints (Vue only)
+## Web API endpoints
 
 | Endpoint | Command | Request body |
 |---|---|---|
@@ -118,9 +119,11 @@ its event — see `01-client-management.md` for the guard/exception table.
 
 Same `bus.Publish(...); bus.CommitAsync(); return Results.Accepted(...)` fire-and-forget
 shape as every other command endpoint (`00-architecture-overview.md`'s data-flow section).
-Vue's `ClientDetails.vue` shows a "Bank cards" section under the existing Accounts section:
-a list (account it's linked to + status badge) with Cancel/Report stolen buttons on `Active`
-cards, and a form to assign a new card against one of the client's open accounts.
+All three clients present the same shape: a "Bank cards" list (account it's linked to +
+status) with Cancel/Report-stolen actions on `Active` cards, and a form to assign a new
+card against one of the client's own open accounts — Vue's `ClientDetails.vue` (a section
+under Client Details), WinForms' `ClientDetails` view (a "Client bank cards" tab, reached
+via the "Bank Cards" menu — `09-client-uis.md`), and WPF's equivalent (`09-client-uis.md`).
 
 ## Sequence: assign, then cancel
 
@@ -170,3 +173,10 @@ CancelEvtHandler -> Reporting : UpdateAsync<BankCardReport>({ Status = "Cancelle
 Vue -> Vue : reload after a short delay\n(same fire-and-forget-driven poll as every other screen)
 @enduml
 ```
+
+WinForms and WPF follow the exact same request shape through their own client (`ApiClient`
+call → `202 Accepted` → refresh) — only what initiates the call differs: WinForms'
+`ClientDetailsPresenter.AssignNewBankCard()`/`CancelSelectedBankCard()`/
+`ReportSelectedBankCardStolen()` (wired to View events by the reflection-based MVP pattern,
+`patterns/winforms-architecture.md`) and WPF's `ClientDetailsViewModel`'s equivalent
+`RelayCommand`s (`patterns/wpf-architecture.md`) — see `09-client-uis.md`.

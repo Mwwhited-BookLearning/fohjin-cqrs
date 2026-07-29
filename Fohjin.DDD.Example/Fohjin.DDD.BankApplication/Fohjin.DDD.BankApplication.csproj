@@ -23,6 +23,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\Fohjin.DDD.ApiClient\Fohjin.DDD.ApiClient.csproj" />
 	  <ProjectReference Include="..\Fohjin.DDD.BankApplication.Core\Fohjin.DDD.BankApplication.Core.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.DesktopClient\Fohjin.DDD.DesktopClient.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

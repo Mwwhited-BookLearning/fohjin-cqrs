@@ -1,167 +1,22 @@
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref, watch } from "vue";
+import { onBeforeUnmount, watch } from "vue";
 import { useRouter } from "vue-router";
-import { apiClient } from "../api/client";
-import {
-  AssignNewBankCardRequest,
-  ChangeClientNameRequest,
-  ChangeClientPhoneNumberRequest,
-  ClientIsMovingRequest,
-  OpenNewAccountForClientRequest,
-  type ClientDetailsReport,
-} from "../api/generated-client";
-import { onReconnect, subscribe } from "../events/eventBus";
-import { shouldRefreshClientDetails } from "../events/refreshRules";
+import { useClientDetails } from "../composables/useClientDetails";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
 
-const details = ref<ClientDetailsReport | null>(null);
-const loading = ref(true);
-const error = ref<string | null>(null);
-
-const nameForm = reactive({ clientName: "" });
-const addressForm = reactive({ street: "", streetNumber: "", postalCode: "", city: "" });
-const phoneForm = reactive({ phoneNumber: "" });
-const newAccountForm = reactive({ accountName: "" });
-const newBankCardForm = reactive({ accountId: "" });
-
-const savingName = ref(false);
-const savingAddress = ref(false);
-const savingPhoneNumber = ref(false);
-const openingAccount = ref(false);
-const assigningBankCard = ref(false);
-// Per-bank-card-id busy flag, so clicking Cancel/Report stolen on one card doesn't disable
-// every other card's buttons while its request is in flight.
-const bankCardActionInFlight = reactive<Record<string, boolean>>({});
-
-async function load() {
-  loading.value = true;
-  error.value = null;
-  try {
-    details.value = await apiClient.getClientDetailsById(props.id);
-    nameForm.clientName = details.value.clientName ?? "";
-    addressForm.street = details.value.street ?? "";
-    addressForm.streetNumber = details.value.streetNumber ?? "";
-    addressForm.postalCode = details.value.postalCode ?? "";
-    addressForm.city = details.value.city ?? "";
-    phoneForm.phoneNumber = details.value.phoneNumber ?? "";
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    loading.value = false;
-  }
-}
+const {
+  details, loading, error,
+  nameForm, addressForm, phoneForm, newAccountForm, newBankCardForm,
+  savingName, savingAddress, savingPhoneNumber, openingAccount, assigningBankCard, bankCardActionInFlight,
+  load, watchLiveEvents, saveName, saveAddress, savePhoneNumber, openNewAccount,
+  accountLabel, assignNewBankCard, cancelBankCard, reportBankCardStolen,
+} = useClientDetails(() => props.id);
 
 watch(() => props.id, load, { immediate: true });
-
-// Event-driven refresh instead of a poll (rule itself lives in src/events/refreshRules.ts, unit
-// tested there - this is just wiring it up to this screen's own client id and loaded card ids).
-const unsubscribe = subscribe((event) => {
-  const bankCardIds = details.value?.bankCards?.map((c) => c.id!) ?? [];
-  if (shouldRefreshClientDetails(event, props.id, bankCardIds)) load();
-});
-// Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
-const unsubscribeReconnect = onReconnect(load);
-onBeforeUnmount(() => {
-  unsubscribe();
-  unsubscribeReconnect();
-});
-
-async function saveName() {
-  savingName.value = true;
-  error.value = null;
-  try {
-    await apiClient.changeClientName(props.id, new ChangeClientNameRequest(nameForm));
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    savingName.value = false;
-  }
-}
-
-async function saveAddress() {
-  savingAddress.value = true;
-  error.value = null;
-  try {
-    await apiClient.changeClientAddress(props.id, new ClientIsMovingRequest(addressForm));
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    savingAddress.value = false;
-  }
-}
-
-async function savePhoneNumber() {
-  savingPhoneNumber.value = true;
-  error.value = null;
-  try {
-    await apiClient.changeClientPhoneNumber(props.id, new ChangeClientPhoneNumberRequest(phoneForm));
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    savingPhoneNumber.value = false;
-  }
-}
-
-async function openNewAccount() {
-  openingAccount.value = true;
-  error.value = null;
-  try {
-    await apiClient.openNewAccountForClient(props.id, new OpenNewAccountForClientRequest(newAccountForm));
-    newAccountForm.accountName = "";
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    openingAccount.value = false;
-  }
-}
-
-function accountLabel(accountId: string): string {
-  const account = details.value?.accounts?.find((a) => a.id === accountId);
-  return account ? `${account.accountName} (${account.accountNumber})` : accountId;
-}
-
-// AssignNewBankCardForAccount (Fohjin.DDD.Domain/Client.cs) guards that the account belongs to
-// this client - only open accounts are ever in Client's own _accounts list, so only those are
-// offered here (docs/02-bank-cards.md: this whole feature has no read-model card number/type,
-// just an id + linked account + status - nothing here is invented beyond what the domain has).
-async function assignNewBankCard() {
-  assigningBankCard.value = true;
-  error.value = null;
-  try {
-    await apiClient.assignNewBankCard(props.id, new AssignNewBankCardRequest(newBankCardForm));
-    newBankCardForm.accountId = "";
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    assigningBankCard.value = false;
-  }
-}
-
-async function cancelBankCard(bankCardId: string) {
-  bankCardActionInFlight[bankCardId] = true;
-  error.value = null;
-  try {
-    await apiClient.cancelBankCard(props.id, bankCardId);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    bankCardActionInFlight[bankCardId] = false;
-  }
-}
-
-async function reportBankCardStolen(bankCardId: string) {
-  bankCardActionInFlight[bankCardId] = true;
-  error.value = null;
-  try {
-    await apiClient.reportStolenBankCard(props.id, bankCardId);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    bankCardActionInFlight[bankCardId] = false;
-  }
-}
+const stopWatching = watchLiveEvents();
+onBeforeUnmount(stopWatching);
 </script>
 
 <template>
@@ -256,64 +111,64 @@ async function reportBankCardStolen(bankCardId: string) {
 
 <style scoped>
 .client-details section {
-  max-width: 24rem;
-  margin-bottom: 1.5rem;
+  max-width: var(--content-max-width);
+  margin-bottom: var(--spacing-xl);
 }
 form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-md);
 }
 label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--spacing-xs);
 }
 .account-list {
   list-style: none;
   padding: 0;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-lg);
 }
 .account-list li {
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
 }
 .account-list li:not(.empty) {
   cursor: pointer;
 }
 .account-list li:not(.empty):hover {
-  background: #f5f5f5;
+  background: var(--color-hover-bg);
 }
 .bank-card-list {
   list-style: none;
   padding: 0;
-  margin-bottom: 1rem;
+  margin-bottom: var(--spacing-lg);
 }
 .bank-card-list li {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
 }
 .bank-card-status {
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-  background: #eee;
+  padding: 0.15rem var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-muted-bg);
   font-size: 0.85rem;
 }
 .bank-card-status.active {
-  background: #d4edda;
-  color: #155724;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 .bank-card-status.cancelled,
 .bank-card-status.reportedstolen {
-  background: #f8d7da;
-  color: #721c24;
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
 }
 .bank-card-actions {
   margin-left: auto;
   display: flex;
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
 }
 </style>

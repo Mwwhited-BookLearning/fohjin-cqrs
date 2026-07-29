@@ -78,23 +78,30 @@ Presenter separation, unit-testable Presenter) is standard MVP; the reflection-b
 auto-wiring is this codebase's variation on *how* the two get connected, not a different
 pattern.
 
-### Why Vue isn't "MVP again"
+### Why Vue and WPF aren't "MVP again"
 
-`Fohjin.DDD.WebUI` is a sibling client to the WinForms app (both talk to the same
-`Fohjin.DDD.WebApi` — see `../00-architecture-overview.md`), but it is **not** a second
-implementation of MVP. It's a plain Vue 3 `<script setup>` SPA: each view component owns its
-own template, reactive state, and event handlers directly, with no separate
-Presenter-equivalent class and no passive-View-interface indirection. That's a legitimate,
-different architectural choice for a different UI framework — Vue's own reactivity model
-already solves the "testable without a real window" problem MVP was invented for, via
-different means (see `../../Fohjin.DDD.Example/Fohjin.DDD.WebUI/src/events/refreshRules.ts`
-for this codebase's actual approach: extract the parts of a view's logic worth unit testing
-into plain functions, rather than wrapping the whole view in a Presenter abstraction).
+`Fohjin.DDD.WebUI` and `Fohjin.DDD.BankApplication.Wpf` are sibling clients to the WinForms
+app (all three talk to the same `Fohjin.DDD.WebApi` — see `../00-architecture-overview.md`),
+but neither is a second/third implementation of MVP. Vue's Composition API and WPF's native
+data/command binding each already solve the "keep logic out of the View, stay unit
+testable" problem MVP was invented for, via their own framework's tools rather than a
+hand-rolled reflection mechanism — see `vue-architecture.md` and `wpf-architecture.md` for
+how each actually does it (composables/stores for Vue; `[ObservableProperty]`/
+`[RelayCommand]` ViewModels for WPF). WinForms needed `Presenter<TView>.HookUpViewEvents`
+specifically because plain WinForms has no built-in data-binding/command-binding
+infrastructure comparable to either of those — MVP is the pattern that fills that gap for
+a framework that doesn't have one natively, not a universal requirement every UI framework
+needs reinventing.
 
 ## See also
 
-- `../09-winforms-ui.md` — every `*Presenter`/`I*View` pair, and the Vue frontend as a
-  sibling client (not a second MVP implementation).
+- `../09-client-uis.md` — every `*Presenter`/`I*View` pair, and Vue/WPF as sibling clients
+  (not second/third MVP implementations).
+- `winforms-architecture.md` — this pattern formalized as WinForms' full layered
+  architecture standard (data/actions/structure/presentation/styling), not just the
+  View/Presenter wiring mechanism itself.
+- `vue-architecture.md` and `wpf-architecture.md` — how the other two clients solve the
+  same "keep logic out of the View" problem with their own frameworks' native tools.
 - `../10-patterns-and-practices.md#model-view-presenter-mvp` — the catalog entry.
 - Martin Fowler, *GUI Architectures*: https://martinfowler.com/eaaDev/uiArchs.html — MVP
   alongside MVC and Presentation Model, with the tradeoffs between them.

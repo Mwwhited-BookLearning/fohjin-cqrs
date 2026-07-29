@@ -60,6 +60,45 @@ caught real, otherwise-invisible bugs more than once:
   registering as another `dev-client` redirect URI), and the token exchange is a cross-origin
   browser `fetch()` straight to Sts (needed adding WebApi's origin to Sts's CORS policy) - see
   `docs/00-architecture-overview.md`'s Observability section.
+- A rename-then-reload race in `Fohjin.DDD.WebUI`, found while live-verifying the Pinia
+  refactor (`docs/patterns/vue-architecture.md`): the SSE stream and a reporting-store event
+  handler are independent Rx subscriptions on the same event with no ordering guarantee, so a
+  live-triggered reload sometimes re-fetched before the read model had actually finished
+  writing, silently showing stale data until something else (a manual reload) triggered a
+  further reload. A single automated test that only checked "did *a* reload fire" (not "is the
+  displayed value now correct") had missed this earlier in the same session. Fixed with a
+  short-delay reconciliation retry after every live-triggered reload (`docs/07-messaging-bus.md`).
+- `EventStreamClient` (shared by WinForms and the WPF client, `docs/09-client-uis.md`)
+  deserialized every SSE event to an all-default `EventEnvelope` (`EventType=""`,
+  `AggregateId=Guid.Empty`) - `Fohjin.DDD.WebApi`'s `Results.ServerSentEvents` serializes with
+  ASP.NET Core's default camelCase JSON options, but the client called
+  `JsonSerializer.Deserialize<EventEnvelope>(data)` with no matching options (case-sensitive
+  PascalCase-only by default). This doesn't throw - it silently binds nothing, so every
+  ViewModel's `OnDomainEvent(eventType, ...)` check against the always-empty `eventType`
+  never matched, breaking every event-driven reload in the WPF client with no visible error.
+  Only surfaced via a FlaUI-driven live run creating a real client and watching the search
+  list never refresh. Fixed by deserializing with `JsonSerializerOptions.Web`.
+- A `ListBox.InputBindings` + `MouseBinding MouseAction="LeftDoubleClick"` never fired in the
+  WPF client's `ClientSearchView`/`ClientDetailsView` - a commonly-suggested WPF pattern that
+  doesn't actually work here: `ListBoxItem`'s own `MouseLeftButtonDown` handling (selection)
+  never lets the bubbled double-click reach the ListBox's own `InputBindings` gesture
+  recognition. Selection worked, the bound command never executed, no exception anywhere -
+  confirmed by adding a temporary `Console.WriteLine` in the command handler and seeing it
+  never print across many FlaUI-driven attempts. Fixed with an `ItemContainerStyle`
+  `EventSetter Event="MouseDoubleClick"` targeting `ListBoxItem` directly instead
+  (`docs/09-client-uis.md`).
+- WinForms' bank-card "Assign" button could stay permanently disabled for a client with
+  exactly one open account: `_newBankCardAccount` auto-selects its first item the instant its
+  `DataSource` is (re)assigned, including during the *account-creation* background refresh
+  that lands before the Bank Cards tab is ever opened - firing `SelectedIndexChanged` while
+  `ClientDetailsPresenter`'s "current process" flags don't yet match the bank-card step,
+  which disables every step's shared save button (including the not-yet-visible Assign
+  button) with nothing to re-enable it, since a single-item combo never fires a real
+  selection-change event again. Found live via FlaUI keyboard-probing the combo (its bound
+  value was correct; only the button's `Enabled` state was wrong). Fixed by having
+  `InitiateAssignNewBankCard()` explicitly re-validate against the current selection when the
+  panel opens, instead of only reacting to a change event that may never come
+  (`docs/09-client-uis.md`).
 
 Don't assume a plausible-looking change works — prove it against a running system.
 

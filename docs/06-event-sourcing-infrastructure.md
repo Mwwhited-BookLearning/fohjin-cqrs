@@ -99,7 +99,7 @@ stamp `AggregateId`.
 > `EventProviderEntity.EventProviderId`, populated separately at save time, not by
 > `AggregateId` on the event object). It only became visible once something filtered a live
 > event stream by `AggregateId` looking for a freshly-created aggregate — a Vue-side SSE
-> subscriber (`09-winforms-ui.md`'s Vue section) — and never matched. Fixed by reordering
+> subscriber (`09-client-uis.md`'s Vue section) — and never matched. Fixed by reordering
 > `Apply<TEvent>` (and the identical bug in `BaseEntity<TDomainEvent>.Apply`, used by child
 > entities like `BankCard`) to stamp `AggregateId` after the handler runs; every other event
 > (raised once `Id` is already set) behaves identically either way.

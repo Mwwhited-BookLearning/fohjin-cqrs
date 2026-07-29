@@ -1,128 +1,19 @@
 <script setup lang="ts">
-import { onBeforeUnmount, reactive, ref, watch } from "vue";
-import { useRouter } from "vue-router";
-import { apiClient } from "../api/client";
-import {
-  ChangeAccountNameRequest,
-  DepositCashRequest,
-  SendMoneyTransferRequest,
-  WithdrawalCashRequest,
-  type AccountDetailsReport,
-  type AccountReport,
-} from "../api/generated-client";
-import { onReconnect, subscribe } from "../events/eventBus";
-import { shouldRefreshAccountDetails } from "../events/refreshRules";
+import { onBeforeUnmount, watch } from "vue";
+import { useAccountDetails } from "../composables/useAccountDetails";
 
 const props = defineProps<{ id: string }>();
-const router = useRouter();
 
-const details = ref<AccountDetailsReport | null>(null);
-const otherAccounts = ref<AccountReport[]>([]);
-const loading = ref(true);
-const error = ref<string | null>(null);
-
-const nameForm = reactive({ accountName: "" });
-const depositForm = reactive({ amount: 0 });
-const withdrawalForm = reactive({ amount: 0 });
-const transferForm = reactive({ amount: 0, accountNumber: "" });
-
-const savingName = ref(false);
-const depositing = ref(false);
-const withdrawing = ref(false);
-const transferring = ref(false);
-const closing = ref(false);
-
-async function load() {
-  loading.value = true;
-  error.value = null;
-  try {
-    details.value = await apiClient.getAccountDetailsById(props.id);
-    nameForm.accountName = details.value.accountName ?? "";
-    otherAccounts.value = (await apiClient.getAccounts()).filter((a) => a.id !== props.id);
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    loading.value = false;
-  }
-}
+const {
+  details, otherAccounts, loading, error,
+  nameForm, depositForm, withdrawalForm, transferForm,
+  savingName, depositing, withdrawing, transferring, closing,
+  load, watchLiveEvents, saveName, deposit, withdraw, transfer, closeAccount,
+} = useAccountDetails(() => props.id);
 
 watch(() => props.id, load, { immediate: true });
-
-// Event-driven refresh instead of a poll (rule itself lives in src/events/refreshRules.ts, unit
-// tested there).
-const unsubscribe = subscribe((event) => {
-  if (shouldRefreshAccountDetails(event, props.id)) load();
-});
-// Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
-const unsubscribeReconnect = onReconnect(load);
-onBeforeUnmount(() => {
-  unsubscribe();
-  unsubscribeReconnect();
-});
-
-async function saveName() {
-  savingName.value = true;
-  error.value = null;
-  try {
-    await apiClient.changeAccountName(props.id, new ChangeAccountNameRequest(nameForm));
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    savingName.value = false;
-  }
-}
-
-async function deposit() {
-  depositing.value = true;
-  error.value = null;
-  try {
-    await apiClient.depositCash(props.id, new DepositCashRequest(depositForm));
-    depositForm.amount = 0;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    depositing.value = false;
-  }
-}
-
-async function withdraw() {
-  withdrawing.value = true;
-  error.value = null;
-  try {
-    await apiClient.withdrawalCash(props.id, new WithdrawalCashRequest(withdrawalForm));
-    withdrawalForm.amount = 0;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    withdrawing.value = false;
-  }
-}
-
-async function transfer() {
-  transferring.value = true;
-  error.value = null;
-  try {
-    await apiClient.sendMoneyTransfer(props.id, new SendMoneyTransferRequest(transferForm));
-    transferForm.amount = 0;
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    transferring.value = false;
-  }
-}
-
-async function closeAccount() {
-  closing.value = true;
-  error.value = null;
-  try {
-    await apiClient.closeAccount(props.id);
-    await router.push({ name: "clients" });
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    closing.value = false;
-  }
-}
+const stopWatching = watchLiveEvents();
+onBeforeUnmount(stopWatching);
 </script>
 
 <template>
@@ -194,8 +85,8 @@ async function closeAccount() {
 
 <style scoped>
 .account-details section {
-  max-width: 24rem;
-  margin-bottom: 1.5rem;
+  max-width: var(--content-max-width);
+  margin-bottom: var(--spacing-xl);
 }
 .subtitle {
   color: #666;
@@ -203,27 +94,27 @@ async function closeAccount() {
 form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--spacing-md);
 }
 label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--spacing-xs);
 }
 .ledger-list {
   list-style: none;
   padding: 0;
 }
 .ledger-list li {
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
 }
 button.danger {
-  background: #c0392b;
-  color: white;
+  background: var(--color-danger);
+  color: var(--color-danger-contrast);
   border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-sm);
   cursor: pointer;
 }
 </style>

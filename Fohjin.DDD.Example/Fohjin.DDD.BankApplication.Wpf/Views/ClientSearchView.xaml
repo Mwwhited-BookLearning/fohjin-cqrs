@@ -1,0 +1,38 @@
+<UserControl x:Class="Fohjin.DDD.BankApplication.Wpf.Views.ClientSearchView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Fohjin.DDD.BankApplication.Wpf.ViewModels"
+             d:DataContext="{d:DesignInstance Type=vm:ClientSearchViewModel}"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008/design"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <DockPanel Margin="16">
+        <TextBlock DockPanel.Dock="Top" Text="Clients" Style="{StaticResource HeaderText}" />
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBox Width="240" Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.AutomationId="_searchTerm" />
+            <Button Content="New client" Command="{Binding CreateClientCommand}" AutomationProperties.AutomationId="_newClientButton" />
+            <Button Content="Refresh" Command="{Binding LoadCommand}" AutomationProperties.AutomationId="_refreshButton" />
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Top" Text="{Binding ErrorMessage}" Style="{StaticResource ErrorText}"
+                   Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}}" />
+
+        <TextBlock DockPanel.Dock="Top" Text="Loading..." Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}" />
+
+        <!-- ListBox.InputBindings + MouseBinding LeftDoubleClick never fires here - ListBoxItem's
+             own MouseLeftButtonDown handling (selection) consumes the click before the ListBox's
+             InputBindings gesture recognition sees it (confirmed live: zero command invocations
+             across many attempts, with selection itself working fine). An ItemContainerStyle
+             EventSetter attaches MouseDoubleClick directly to each ListBoxItem instead, which
+             does fire reliably since the item is the actual event source, not a bubbled-past
+             ancestor. -->
+        <ListBox ItemsSource="{Binding ClientsView}" DisplayMemberPath="Name" AutomationProperties.AutomationId="_clients">
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <EventSetter Event="MouseDoubleClick" Handler="ClientItem_MouseDoubleClick" />
+                </Style>
+            </ListBox.ItemContainerStyle>
+        </ListBox>
+    </DockPanel>
+</UserControl>

@@ -88,7 +88,7 @@ Each event has a matching event handler that updates the read model (`ClientRepo
 ## Sequence: creating a new client
 
 Both clients collect the same four fields (name, address, phone) but present them
-differently: the WinForms wizard (`ClientDetailsPresenter`, see `09-winforms-ui.md`)
+differently: the WinForms wizard (`ClientDetailsPresenter`, see `09-client-uis.md`)
 gathers them across three panels before sending anything, while Vue's `ClientCreate.vue`
 is a single form submitted all at once — either way, exactly one `POST /api/clients` call
 reaches `Fohjin.DDD.WebApi`, which is where everything below the HTTP line is unchanged
@@ -132,7 +132,7 @@ fire-and-forget (`07-messaging-bus.md`) — the HTTP response does **not** wait 
 `ClientCreatedEventHandler` to run, so there's no id or confirmation to navigate straight to
 yet either way. WinForms handles this with a fixed-delay `ISystemTimer` poll; Vue's
 `ClientSearch.vue` instead subscribes to `ClientCreatedEvent` on the shared client-side
-event bus (`09-winforms-ui.md`) and reloads the instant the read model actually catches up,
+event bus (`09-client-uis.md`) and reloads the instant the read model actually catches up,
 rather than guessing how long to wait.
 
 ## Editing an existing client
@@ -162,6 +162,6 @@ Bus -> Handler : ExecuteAsync(command)
 Handler -> Aggregate : GetByIdAsync(Id)
 Handler -> Aggregate : client.UpdateClientName(new ClientName(...))
 Aggregate --> Aggregate : Apply(ClientNameChangedEvent)
-Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 1000ms);\nVue: reloads when the matching domain event\narrives on the shared event bus - 09-winforms-ui.md)
+Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 1000ms);\nVue: reloads when the matching domain event\narrives on the shared event bus - 09-client-uis.md)
 @enduml
 ```

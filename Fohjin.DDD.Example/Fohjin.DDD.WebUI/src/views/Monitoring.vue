@@ -1,39 +1,14 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
-import { onStatusChange, subscribe, type ConnectionStatus, type EventEnvelope } from "../events/eventBus";
+import { onBeforeUnmount, onMounted } from "vue";
+import { useMonitoring } from "../composables/useMonitoring";
 
-const events = ref<EventEnvelope[]>([]);
-const status = ref<ConnectionStatus>("disconnected");
-const paused = ref(false);
-const filter = reactive({ eventType: "" });
+const { events, status, paused, filter, watchLiveEvents, togglePaused, clear } = useMonitoring();
 
-const MAX_EVENTS = 200;
-let unsubscribe: (() => void) | null = null;
-let unsubscribeStatus: (() => void) | null = null;
-
-// This is now just a subscriber of the one shared app-wide connection (src/events/eventBus.ts)
-// - "paused" only stops appending to this screen's own list, it doesn't touch the underlying
-// connection, which stays open for every other screen using it too (docs/07-messaging-bus.md's
-// pattern applied client-side: one shared stream, N independent subscribers).
+let stopWatching: (() => void) | null = null;
 onMounted(() => {
-  unsubscribeStatus = onStatusChange((next) => (status.value = next));
-  unsubscribe = subscribe((envelope) => {
-    if (paused.value) return;
-    if (filter.eventType.trim() && envelope.eventType !== filter.eventType.trim()) return;
-
-    events.value.unshift(envelope);
-    if (events.value.length > MAX_EVENTS) events.value.length = MAX_EVENTS;
-  });
+  stopWatching = watchLiveEvents();
 });
-
-onBeforeUnmount(() => {
-  unsubscribe?.();
-  unsubscribeStatus?.();
-});
-
-function clear() {
-  events.value = [];
-}
+onBeforeUnmount(() => stopWatching?.());
 </script>
 
 <template>
@@ -41,7 +16,7 @@ function clear() {
     <h1>Monitoring</h1>
     <div class="toolbar">
       <label>Filter by event type <input v-model="filter.eventType" placeholder="e.g. ClientCreatedEvent" /></label>
-      <button @click="paused = !paused">{{ paused ? "Resume" : "Pause" }}</button>
+      <button @click="togglePaused">{{ paused ? "Resume" : "Pause" }}</button>
       <button @click="clear">Clear</button>
       <span class="status" :class="status">{{ status === "connected" ? "Live" : status === "connecting" ? "Connecting..." : "Disconnected" }}</span>
     </div>
@@ -61,26 +36,26 @@ function clear() {
 .toolbar {
   display: flex;
   align-items: flex-end;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
 .toolbar label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--spacing-xs);
 }
 .status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  background: #eee;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-muted-bg);
 }
 .status.connected {
-  background: #d4edda;
-  color: #155724;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
 }
 .status.connecting {
-  background: #fff3cd;
-  color: #856404;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
 }
 .event-list {
   list-style: none;
@@ -88,9 +63,9 @@ function clear() {
 }
 .event-list li {
   display: flex;
-  gap: 1rem;
-  padding: 0.5rem;
-  border-bottom: 1px solid #eee;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
   font-family: monospace;
 }
 .event-type {

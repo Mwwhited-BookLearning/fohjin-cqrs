@@ -27,7 +27,7 @@ against the code, not against what an earlier doc or commit says happened (see
 | [`06-event-sourcing-infrastructure.md`](06-event-sourcing-infrastructure.md) | Aggregate roots, the event store, snapshots |
 | [`07-messaging-bus.md`](07-messaging-bus.md) | Command dispatch (Mediator) and event fan-out (Observer/Rx) |
 | [`08-reporting-read-models.md`](08-reporting-read-models.md) | Read-model DTOs and their event-driven updates |
-| [`09-winforms-ui.md`](09-winforms-ui.md) | Both UI clients: WinForms Presenter/View and Vue as a sibling client |
+| [`09-client-uis.md`](09-client-uis.md) | Both UI clients: WinForms Presenter/View and Vue as a sibling client |
 
 ## Patterns and practices
 

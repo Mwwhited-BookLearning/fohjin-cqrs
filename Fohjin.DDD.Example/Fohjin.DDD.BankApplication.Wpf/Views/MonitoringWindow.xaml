@@ -1,0 +1,32 @@
+<Window x:Class="Fohjin.DDD.BankApplication.Wpf.Views.MonitoringWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Fohjin.DDD.BankApplication.Wpf.ViewModels"
+        d:DataContext="{d:DesignInstance Type=vm:MonitoringViewModel}"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008/design"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Monitoring" Height="400" Width="700">
+    <Grid Margin="12">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <DockPanel Grid.Column="0" Margin="0,0,6,0">
+            <DockPanel DockPanel.Dock="Top">
+                <TextBlock Text="Logs" Style="{StaticResource SectionHeaderText}" />
+                <Button Content="Clear" Command="{Binding ClearLogsCommand}" HorizontalAlignment="Right" />
+            </DockPanel>
+            <ListBox ItemsSource="{Binding LogLines}" FontFamily="Consolas" AutomationProperties.AutomationId="_logLines" />
+        </DockPanel>
+
+        <DockPanel Grid.Column="1" Margin="6,0,0,0">
+            <DockPanel DockPanel.Dock="Top">
+                <TextBlock Text="Events" Style="{StaticResource SectionHeaderText}" />
+                <Button Content="Clear" Command="{Binding ClearEventsCommand}" HorizontalAlignment="Right" />
+            </DockPanel>
+            <ListBox ItemsSource="{Binding EventLines}" FontFamily="Consolas" AutomationProperties.AutomationId="_eventLines" />
+        </DockPanel>
+    </Grid>
+</Window>

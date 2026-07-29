@@ -7,15 +7,16 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace Fohjin.DDD.BankApplication.Auth;
+namespace Fohjin.DDD.DesktopClient;
 
-// Desktop OIDC login (docs/11-migration-plan.md Phase 7's "system browser + loopback redirect,
-// not an embedded WebView2" decision): opens the STS's real login page in the user's actual
-// browser (Process.Start with UseShellExecute) and catches the redirect on a local HttpListener,
-// same authorization-code + PKCE flow the Vue app drives via oidc-client-ts (Fohjin.DDD.WebUI/
-// src/auth/authService.ts) and the STS itself has no idea it's talking to a desktop app rather
-// than a browser SPA - same seeded dev-client, same /connect/authorize and /connect/token
-// endpoints. No refresh token is requested (Fohjin.DDD.Sts/Program.cs's dev-client only grants
+// Desktop OIDC login, shared by every non-browser client (WinForms, WPF): opens the STS's real
+// login page in the user's actual browser (Process.Start with UseShellExecute) and catches the
+// redirect on a local HttpListener, same authorization-code + PKCE flow the Vue app drives via
+// oidc-client-ts (Fohjin.DDD.WebUI/src/auth/authService.ts) and the STS itself has no idea it's
+// talking to a desktop app rather than a browser SPA - same seeded dev-client, same
+// /connect/authorize and /connect/token endpoints (each desktop client needs its own registered
+// LoopbackRedirectUri though - see Fohjin.DDD.Sts/Program.cs's dev-client redirect list). No
+// refresh token is requested (Fohjin.DDD.Sts/Program.cs's dev-client only grants
 // GrantTypes.AuthorizationCode) - the access token (OpenIddict's default 1-hour lifetime) is
 // held in memory for the process's lifetime; a session outlasting that would need to sign in
 // again, which is an acceptable limitation for this dev sample rather than something worth
@@ -84,11 +85,11 @@ public class DesktopAuthService(HttpClient httpClient, IConfiguration configurat
     }
 
     // Test seam only - production always takes the UseShellExecute path (the user's actual
-    // default browser). FOHJIN_TEST_BROWSER_EXECUTABLE lets the FlaUI UI automation suite
-    // (Test.Fohjin.DDD.BankApplication.UI) point this at a Chromium/Edge binary launched with
-    // remote debugging enabled, so the test can attach via Playwright's CDP client and drive
-    // the real STS login form the same way a human would, instead of trying to automate an
-    // arbitrary OS-default browser window through raw UI Automation.
+    // default browser). FOHJIN_TEST_BROWSER_EXECUTABLE lets a UI automation suite point this at
+    // a Chromium/Edge binary launched with remote debugging enabled, so the test can attach via
+    // Playwright's CDP client and drive the real STS login form the same way a human would,
+    // instead of trying to automate an arbitrary OS-default browser window through raw UI
+    // Automation.
     private static void LaunchBrowser(string authorizeUrl)
     {
         var testBrowserExecutable = Environment.GetEnvironmentVariable("FOHJIN_TEST_BROWSER_EXECUTABLE");

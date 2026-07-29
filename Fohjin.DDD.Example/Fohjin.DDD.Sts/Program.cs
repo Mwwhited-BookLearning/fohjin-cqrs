@@ -124,33 +124,30 @@ await using (var scope = app.Services.CreateAsyncScope())
 
     // One client for every caller (Phase 5's "one seeded dev client" decision) - a
     // public/PKCE client works the same way for a browser SPA, a desktop loopback redirect, and
-    // curl-driven verification, so this just lists all of them. http://127.0.0.1:5310/callback
-    // is this STS's own address (Phase 5's curl-driven verification); host.docker.internal is
-    // what a Playwright container sees the Vue dev server as when driving a real headless
-    // browser through the login flow (Phase 6's verification); http://127.0.0.1:5330/callback/
-    // is Fohjin.DDD.BankApplication's desktop loopback listener (Phase 7 - system browser +
-    // PKCE, docs/11-migration-plan.md's "desktop OIDC login uses the system browser + loopback
-    // redirect" decision); http://127.0.0.1:5320/scalar/v1 is Scalar's own default OAuth2
-    // redirect - it redirects back to itself (the page it was opened from) rather than a
-    // dedicated callback route, confirmed live (OpenIddict rejects the auth request with
-    // invalid_request/"redirect_uri is not valid" otherwise - see WebApi/Program.cs's
-    // MapScalarApiReference). Upserted rather than create-once-and-skip, since new redirect URIs
-    // get added across phases and a pre-existing seeded application would otherwise never pick
-    // them up on an already-migrated dev database.
+    // curl-driven verification, so this just lists all of them. Redirect URIs live in
+    // appsettings.Development.json's DevClient:RedirectUris (http://127.0.0.1:5310/callback is
+    // this STS's own address for curl-driven verification; host.docker.internal is what a
+    // Playwright container sees the Vue dev server as; the two 127.0.0.1:53x0/callback/ entries
+    // are Fohjin.DDD.BankApplication's and Fohjin.DDD.BankApplication.Wpf's own desktop loopback
+    // listeners, one port each so both can run at once without stealing each other's redirect;
+    // the /scalar/v1 one is Scalar's own default OAuth2 redirect, which redirects back to itself
+    // rather than a dedicated callback route, confirmed live - OpenIddict rejects the auth
+    // request with invalid_request/"redirect_uri is not valid" otherwise, see
+    // WebApi/Program.cs's MapScalarApiReference) - configurable rather than hard-coded here so
+    // adding a new caller (another desktop client, a different dev proxy port, ...) is an
+    // appsettings change, not a code change. Upserted rather than create-once-and-skip, since
+    // new redirect URIs get added across phases and a pre-existing seeded application would
+    // otherwise never pick them up on an already-migrated dev database.
+    var devClientConfig = app.Configuration.GetSection("DevClient");
+    var devClientRedirectUris = devClientConfig.GetSection("RedirectUris").Get<string[]>()
+        ?? throw new InvalidOperationException("DevClient:RedirectUris is not configured.");
+
     var devClientDescriptor = new OpenIddictApplicationDescriptor
     {
-        ClientId = "dev-client",
+        ClientId = devClientConfig["ClientId"] ?? throw new InvalidOperationException("DevClient:ClientId is not configured."),
         ClientType = ClientTypes.Public,
         ConsentType = ConsentTypes.Implicit,
-        DisplayName = "Fohjin.DDD dev client",
-        RedirectUris =
-        {
-            new Uri("http://127.0.0.1:5310/callback"),
-            new Uri("http://localhost:5173/callback"),
-            new Uri("http://host.docker.internal:5173/callback"),
-            new Uri("http://127.0.0.1:5330/callback/"),
-            new Uri("http://127.0.0.1:5320/scalar/v1"),
-        },
+        DisplayName = devClientConfig["DisplayName"] ?? throw new InvalidOperationException("DevClient:DisplayName is not configured."),
         Permissions =
         {
             Permissions.Endpoints.Authorization,
@@ -162,8 +159,10 @@ await using (var scope = app.Services.CreateAsyncScope())
         },
         Requirements = { Requirements.Features.ProofKeyForCodeExchange },
     };
+    foreach (var redirectUri in devClientRedirectUris)
+        devClientDescriptor.RedirectUris.Add(new Uri(redirectUri));
 
-    var existingDevClient = await applicationManager.FindByClientIdAsync("dev-client");
+    var existingDevClient = await applicationManager.FindByClientIdAsync(devClientDescriptor.ClientId);
     if (existingDevClient is null)
         await applicationManager.CreateAsync(devClientDescriptor);
     else

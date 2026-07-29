@@ -1,4 +1,4 @@
-using Fohjin.DDD.EventStore.SQLite;
+using Fohjin.DDD.EventStore.SqlServer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,10 +9,10 @@ public static class ServiceProviderExtensions
     public static async Task<T> BootStrapApplicationAsync<T>(this T serviceProvider) where T : IServiceProvider
     {
         var configuration = serviceProvider.GetRequiredService<IConfiguration>();
-        var domainConnectionString = configuration[DomainEventStorageConfig.ConnectionStringConfigKey]
-            ?? throw new NotSupportedException($"configuration for {DomainEventStorageConfig.ConnectionStringConfigKey} is missing");
-        var reportingConnectionString = configuration[Fohjin.DDD.Reporting.ServiceCollectionExtensions.ConnectionStringConfigKey]
-            ?? throw new NotSupportedException($"configuration for {Fohjin.DDD.Reporting.ServiceCollectionExtensions.ConnectionStringConfigKey} is missing");
+        var domainConnectionString = configuration.GetConnectionString(DomainEventStorageConfig.ConnectionStringName)
+            ?? throw new NotSupportedException($"connection string '{DomainEventStorageConfig.ConnectionStringName}' is missing");
+        var reportingConnectionString = configuration.GetConnectionString(Fohjin.DDD.Reporting.ServiceCollectionExtensions.ConnectionStringName)
+            ?? throw new NotSupportedException($"connection string '{Fohjin.DDD.Reporting.ServiceCollectionExtensions.ConnectionStringName}' is missing");
 
         await ActivatorUtilities.CreateInstance<DomainDatabaseBootStrapper>(serviceProvider)
             .CreateDatabaseSchemaIfNeeded(domainConnectionString);

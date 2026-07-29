@@ -171,13 +171,12 @@ an opaque serialized blob the aggregate alone knows how to interpret. Event Sour
 the *history*; Memento supplies the *shortcut* through it — two named patterns, working
 together, doing two different jobs.
 
-> **Documented gap in this codebase**: the read path (`GetSnapShotAsync`,
-> `GetEventsSinceLastSnapShotAsync`) fully exists and works, but the *write* path
-> (`SaveShapShotAsync`) is never called from the production commit path
-> (`EventStoreUnitOfWork.CommitAsync`) — only from repository tests. So this codebase
-> demonstrates the mechanism completely, but doesn't currently benefit from it in practice;
-> see `../06-event-sourcing-infrastructure.md` for exactly where that wiring is missing, if
-> you want an exercise in completing a documented-but-unfinished pattern.
+Both sides of the mechanism are wired up: the read path (`GetSnapShotAsync`,
+`GetEventsSinceLastSnapShotAsync`) loads from a snapshot when one exists, and the write path
+in `EventStoreUnitOfWork<T>.CommitAsync` calls `SaveShapShotAsync` itself once
+`GetEventCountSinceLastSnapShotAsync` reaches `EventStoreOptions.SnapshotFrequency` (default
+10, overridable via config) — see `../06-event-sourcing-infrastructure.md` for the exact
+commit-path sequence.
 
 ## See also
 

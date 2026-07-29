@@ -606,6 +606,56 @@
             }
           }
         }
+      },
+      "query": {
+        "tags": [
+          "Fohjin.DDD.WebApi"
+        ],
+        "summary": "Same as GET /odata/Clients, but for $filter expressions too large/complex for a query string (RFC 10008).",
+        "operationId": "QueryClientsViaQueryMethod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/events": {

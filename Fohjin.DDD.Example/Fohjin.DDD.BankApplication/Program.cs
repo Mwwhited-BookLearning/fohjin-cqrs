@@ -5,6 +5,7 @@ using Fohjin.DDD.DesktopClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Fohjin.DDD.BankApplication;
 
@@ -50,6 +51,9 @@ static class Program
             .AddBankApplicationServices()
             ;
 
+        services.Configure<StsOptions>(configuration.GetSection(StsOptions.SectionName));
+        services.Configure<WebApiOptions>(configuration.GetSection(WebApiOptions.SectionName));
+
         // AddHttpMessageHandler<T>() only wires T into the client pipeline via
         // services.GetRequiredService<T>() - it does NOT register T itself, so both handlers
         // need an explicit registration or resolving FohjinApiClient/EventStreamClient throws
@@ -67,12 +71,12 @@ static class Program
         // lifetime one).
         services.AddSingleton(sp => new DesktopAuthService(
             new HttpClient(),
-            sp.GetRequiredService<IConfiguration>(),
+            sp.GetRequiredService<IOptions<StsOptions>>(),
             sp.GetRequiredService<ILogger<DesktopAuthService>>()));
 
-        services.AddHttpClient<FohjinApiClient>(client =>
+        services.AddHttpClient<FohjinApiClient>((sp, client) =>
         {
-            client.BaseAddress = new Uri(configuration["WebApi:BaseUrl"]
+            client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<WebApiOptions>>().Value.BaseUrl
                 ?? throw new InvalidOperationException("WebApi:BaseUrl is not configured."));
         })
             .AddHttpMessageHandler<AuthorizationHandler>()
@@ -82,9 +86,9 @@ static class Program
         // long-lived SSE connection would only ever log the single initial "GET api/events"
         // call, and isn't worth the confusion of appearing to hang on a call that's actually a
         // deliberately-persistent stream.
-        services.AddHttpClient<EventStreamClient>(client =>
+        services.AddHttpClient<EventStreamClient>((sp, client) =>
         {
-            client.BaseAddress = new Uri(configuration["WebApi:BaseUrl"]
+            client.BaseAddress = new Uri(sp.GetRequiredService<IOptions<WebApiOptions>>().Value.BaseUrl
                 ?? throw new InvalidOperationException("WebApi:BaseUrl is not configured."));
         })
             .AddHttpMessageHandler<AuthorizationHandler>();

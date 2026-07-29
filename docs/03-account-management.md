@@ -94,11 +94,10 @@ ClosedAccount "1" *-- "*" Ledger : archived copy
 | ReceiveTransferFrom | `DebitTransfer` |
 | PreviousTransferFailed (compensating refund) | `DebitTransferFailed` |
 
-> **Known bug**: `ClosedAccountCreatedEventHandler.GetDescription` recognizes the string
-> `"CreditTransferFailed"` but the class actually produced by a failed transfer is
-> `DebitTransferFailed`. If a closed account's archived ledger contains a failed-transfer
-> entry, replaying it throws `UnsupportedTransferTypeException` instead of describing it.
-> See `05-money-transfers.md` for the full transfer flow this affects.
+`ClosedAccountCreatedEventHandler.GetDescription` recognizes `"DebitTransferFailed"` —
+matching what a failed transfer actually produces — so replaying a closed account's archived
+ledger describes a failed-transfer entry correctly instead of throwing
+`UnsupportedTransferTypeException`.
 
 ## Guard clauses
 

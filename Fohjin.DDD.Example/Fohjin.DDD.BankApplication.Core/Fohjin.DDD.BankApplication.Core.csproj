@@ -13,7 +13,7 @@
       view interfaces that call Fohjin.DDD.WebApi through FohjinApiClient (Phase 7). The CQRS-core
       database bootstrapping classes that used to live here moved to Fohjin.DDD.Bootstrap, the
       only thing that still needed those references (Fohjin.DDD.WebApi's own startup and
-      Test.Fohjin.DDD's infrastructure tests, not WinForms).
+      Fohjin.DDD.Tests's infrastructure tests, not WinForms).
     -->
     <ProjectReference Include="..\Fohjin.DDD.ApiClient\Fohjin.DDD.ApiClient.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Common\Fohjin.DDD.Common.csproj" />

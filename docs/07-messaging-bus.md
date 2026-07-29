@@ -143,7 +143,7 @@ Each event handler gets its **own** independent Rx subscription over the same sh
 `bus.Events` stream, filtered by `OfType<TEvent>()`. N handlers subscribed to the same
 event type means N independent invocations per publish, each with its own try/catch — one
 handler's failure never blocks or is seen by another (see `EventSubscriptionBootstrapper`
-in `Fohjin.DDD.Configuration`).
+in `Fohjin.DDD.MessageRouting`).
 
 The Vue frontend has its own client-side mirror of exactly this shape:
 `Fohjin.DDD.WebUI/src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection

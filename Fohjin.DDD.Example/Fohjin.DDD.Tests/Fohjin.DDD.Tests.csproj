@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.10" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+		<PackageReference Include="Moq" Version="4.20.72" />
+		<PackageReference Include="MSTest.TestAdapter" Version="4.3.3" />
+		<PackageReference Include="MSTest.TestFramework" Version="4.3.3" />
+		<PackageReference Include="coverlet.collector" Version="10.0.1">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Fohjin.DDD.Abstractions\Fohjin.DDD.Abstractions.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.ApiClient\Fohjin.DDD.ApiClient.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.BankApplication.Core\Fohjin.DDD.BankApplication.Core.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.Bootstrap\Fohjin.DDD.Bootstrap.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.Bus\Fohjin.DDD.Bus.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.CommandHandlers\Fohjin.DDD.CommandHandlers.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.Common\Fohjin.DDD.Common.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.MessageRouting\Fohjin.DDD.MessageRouting.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.Domain\Fohjin.DDD.Domain.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.EventHandlers\Fohjin.DDD.EventHandlers.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.EventStore.SqlServer\Fohjin.DDD.EventStore.SqlServer.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.EventStore\Fohjin.DDD.EventStore.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.Reporting\Fohjin.DDD.Reporting.csproj" />
+	  <ProjectReference Include="..\Fohjin.DDD.Services\Fohjin.DDD.Services.csproj" />
+	</ItemGroup>
+
+</Project>

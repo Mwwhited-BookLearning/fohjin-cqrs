@@ -177,11 +177,14 @@ One `EventProviderEntity` row per aggregate/entity stream. Relationships are enf
 by matching `EventProviderId` values — there's no `HasOne`/`WithMany` in the EF Core model
 and no foreign-key constraint in the migrations.
 
-> **Gap found while documenting this**: the snapshot machinery
-> (`SaveShapShotAsync`/`GetEventCountSinceLastSnapShotAsync`) exists and works, but nothing
-> in the production commit path (`EventStoreUnitOfWork.CommitAsync`) ever calls it
-> automatically. It's only invoked from repository tests, whose names imply an intended
-> "snapshot every 10 events" policy that was never wired up outside tests.
+`EventStoreUnitOfWork<T>.CommitAsync` wires the write side up to this same machinery: after
+persisting each aggregate's new events via `SaveAsync`, it asks
+`GetEventCountSinceLastSnapShotAsync` how many events have accumulated since the last snapshot
+and, once that reaches `EventStoreOptions.SnapshotFrequency` (default 10, configurable via an
+`"EventStore:SnapshotFrequency"` config section), calls `SaveShapShotAsync` itself — no caller
+has to remember to snapshot manually. `Fohjin.DDD.Tests/Domain/Repositories/*RepositoryTest.cs`
+covers this with a test that commits events and asserts a snapshot exists with no manual
+`SaveShapShotAsync` call in the test at all.
 
 ## Sequence: load with snapshot
 

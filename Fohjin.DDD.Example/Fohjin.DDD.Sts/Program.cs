@@ -1,6 +1,8 @@
+using Fohjin.DDD.Sts;
 using Fohjin.DDD.Sts.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using static OpenIddict.Abstractions.OpenIddictConstants;
 
@@ -38,6 +40,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     // into the same DbContext/database as ASP.NET Core Identity's own tables.
     options.UseOpenIddict();
 });
+
+builder.Services.Configure<DevClientOptions>(builder.Configuration.GetSection(DevClientOptions.SectionName));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
@@ -138,16 +142,16 @@ await using (var scope = app.Services.CreateAsyncScope())
     // appsettings change, not a code change. Upserted rather than create-once-and-skip, since
     // new redirect URIs get added across phases and a pre-existing seeded application would
     // otherwise never pick them up on an already-migrated dev database.
-    var devClientConfig = app.Configuration.GetSection("DevClient");
-    var devClientRedirectUris = devClientConfig.GetSection("RedirectUris").Get<string[]>()
-        ?? throw new InvalidOperationException("DevClient:RedirectUris is not configured.");
+    var devClientOptions = scope.ServiceProvider.GetRequiredService<IOptions<DevClientOptions>>().Value;
+    if (devClientOptions.RedirectUris.Length == 0)
+        throw new InvalidOperationException("DevClient:RedirectUris is not configured.");
 
     var devClientDescriptor = new OpenIddictApplicationDescriptor
     {
-        ClientId = devClientConfig["ClientId"] ?? throw new InvalidOperationException("DevClient:ClientId is not configured."),
+        ClientId = devClientOptions.ClientId ?? throw new InvalidOperationException("DevClient:ClientId is not configured."),
         ClientType = ClientTypes.Public,
         ConsentType = ConsentTypes.Implicit,
-        DisplayName = devClientConfig["DisplayName"] ?? throw new InvalidOperationException("DevClient:DisplayName is not configured."),
+        DisplayName = devClientOptions.DisplayName ?? throw new InvalidOperationException("DevClient:DisplayName is not configured."),
         Permissions =
         {
             Permissions.Endpoints.Authorization,
@@ -159,7 +163,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         },
         Requirements = { Requirements.Features.ProofKeyForCodeExchange },
     };
-    foreach (var redirectUri in devClientRedirectUris)
+    foreach (var redirectUri in devClientOptions.RedirectUris)
         devClientDescriptor.RedirectUris.Add(new Uri(redirectUri));
 
     var existingDevClient = await applicationManager.FindByClientIdAsync(devClientDescriptor.ClientId);

@@ -19,12 +19,11 @@ result up in a 9-entry dictionary:
 The code's own comment: *"I didn't want to introduce an actual external bank, so that's
 why you see this nice construct :)"*.
 
-> **Bug found while documenting this**: the "mangle the account number" step is
-> `moneyTransfer.TargetAccount?.Reverse().ToString()`. `Reverse()` on a `string` returns
-> `IEnumerable<char>`, and calling `.ToString()` on *that* does not reverse the string — it
-> just prints the enumerator's type name. It still produces something that isn't a valid
-> account number (so the bug this line is trying to cause still happens), just not for the
-> reason the code implies.
+The "mangle the account number" step is
+`new string([.. moneyTransfer.TargetAccount.Reverse()])` — a collection-expression spread
+that actually reverses the string (`Reverse()` on a `string` returns `IEnumerable<char>`,
+which needs rebuilding into a `string` rather than `.ToString()`'d directly), guaranteeing
+the lookup fails as intended.
 
 ## Activity diagram: transfer routing
 
@@ -157,6 +156,5 @@ Source --> Source : Apply(MoneyTransferFailedEvent)\nrefund deposit + DebitTrans
 ```
 
 `DebitTransferFailed` is the ledger entry type from the refund above — see
-`03-account-management.md` for the known bug where `ClosedAccountCreatedEventHandler`
-doesn't recognize this type name if the account is later closed with one of these entries
-in its history.
+`03-account-management.md` for how `ClosedAccountCreatedEventHandler` describes this entry
+type if the account is later closed with one in its history.

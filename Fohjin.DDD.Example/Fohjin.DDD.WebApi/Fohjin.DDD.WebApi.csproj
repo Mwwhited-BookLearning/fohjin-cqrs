@@ -53,11 +53,11 @@
     <ProjectReference Include="..\Fohjin.DDD.Bus\Fohjin.DDD.Bus.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.CommandHandlers\Fohjin.DDD.CommandHandlers.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Common\Fohjin.DDD.Common.csproj" />
-    <ProjectReference Include="..\Fohjin.DDD.Configuration\Fohjin.DDD.Configuration.csproj" />
+    <ProjectReference Include="..\Fohjin.DDD.MessageRouting\Fohjin.DDD.MessageRouting.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Domain\Fohjin.DDD.Domain.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.EventHandlers\Fohjin.DDD.EventHandlers.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.EventStore\Fohjin.DDD.EventStore.csproj" />
-    <ProjectReference Include="..\Fohjin.DDD.EventStore.SQLite\Fohjin.DDD.EventStore.SQLite.csproj" />
+    <ProjectReference Include="..\Fohjin.DDD.EventStore.SqlServer\Fohjin.DDD.EventStore.SqlServer.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Reporting\Fohjin.DDD.Reporting.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Services\Fohjin.DDD.Services.csproj" />
     <ProjectReference Include="..\Fohjin.DDD.Bootstrap\Fohjin.DDD.Bootstrap.csproj" />

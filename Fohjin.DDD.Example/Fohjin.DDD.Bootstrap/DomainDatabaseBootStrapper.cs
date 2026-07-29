@@ -1,4 +1,4 @@
-using Fohjin.DDD.EventStore.SQLite;
+using Fohjin.DDD.EventStore.SqlServer;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fohjin.DDD.Bootstrap;

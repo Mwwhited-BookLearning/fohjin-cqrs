@@ -10,6 +10,7 @@ using Fohjin.DDD.EventStore.SqlServer;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Reporting.Dtos;
 using Fohjin.DDD.Services;
+using Fohjin.DDD.WebApi;
 using Fohjin.DDD.WebApi.OData;
 using Fohjin.DDD.WebApi.Sse;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -38,7 +39,15 @@ builder.AddServiceDefaults();
 // (docs/supporting/oidc-sts-openiddict-vs-duende.md) as a security scheme in the generated
 // OpenAPI document, so Scalar (below) can drive a real "Authorize" login against
 // Fohjin.DDD.Sts rather than requiring a token to be pasted in by hand.
-var stsAuthority = builder.Configuration["Sts:Authority"] ?? "http://127.0.0.1:5310/";
+//
+// Bound eagerly here (rather than resolved via DI) because both the OpenAPI document
+// transformer closure and AddJwtBearer's options callback below run while building the service
+// collection, before builder.Build() produces a container IOptions<StsOptions> could resolve
+// from - Configure<StsOptions>() further down still registers it for any other service that
+// wants to inject IOptions<StsOptions> normally.
+var stsOptions = builder.Configuration.GetSection(StsOptions.SectionName).Get<StsOptions>() ?? new StsOptions();
+builder.Services.Configure<StsOptions>(builder.Configuration.GetSection(StsOptions.SectionName));
+var stsAuthority = stsOptions.Authority;
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) =>
 {
     // Served live, MapOpenApi() infers a "servers" entry from the actual incoming request's
@@ -153,8 +162,8 @@ builder.Services.AddAsyncApiSchemaGeneration(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = builder.Configuration["Sts:Authority"];
-        options.RequireHttpsMetadata = builder.Configuration.GetValue("Sts:RequireHttpsMetadata", true);
+        options.Authority = stsOptions.Authority;
+        options.RequireHttpsMetadata = stsOptions.RequireHttpsMetadata;
         options.TokenValidationParameters.ValidateAudience = false;
     });
 builder.Services.AddAuthorization();

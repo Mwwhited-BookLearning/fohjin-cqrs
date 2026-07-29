@@ -4,8 +4,8 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Fohjin.DDD.DesktopClient;
 
@@ -21,15 +21,16 @@ namespace Fohjin.DDD.DesktopClient;
 // held in memory for the process's lifetime; a session outlasting that would need to sign in
 // again, which is an acceptable limitation for this dev sample rather than something worth
 // building silent-renewal machinery for.
-public class DesktopAuthService(HttpClient httpClient, IConfiguration configuration, ILogger<DesktopAuthService> logger)
+public class DesktopAuthService(HttpClient httpClient, IOptions<StsOptions> stsOptions, ILogger<DesktopAuthService> logger)
 {
     public string? AccessToken { get; private set; }
 
     public async Task LoginAsync(CancellationToken cancellationToken = default)
     {
-        var authority = (configuration["Sts:Authority"] ?? throw new InvalidOperationException("Sts:Authority is not configured.")).TrimEnd('/');
-        var clientId = configuration["Sts:ClientId"] ?? throw new InvalidOperationException("Sts:ClientId is not configured.");
-        var redirectUri = configuration["Sts:LoopbackRedirectUri"] ?? throw new InvalidOperationException("Sts:LoopbackRedirectUri is not configured.");
+        var options = stsOptions.Value;
+        var authority = (options.Authority ?? throw new InvalidOperationException("Sts:Authority is not configured.")).TrimEnd('/');
+        var clientId = options.ClientId ?? throw new InvalidOperationException("Sts:ClientId is not configured.");
+        var redirectUri = options.LoopbackRedirectUri ?? throw new InvalidOperationException("Sts:LoopbackRedirectUri is not configured.");
 
         var codeVerifier = Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
         var codeChallenge = Base64UrlEncode(SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier)));

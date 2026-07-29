@@ -11,8 +11,8 @@ public static class ServiceCollectionExtensions
     public static T AddEventStoreSqlServerServices<T>(this T service) where T : IServiceCollection
     {
         service.AddDbContextFactory<DomainEventStoreDbContext>((sp, options) =>
-            options.UseSqlServer(sp.GetRequiredService<IConfiguration>()[DomainEventStorageConfig.ConnectionStringConfigKey]
-                ?? throw new NotSupportedException($"configuration for {nameof(DomainEventStorageConfig.ConnectionStringConfigKey)} is missing")));
+            options.UseSqlServer(sp.GetRequiredService<IConfiguration>().GetConnectionString(DomainEventStorageConfig.ConnectionStringName)
+                ?? throw new NotSupportedException($"connection string '{DomainEventStorageConfig.ConnectionStringName}' is missing")));
 
         service.TryAddSingleton(typeof(IDomainEventStorage<>), typeof(DomainEventStorage<>));
         return service;

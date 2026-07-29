@@ -17,7 +17,7 @@ public static class ServiceCollectionExtensions
     public static T AddReportingServices<T>(this T service) where T : IServiceCollection
     {
         service.AddDbContextFactory<ReportingDbContext>((sp, options) =>
-            options.UseSqlServer(sp.GetService<IConfiguration>()?[ConnectionStringConfigKey] ?? DefaultConnectionString));
+            options.UseSqlServer(sp.GetService<IConfiguration>()?.GetConnectionString(ConnectionStringName) ?? DefaultConnectionString));
 
         service.TryAddTransient<IReportingRepository, SqlServerReportingRepository>();
 

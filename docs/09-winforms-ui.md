@@ -11,6 +11,9 @@ client covering the same screens.
 
 ## WinForms
 
+> The Model-View-Presenter pattern this implements, and why Vue isn't "MVP again," explained
+> from first principles: `patterns/mvp.md`.
+
 ### Presenter/View wiring
 
 `Presenter<TView>`'s constructor wires up every view event to a matching presenter method

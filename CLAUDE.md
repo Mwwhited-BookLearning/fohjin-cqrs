@@ -4,7 +4,11 @@ Fohjin.DDD is a CQRS + Event Sourcing reference app. The solution lives under
 `Fohjin.DDD.Example/`; the architecture is documented in `docs/00-architecture-overview.md`
 through `docs/10-patterns-and-practices.md` — those docs are the living source of truth for
 the system's actual shape (there is no separate migration-plan doc anymore; it was removed
-once every phase it tracked was done and folded into `00`–`10`).
+once every phase it tracked was done and folded into `00`–`10`). `docs/patterns/` is a
+companion set of from-first-principles explanations (with diagrams) of every pattern `10`
+catalogs — this project is explicitly meant to be learned from (see the root `ReadMe.txt`),
+so when a pattern's implementation changes, update both `10`'s catalog entry and its
+`patterns/*.md` deep dive, not just one.
 
 ## Keep the docs and the code in sync
 
@@ -42,6 +46,20 @@ caught real, otherwise-invisible bugs more than once:
   point at it. Only surfaced once something ran the whole stack through
   `Fohjin.DDD.AppHost` end to end in a real browser (see `docs/00-architecture-overview.md`'s
   Observability section) — every prior live-browser check had run the pieces standalone.
+- `Fohjin.DDD.WebApi`'s `/api/events` SSE endpoint threw an unhandled `OperationCanceledException`
+  on every single client disconnect (browser tab closed, `eventBus.ts` reconnecting) - a
+  Visual Studio "first-chance"/user-unhandled exception break, not something visible in the
+  Aspire dashboard's own log viewer, which is why a Playwright-driven negative control (comparing
+  the same disconnect test against the pre-fix code) showed no difference there even though the
+  bug was real - confirmed instead by matching the exact stack trace to `Program.cs`'s `Stream`
+  local function. Fixed by catching cancellation there instead of leaving it to escape
+  (`docs/07-messaging-bus.md`).
+- Getting Scalar's OAuth2 "Authorize" login working against `Fohjin.DDD.Sts` surfaced two more
+  CORS/redirect gaps, both only visible by actually clicking the button in a browser: Scalar's
+  OAuth2 popup redirects back to its own page rather than a dedicated callback route (needed
+  registering as another `dev-client` redirect URI), and the token exchange is a cross-origin
+  browser `fetch()` straight to Sts (needed adding WebApi's origin to Sts's CORS policy) - see
+  `docs/00-architecture-overview.md`'s Observability section.
 
 Don't assume a plausible-looking change works — prove it against a running system.
 
@@ -87,3 +105,14 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
   Needs STS/WebApi built and a real Edge install.
 - Both suites passing does not substitute for the live-browser check above when the change is
   UI-facing or touches how a live event stream is consumed.
+- `Fohjin.DDD.WebUI` has its own Vitest suite (`npm test` from that directory) covering
+  business logic that doesn't need a running browser to verify: `src/events/eventBus.test.ts`
+  (the shared SSE connection's retry/backoff/parsing behavior) and
+  `src/events/refreshRules.test.ts` (which domain events should make which screen reload -
+  extracted out of the views themselves into `src/events/refreshRules.ts` specifically so this
+  is testable without mounting a component).
+- `Fohjin.DDD.Example/scripts/*.ps1` are the local build/test/coverage pipeline:
+  `test-backend.ps1` (`dotnet test` + `reportgenerator` HTML report), `test-frontend.ps1`
+  (`npm run test:coverage`), `build.ps1`, and `test-all.ps1` (all three in order, `-OpenReports`
+  to open both HTML reports when done). `dotnet tool restore` first if `reportgenerator` isn't
+  already restored (`Fohjin.DDD.Example/dotnet-tools.json`).

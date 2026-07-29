@@ -7,6 +7,10 @@ this changed when this system grew an HTTP front door — it's reached today fro
 section) instead of directly from WinForms presenters, but the code in this document is
 untouched.
 
+> For the Event Sourcing, Snapshot/Memento, Repository, and Unit of Work patterns this
+> infrastructure implements — explained from first principles, not just located here — see
+> `patterns/event-sourcing.md` and `patterns/repository-and-unit-of-work.md`.
+
 ## Components
 
 ```plantuml

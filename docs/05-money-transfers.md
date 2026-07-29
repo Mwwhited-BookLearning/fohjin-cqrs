@@ -134,6 +134,9 @@ Target --> Target : Apply(MoneyTransferReceivedEvent)\nappends DebitTransfer led
 
 ## Sequence: compensating failure
 
+> The Compensating Transaction pattern this implements, explained from first principles:
+> `patterns/resilience-patterns.md`.
+
 ```plantuml
 @startuml
 participant "MoneyTransferService" as TransferSvc

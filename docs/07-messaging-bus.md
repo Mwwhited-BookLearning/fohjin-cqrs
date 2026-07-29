@@ -4,6 +4,10 @@ How a published command reaches exactly one handler, and how a published domain 
 reaches every independently-subscribed handler. Both travel through the same `IBus`, but
 split onto two different paths inside `DirectBus`.
 
+> The command side is Mediator, the event side is Observer — two different named patterns
+> for two genuinely different problems. Explained from first principles in
+> `patterns/messaging-mediator-observer.md`.
+
 > **Naming collision worth knowing about**: there are two unrelated interfaces both named
 > `IUnitOfWork`. `Fohjin.DDD.Bus.IUnitOfWork` (`CommitAsync` + sync `Rollback`) is what
 > `IBus` extends. `Fohjin.DDD.EventStore.IUnitOfWork` (`CommitAsync` + async
@@ -145,7 +149,23 @@ The Vue frontend has its own client-side mirror of exactly this shape:
 `Fohjin.DDD.WebUI/src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection
 for the whole browser session, with N independent filtered subscribers (one per screen that
 wants live refresh) instead of each screen opening its own connection or polling — see
-`09-winforms-ui.md`'s Vue section for the client-side details.
+`09-winforms-ui.md`'s Vue section for the client-side details. Which domain event should make
+which screen reload is its own small rule set, `Fohjin.DDD.WebUI/src/events/refreshRules.ts`
+(unit tested in `refreshRules.test.ts`), kept separate from `eventBus.ts` itself so each
+screen's business rule ("what's relevant to me") is independently testable from the transport
+plumbing ("how events get here at all", covered by `eventBus.test.ts`).
+
+> **Graceful shutdown, server side**: `Fohjin.DDD.WebApi/Program.cs`'s `/api/events` endpoint
+> reads its per-connection `Channel<EventEnvelope>` via `WaitToReadAsync`/`TryRead` in a loop,
+> not `ReadAllAsync` — a client disconnecting (browser tab closed, `eventBus.ts` reconnecting)
+> cancels `httpContext.RequestAborted`, which `ReadAllAsync` surfaces as an
+> `OperationCanceledException` that propagates straight out of `Results.ServerSentEvents`'s
+> write loop with nothing catching it (a `yield return` isn't allowed inside a `try` block that
+> has its own `catch`, so `ReadAllAsync` inside a `try`/`catch` around the whole loop doesn't
+> compile — `WaitToReadAsync` sidesteps that, since only the `await`, not a `yield`, sits inside
+> its own inner `try`). A disconnect is the normal, expected way this stream ends, not a
+> failure — this is caught and treated as a clean end of the stream rather than left to surface
+> as an unhandled exception on every single disconnect.
 
 ## Startup wiring
 

@@ -9,6 +9,9 @@ Covers creating a client and changing their name, address, or phone number. See
 value objects (C# `record`s). `BankCard` is a child entity of `Client` — covered in
 `02-bank-cards.md`, shown here only as a relationship.
 
+> Aggregate root / entity / value object explained from first principles:
+> `patterns/ddd-building-blocks.md`.
+
 ```plantuml
 @startuml
 skinparam classAttributeIconSize 0

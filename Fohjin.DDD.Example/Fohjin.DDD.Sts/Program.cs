@@ -17,9 +17,15 @@ builder.Services.AddRazorPages();
 // http://host.docker.internal:5173 is how a Playwright container sees the Vue dev server when
 // driving a real headless browser for this project's E2E verification (no native Node.js
 // install on this machine - see docs/11-migration-plan.md Phase 6).
+// http://127.0.0.1:5320 is Fohjin.DDD.WebApi's own origin - Scalar's OAuth2 "Authorize" flow
+// (WebApi/Program.cs's MapScalarApiReference) calls this STS's /connect/token endpoint directly
+// from the browser, cross-origin, to exchange the auth code for a token; without it here, that
+// call fails client-side with an opaque "Failed to fetch" and no server-side trace at all -
+// the same class of live-browser-only CORS gap as the one documented in
+// docs/00-architecture-overview.md's Observability section.
 const string VueDevCorsPolicy = "VueDev";
 builder.Services.AddCors(options => options.AddPolicy(VueDevCorsPolicy, policy => policy
-    .WithOrigins("http://localhost:5173", "http://host.docker.internal:5173")
+    .WithOrigins("http://localhost:5173", "http://host.docker.internal:5173", "http://127.0.0.1:5320")
     .AllowAnyHeader()
     .AllowAnyMethod()));
 
@@ -124,7 +130,11 @@ await using (var scope = app.Services.CreateAsyncScope())
     // browser through the login flow (Phase 6's verification); http://127.0.0.1:5330/callback/
     // is Fohjin.DDD.BankApplication's desktop loopback listener (Phase 7 - system browser +
     // PKCE, docs/11-migration-plan.md's "desktop OIDC login uses the system browser + loopback
-    // redirect" decision). Upserted rather than create-once-and-skip, since new redirect URIs
+    // redirect" decision); http://127.0.0.1:5320/scalar/v1 is Scalar's own default OAuth2
+    // redirect - it redirects back to itself (the page it was opened from) rather than a
+    // dedicated callback route, confirmed live (OpenIddict rejects the auth request with
+    // invalid_request/"redirect_uri is not valid" otherwise - see WebApi/Program.cs's
+    // MapScalarApiReference). Upserted rather than create-once-and-skip, since new redirect URIs
     // get added across phases and a pre-existing seeded application would otherwise never pick
     // them up on an already-migrated dev database.
     var devClientDescriptor = new OpenIddictApplicationDescriptor
@@ -139,6 +149,7 @@ await using (var scope = app.Services.CreateAsyncScope())
             new Uri("http://localhost:5173/callback"),
             new Uri("http://host.docker.internal:5173/callback"),
             new Uri("http://127.0.0.1:5330/callback/"),
+            new Uri("http://127.0.0.1:5320/scalar/v1"),
         },
         Permissions =
         {

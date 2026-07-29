@@ -17,6 +17,9 @@ Covers assigning a new bank card to an account, cancelling it, and reporting it 
 independent lifecycle outside a `Client`). It's created only as a side effect of
 `Client.AssignNewBankCardForAccount`.
 
+> Why "entity, not aggregate root" is a meaningful distinction here, not just terminology:
+> `patterns/ddd-building-blocks.md`.
+
 ```plantuml
 @startuml
 skinparam classAttributeIconSize 0

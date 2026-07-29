@@ -9,6 +9,10 @@ WinForms presenters queried `IReportingRepository` in-process directly; that dir
 reference is gone (`09-winforms-ui.md`) but the repository itself, and everything else in
 this document, is unchanged.
 
+> The Repository and Specification/dynamic-query-object patterns this implements, explained
+> from first principles: `patterns/repository-and-unit-of-work.md` and
+> `patterns/ddd-building-blocks.md`.
+
 ## Entity relations
 
 ```plantuml

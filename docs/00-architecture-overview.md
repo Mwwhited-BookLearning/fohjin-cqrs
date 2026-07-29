@@ -142,6 +142,25 @@ document itself and ships no UI of its own — and Saunter's own `MapAsyncApiUi(
 `webapi` resource in the Aspire dashboard via `WithUrlForEndpoint`, rather than requiring
 anyone to already know the paths.
 
+Scalar can drive a real login against `Fohjin.DDD.Sts` rather than requiring a token to be
+pasted in by hand: `WebApi/Program.cs`'s `AddOpenApi` document transformer declares an
+`OAuth2`/authorization-code security scheme (pointing at Sts's real `connect/authorize` and
+`connect/token` endpoints) on the OpenAPI document itself, and `MapScalarApiReference` layers
+Scalar-UI-only knobs on top that have no equivalent field in the OpenAPI spec (PKCE mode,
+client id) — `dev-client`'s own values, since it's the same public/PKCE client every other
+caller uses. The AsyncAPI UI has no equivalent: it's a static documentation viewer with no
+"try it"/connect feature at all, so there's nothing to log into. Getting Scalar's login
+working live surfaced two more gaps, both fixed the same way as the CORS bug above — by
+actually driving the button in a browser, not by reading the code:
+- Scalar's OAuth2 popup redirects back to itself (`http://127.0.0.1:5320/scalar/v1`) rather
+  than a dedicated callback route — confirmed live (OpenIddict otherwise rejects the request
+  with `invalid_request`/"redirect_uri is not valid"). Added as another registered redirect URI
+  on `dev-client` (`Fohjin.DDD.Sts/Program.cs`), alongside the Vue/WinForms ones already there.
+- The token exchange itself is a cross-origin browser `fetch()` from Scalar's origin
+  (`http://127.0.0.1:5320`) straight to Sts's `/connect/token` — confirmed live (an opaque
+  "Failed to fetch" with no server-side trace, until this was added). Added to
+  `Fohjin.DDD.Sts/Program.cs`'s CORS policy alongside the Vue dev server's origin.
+
 ## Data flow, one sentence per stage
 
 1. A Presenter (WinForms) or a Vue component builds a request and calls the API — via the
@@ -262,4 +281,5 @@ end note
 | `08-reporting-read-models.md` | Read-model DTOs and their event-driven updates |
 | `09-winforms-ui.md` | Both UIs: WinForms Presenter/View pattern and screen flows, and the Vue frontend as a sibling client |
 | `10-patterns-and-practices.md` | Named architectural/design patterns used, with references |
+| `patterns/` | Same patterns, explained from first principles with diagrams - for learning the pattern, not just locating it |
 | `supporting/` | Research backing the technology choices made getting here |

@@ -7,6 +7,8 @@ because of how much routing/guard logic they carry, but they're all methods on t
 
 ## Domain model
 
+> Aggregate root / value object explained from first principles: `patterns/ddd-building-blocks.md`.
+
 `ActiveAccount` is the aggregate root while an account is open. Closing it produces a
 separate, independent aggregate — `ClosedAccount` — that archives the ledger history.
 Every balance-changing operation appends a `Ledger` entry; the `Ledger` subclasses are

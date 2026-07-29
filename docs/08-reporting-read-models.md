@@ -6,7 +6,7 @@ plain REST `GET`s and the `GET /odata/Clients` OData endpoint, see below) — ne
 command handler, and never derived from the event store at query time (see
 `00-architecture-overview.md` for why that boundary matters). Before the API existed,
 WinForms presenters queried `IReportingRepository` in-process directly; that direct
-reference is gone (`09-winforms-ui.md`) but the repository itself, and everything else in
+reference is gone (`09-client-uis.md`) but the repository itself, and everything else in
 this document, is unchanged.
 
 > The Repository and Specification/dynamic-query-object patterns this implements, explained

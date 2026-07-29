@@ -50,7 +50,7 @@ Account --> Account : Apply(CashDepositedEvent)\nappends CreditMutation ledger e
 Bus ->> EvtHandler : OnNext(CashDepositedEvent)\n(detached from the request above)
 EvtHandler -> Reporting : UpdateAsync<AccountDetailsReport>(Balance)
 EvtHandler -> Reporting : SaveAsync(LedgerReport("Deposit", amount))
-Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 2000ms);\nVue: reloads when the matching domain event\narrives on the shared event bus - 09-winforms-ui.md)
+Client -> Client : refresh (WinForms: ISystemTimer.Trigger(LoadDataAsync, 2000ms);\nVue: reloads when the matching domain event\narrives on the shared event bus - 09-client-uis.md)
 @enduml
 ```
 

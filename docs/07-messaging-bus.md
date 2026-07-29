@@ -149,7 +149,7 @@ The Vue frontend has its own client-side mirror of exactly this shape:
 `Fohjin.DDD.WebUI/src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection
 for the whole browser session, with N independent filtered subscribers (one per screen that
 wants live refresh) instead of each screen opening its own connection or polling — see
-`09-winforms-ui.md`'s Vue section for the client-side details. Which domain event should make
+`09-client-uis.md`'s Vue section for the client-side details. Which domain event should make
 which screen reload is its own small rule set, `Fohjin.DDD.WebUI/src/events/refreshRules.ts`
 (unit tested in `refreshRules.test.ts`), kept separate from `eventBus.ts` itself so each
 screen's business rule ("what's relevant to me") is independently testable from the transport
@@ -166,6 +166,18 @@ plumbing ("how events get here at all", covered by `eventBus.test.ts`).
 > its own inner `try`). A disconnect is the normal, expected way this stream ends, not a
 > failure — this is caught and treated as a clean end of the stream rather than left to surface
 > as an unhandled exception on every single disconnect.
+
+> **Reload-vs-read-model race, client side**: the SSE stream and a reporting-store event
+> handler are two independent Rx subscriptions on the same `bus.Events` Subject (the diagram
+> above) — there's no ordering guarantee between "the browser is told this event happened"
+> and "the read model has actually finished writing it." Found live: a client rename's
+> event-driven reload sometimes re-fetched *before* `ClientNameChangedEventHandler`'s `UPDATE`
+> had committed, silently showing the pre-rename name until something else (a manual page
+> reload, another live event) triggered a further reload. Every Vue composable that reloads on
+> a live event (`useClientDetails.ts`, `useAccountDetails.ts`, `useClientSearch.ts`) now
+> schedules a second reload ~750ms after the first as a reconciliation retry — the same idea
+> `onReconnect` already applies to "was disconnected," just for "raced ahead of the read
+> model" instead.
 
 ## Startup wiring
 

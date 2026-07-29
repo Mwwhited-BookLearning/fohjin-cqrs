@@ -23,6 +23,9 @@ do, and spend more time on *why*, not just *what* and *where*.
 | `messaging-mediator-observer.md` | Mediator, Message Bus, Observer (Rx.NET) |
 | `resilience-patterns.md` | Compensating Transaction (Saga-lite) |
 | `mvp.md` | Model-View-Presenter (WinForms only) |
+| `vue-architecture.md` | The layered (Data/Actions/Structure/Presentation/Styling) component architecture standard for `Fohjin.DDD.WebUI` |
+| `winforms-architecture.md` | The layered component architecture standard for `Fohjin.DDD.BankApplication` (WinForms) |
+| `wpf-architecture.md` | The MVVM component architecture standard for `Fohjin.DDD.BankApplication.Wpf` |
 
 Each doc ends with a **"See also"** list pointing back at the numbered `00`–`10` docs that
 cover the same code from the "what does this system do" angle, and at `10-patterns-and-practices.md`'s

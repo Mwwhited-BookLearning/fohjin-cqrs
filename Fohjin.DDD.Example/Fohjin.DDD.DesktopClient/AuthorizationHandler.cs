@@ -1,7 +1,6 @@
 using System.Net.Http.Headers;
-using Fohjin.DDD.BankApplication.Auth;
 
-namespace Fohjin.DDD.BankApplication.Http;
+namespace Fohjin.DDD.DesktopClient;
 
 // Attaches the token DesktopAuthService obtained via the system-browser + loopback PKCE flow
 // to every call FohjinApiClient makes - the generated client has no auth concept of its own,

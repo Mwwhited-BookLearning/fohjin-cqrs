@@ -19,7 +19,7 @@ Every write goes in through a `Command` (`Fohjin.DDD.Commands`) and every read c
 out through a `Report` DTO (`Fohjin.DDD.Reporting.Dtos`) — never the reverse, and never
 the same object doing both jobs. This is the organizing principle of the whole codebase;
 see `00-architecture-overview.md` for the container-level view of the split. Both clients
-(WinForms and Vue, `09-winforms-ui.md`) reach this split over HTTP now rather than an
+(WinForms and Vue, `09-client-uis.md`) reach this split over HTTP now rather than an
 in-process reference, but the split itself — enforced inside `Fohjin.DDD.WebApi` — is
 exactly the same rule it always was.
 
@@ -135,7 +135,10 @@ caring who's listening or how many there are.
 
 ### Model-View-Presenter (MVP)
 
-*Deep dive: `patterns/mvp.md`.*
+*Deep dive: `patterns/mvp.md`. See also `patterns/vue-architecture.md`,
+`patterns/winforms-architecture.md`, and `patterns/wpf-architecture.md` for the full
+layered architecture standard (not just this one pattern) each of the three clients
+follows.*
 
 The View is a passive interface (`IClientDetailsView`, etc.) with events and settable
 properties; the Presenter contains all the logic and is unit-testable without any real
@@ -150,7 +153,7 @@ second implementation of this pattern.
   Presentation Model and the tradeoffs between them.
 - **In this repo**: `Presenter<TView>`'s reflection-based `HookUpViewEvents`, and every
   `*Presenter`/`I*View` pair under `Fohjin.DDD.BankApplication.Core`. See
-  `09-winforms-ui.md`.
+  `09-client-uis.md`.
 
 ### Specification / dynamic query object
 

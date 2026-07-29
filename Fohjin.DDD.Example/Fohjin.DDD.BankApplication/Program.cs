@@ -1,8 +1,7 @@
 ﻿using Fohjin.DDD.ApiClient;
-using Fohjin.DDD.BankApplication.Auth;
-using Fohjin.DDD.BankApplication.Http;
 using Fohjin.DDD.BankApplication.Presenters;
 using Fohjin.DDD.Common;
+using Fohjin.DDD.DesktopClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

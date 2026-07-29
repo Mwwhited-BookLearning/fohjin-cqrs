@@ -1,5 +1,7 @@
 import { createApp } from 'vue'
+import { createPinia } from 'pinia'
 import './style.css'
+import './theme/tokens.css'
 import App from './App.vue'
 import router from './router'
 import { start as startEventBus } from './events/eventBus'
@@ -15,4 +17,4 @@ startTelemetry()
 // failure, so this doesn't need to wait for login to complete first.
 startEventBus()
 
-createApp(App).use(router).mount('#app')
+createApp(App).use(createPinia()).use(router).mount('#app')

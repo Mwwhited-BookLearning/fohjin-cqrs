@@ -1,14 +1,11 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Fohjin.DDD.BankApplication.Http;
+namespace Fohjin.DDD.DesktopClient;
 
-// Phase 7 (docs/11-migration-plan.md): the monitoring pane's log half (MonitoringLoggerProvider)
-// used to capture in-process bus/command-handler/event-store logging - none of that runs in
-// this process anymore now that every operation is an HTTP call to Fohjin.DDD.WebApi. This
-// handler logs each outgoing call instead, through the same ILogger/MonitoringLoggerProvider
-// pipeline MonitoringPresenter already subscribes to, so the pane keeps showing something
-// meaningful without MonitoringPresenter itself needing to change.
+// Every desktop client's monitoring/log pane (WinForms' MonitoringLoggerProvider, WPF's
+// equivalent) captures this instead of in-process bus/command-handler logging, since every
+// operation is an HTTP call to Fohjin.DDD.WebApi rather than something running in this process.
 public class HttpCallLoggingHandler(ILogger<HttpCallLoggingHandler> logger) : DelegatingHandler
 {
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

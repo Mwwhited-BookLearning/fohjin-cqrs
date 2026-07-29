@@ -13,10 +13,21 @@ namespace Fohjin.DDD.BankApplication.Presenters;
 // Fohjin.DDD.WebUI's Monitoring.vue has to (no equivalent parser exists on the TypeScript side).
 public class EventStreamClient(HttpClient httpClient)
 {
+    // Results.ServerSentEvents (Fohjin.DDD.WebApi/Program.cs) serializes each item's data with
+    // ASP.NET Core's default JSON options, which is JsonSerializerDefaults.Web (camelCase,
+    // case-insensitive matching) - not JsonSerializer.Deserialize's own default (case-sensitive,
+    // exact-name PascalCase). Deserializing without JsonSerializerOptions.Web here doesn't throw;
+    // it silently binds nothing and returns an all-default EventEnvelope (EventType="",
+    // AggregateId=Guid.Empty, OccurredAt=default) for every single event, real ones included -
+    // found live via a WPF client-driven test where a domain event arrived (passed the wire-level
+    // event-type filter below) but every ViewModel's OnDomainEvent(eventType, ...) check against
+    // eventType silently never matched, so no event-driven screen ever reloaded.
+    private static readonly JsonSerializerOptions Options = JsonSerializerOptions.Web;
+
     public async IAsyncEnumerable<EventEnvelope> StreamEventsAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var stream = await httpClient.GetStreamAsync("api/events", cancellationToken);
-        var parser = SseParser.Create(stream, (eventType, data) => JsonSerializer.Deserialize<EventEnvelope>(data));
+        var parser = SseParser.Create(stream, (eventType, data) => JsonSerializer.Deserialize<EventEnvelope>(data, Options));
 
         await foreach (var item in parser.EnumerateAsync(cancellationToken))
         {

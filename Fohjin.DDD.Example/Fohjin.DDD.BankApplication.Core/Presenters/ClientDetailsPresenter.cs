@@ -235,6 +235,22 @@ public class ClientDetailsPresenter(
 
         DisableAllMenuButtons();
         _clientDetailsView.EnableAddNewBankCardPanel();
+
+        // Every other Initiate*() step starts from a blank input (FormIsValid() is false until
+        // the user actually types/selects something), so the first real change event is what
+        // enables the save button. This step is different: _newBankCardAccount auto-selects its
+        // first item the moment its DataSource is (re)assigned - including during an unrelated
+        // background refresh that lands while some OTHER step's panel is showing, which fires
+        // FormElementGotChanged()/DisableSaveButton() with none of the "current process" flags
+        // set yet, silently disabling every step's save button. If the client has exactly one
+        // open account, that auto-selected item IS the correct (only) choice, so the user never
+        // changes the selection and SelectedIndexChanged never fires again to re-enable it -
+        // found live: the Assign button stayed permanently disabled after opening a new account
+        // and switching to "Bank Cards" for a client with only that one account. Explicitly
+        // re-validate against the CURRENT selection when entering this panel instead of relying
+        // on a change event that may never come.
+        if (FormIsValid())
+            _clientDetailsView.EnableSaveButton();
     }
 
     public async void AssignNewBankCard()

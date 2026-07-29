@@ -141,6 +141,12 @@ event type means N independent invocations per publish, each with its own try/ca
 handler's failure never blocks or is seen by another (see `EventSubscriptionBootstrapper`
 in `Fohjin.DDD.Configuration`).
 
+The Vue frontend has its own client-side mirror of exactly this shape:
+`Fohjin.DDD.WebUI/src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection
+for the whole browser session, with N independent filtered subscribers (one per screen that
+wants live refresh) instead of each screen opening its own connection or polling — see
+`09-winforms-ui.md`'s Vue section for the client-side details.
+
 ## Startup wiring
 
 This bus, and every command/event handler it dispatches to, now lives inside

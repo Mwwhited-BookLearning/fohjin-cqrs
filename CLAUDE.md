@@ -32,6 +32,16 @@ caught real, otherwise-invisible bugs more than once:
   throughout, since none of them observed a live event stream end to end.
 - An unordered-child-collection bug that only appeared after the SQLite→SQL Server migration
   (SQLite happened to preserve insertion order; SQL Server doesn't).
+- `Fohjin.DDD.WebApi`'s leftover `app.UseHttpsRedirection()` (a `dotnet new webapi` template
+  default, running before `app.UseCors(...)`) 307-redirected every request — including the
+  browser's own CORS preflight `OPTIONS` — to a `launchSettings.json` https port nothing
+  listens on under `Fohjin.DDD.AppHost`. Browsers reject any redirect on a preflight outright,
+  and even after fixing the ordering, the real request still got redirected cross-origin and
+  lost its `Authorization` header doing so — breaking every authenticated call from
+  `Fohjin.DDD.WebUI` with an opaque browser-console CORS error and nothing server-side to
+  point at it. Only surfaced once something ran the whole stack through
+  `Fohjin.DDD.AppHost` end to end in a real browser (see `docs/00-architecture-overview.md`'s
+  Observability section) — every prior live-browser check had run the pieces standalone.
 
 Don't assume a plausible-looking change works — prove it against a running system.
 
@@ -57,7 +67,16 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
 - **Node.js on this machine**: `C:\repo\oobdev\RunScripts\node.bat`/`npm.bat` sit earlier on
   `PATH` than the real `C:\Program Files\nodejs` install and are broken (fail outside an
   interactive terminal). Prefix any `npm`/`node` invocation from the Bash tool with
-  `PATH="/c/Program Files/nodejs:$PATH"`.
+  `PATH="/c/Program Files/nodejs:$PATH"` — including before `dotnet run` on
+  `Fohjin.DDD.AppHost` itself, since it spawns the Vue dev server as a child process that
+  inherits this same broken `PATH` otherwise (the Vite resource then silently never starts;
+  the giveaway is `dcp.exe` listening on 5173 but every request to it timing out).
+- Observability: `Fohjin.DDD.AppHost` reports to its own Aspire dashboard, and that dashboard
+  also accepts traces reported directly from the browser (`Fohjin.DDD.WebUI/src/telemetry.ts`)
+  over a second OTLP/HTTP endpoint, which only exists because
+  `Fohjin.DDD.AppHost/Properties/launchSettings.json` sets
+  `ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL` — see `docs/00-architecture-overview.md`'s
+  Observability section for why that has to be set there rather than left to Aspire's default.
 
 ## Testing
 

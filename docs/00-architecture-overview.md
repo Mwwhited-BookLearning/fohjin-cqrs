@@ -150,10 +150,81 @@ kept its Presenter/View screens (`09-winforms-ui.md`) but now drives them throug
    `07-messaging-bus.md`), fired detached from the original HTTP request, which has
    already returned `202 Accepted` by this point.
 7. Event handlers update the reporting store's DTOs. A client's next query picks up the
-   change — WinForms via a fixed-delay poll (`ISystemTimer`), Vue by re-fetching on
-   navigation, and either could in principle watch `GET /api/events` (Server-Sent Events)
-   for a push-based refresh instead, which is what the Monitoring screen in both clients
-   already does.
+   change — WinForms via a fixed-delay poll (`ISystemTimer`), Vue by reacting to the
+   matching domain event on its shared client-side event bus (`GET /api/events`, SSE —
+   `07-messaging-bus.md` and `09-winforms-ui.md`'s Vue section), which is the same
+   `GET /api/events` stream the Monitoring screen in both clients watches directly.
+
+## Observability
+
+Every request that crosses this system — browser → `Fohjin.DDD.WebApi`/`Fohjin.DDD.Sts` →
+event store/reporting store — reports to the same place: the Aspire dashboard
+`Fohjin.DDD.AppHost` starts. Two independent pieces feed it, joined into single distributed
+traces by the standard `traceparent` header:
+
+- **Backend** (`Fohjin.DDD.WebApi`, `Fohjin.DDD.Sts`): `Fohjin.DDD.ServiceDefaults`'
+  `AddServiceDefaults()`/`ConfigureOpenTelemetry()` (ASP.NET Core, HttpClient, and runtime
+  instrumentation) was already wired into both projects' `Program.cs` from early on in the
+  Aspire-hosting work — `Fohjin.DDD.AppHost` auto-injects the OTLP endpoint/headers into
+  every `AddProject<>` resource, so this needed no new code, only live verification.
+- **Browser** (`Fohjin.DDD.WebUI`): `src/telemetry.ts` (`startTelemetry()`, called from
+  `main.ts` before anything else) sends traces straight from the browser using
+  `@opentelemetry/sdk-trace-web` + `@opentelemetry/exporter-trace-otlp-proto`, with
+  `DocumentLoadInstrumentation` (page load) and `FetchInstrumentation` (API calls, scoped
+  via `propagateTraceHeaderCorsUrls` to just the WebApi/Sts origins so `traceparent` isn't
+  sent to arbitrary third parties). It no-ops entirely unless `VITE_OTLP_TRACE_ENDPOINT_URL`
+  is set — true for a plain `npm run dev` outside Aspire, so nothing needs disabling by hand
+  outside the AppHost-orchestrated dev flow.
+
+The wiring that makes the browser piece possible:
+
+```plantuml
+@startuml
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+
+participant "Fohjin.DDD.AppHost\nProgram.cs" as AppHost
+participant "Aspire Dashboard\n(child process)" as Dashboard
+participant "Fohjin.DDD.WebUI\n(Vite dev server)" as WebUI
+participant "Browser\nsrc/telemetry.ts" as Browser
+
+AppHost -> AppHost : reads ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL\nfrom its own launchSettings.json\n(set there - not set by Aspire itself)
+AppHost -> Dashboard : (env var inherited at spawn)
+Dashboard -> Dashboard : also binds an OTLP/HTTP listener\nalongside its default OTLP/gRPC one
+AppHost -> AppHost : reads builder.Configuration["AppHost:OtlpApiKey"]\n(populated by Aspire automatically)
+AppHost -> WebUI : WithEnvironment(VITE_OTLP_TRACE_ENDPOINT_URL, ...)\nWithEnvironment(VITE_OTLP_HEADERS, "x-otlp-api-key=...")
+WebUI -> Browser : Vite exposes both as import.meta.env.VITE_*\nat dev-server start
+Browser -> Dashboard : POST {endpoint}/v1/traces\n(x-otlp-api-key header)
+note right of Dashboard
+  No CORS config needed: Aspire auto-allows every
+  resource origin in its own model when both the
+  dashboard and the calling app are AppHost-started.
+end note
+@enduml
+```
+
+> **Why `ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL` has to be set in
+> `Fohjin.DDD.AppHost/Properties/launchSettings.json`**: browsers can't speak gRPC, so the
+> dashboard's default OTLP/gRPC-only endpoint (`ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL`) is
+> useless to `src/telemetry.ts`. The dashboard only opens a second, browser-usable OTLP/HTTP
+> listener when this env var is present on the AppHost process *before* it starts (confirmed
+> empirically — the dashboard's own startup banner only prints an `OTLP/HTTP:` line when
+> it's set); Aspire does not turn this on by default the way it does the gRPC one.
+
+> **Bug found live-verifying this**: `Fohjin.DDD.WebApi`'s `Program.cs` had an unremoved
+> `dotnet new webapi` template default, `app.UseHttpsRedirection()`, running *before*
+> `app.UseCors(...)`. It redirected every request — including the browser's own CORS
+> preflight `OPTIONS` — to its `launchSettings.json` "https" profile's port (7094), which
+> nothing actually listens on under `Fohjin.DDD.AppHost` (this API is pinned http-only there,
+> matching `Fohjin.DDD.Sts`, which never had this call at all). Browsers reject any redirect
+> response to a preflight outright, and even after reordering the two calls, the *actual*
+> authenticated request still got redirected cross-origin and lost its `Authorization` header
+> in the process (stripped on cross-origin redirect per the fetch spec) — so every
+> authenticated call from `Fohjin.DDD.WebUI` failed with an opaque browser-console CORS error
+> and no server-side trace of why. Invisible to `dotnet test` (nothing in the suite drives a
+> real cross-origin preflight) and invisible to previous live-browser checks too, since those
+> predate running the whole stack through `Fohjin.DDD.AppHost`. Fixed by removing
+> `UseHttpsRedirection()` entirely, matching `Fohjin.DDD.Sts`.
 
 ## Doc index
 

@@ -129,8 +129,19 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.UseHttpsRedirection();
-
+// No UseHttpsRedirection - this API is deliberately http-only in every dev topology (fixed port
+// 5320 with no https counterpart in Fohjin.DDD.AppHost/AppHost.cs, matching Fohjin.DDD.Sts, which
+// never had this call). It used to be here as an unremoved `dotnet new webapi` template default,
+// redirecting to its own launchSettings.json "https" profile port (7094) even though nothing
+// actually listens there under Fohjin.DDD.AppHost. That 307 hit real, hard-to-diagnose traffic:
+// the browser's CORS preflight (an OPTIONS request) got redirected and was rejected outright (no
+// browser follows a 3xx on a preflight), and even after fixing that by moving CORS first, the
+// ACTUAL authenticated request still got redirected cross-origin to :7094 - which strips the
+// Authorization header per the fetch redirect spec - breaking every authenticated call from the
+// Vue app with an opaque CORS error and no server-side trace of the failure at all. Found live via
+// Playwright while verifying browser OTel traces (docs/00-architecture-overview.md) - not
+// something the existing test suite could catch, since none of it drives a real cross-origin
+// preflight.
 app.UseCors(VueDevCorsPolicy);
 
 app.UseAuthentication();

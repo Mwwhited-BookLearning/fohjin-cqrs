@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue";
+import { onBeforeUnmount, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { apiClient } from "../api/client";
 import {
@@ -10,6 +10,7 @@ import {
   OpenNewAccountForClientRequest,
   type ClientDetailsReport,
 } from "../api/generated-client";
+import { onReconnect, subscribe } from "../events/eventBus";
 
 const props = defineProps<{ id: string }>();
 const router = useRouter();
@@ -53,19 +54,40 @@ async function load() {
 
 watch(() => props.id, load, { immediate: true });
 
-// DirectBus.CommitAsync() is fire-and-forget (docs/07-messaging-bus.md), so the read model
-// updates asynchronously - reload shortly after each command, same pattern as the WinForms
-// ClientDetailsPresenter's SystemTimer.Trigger(LoadDataAsync, 1000).
-function reloadShortly() {
-  setTimeout(load, 1000);
-}
+// Event-driven refresh instead of a poll (src/events/eventBus.ts). Every event below is applied
+// on the Client aggregate itself (AggregateId === props.id) except the two bank-card "disabled"
+// events, which are applied on the BankCard entity instead (AggregateId === the card's own id,
+// not the client's - see docs/02-bank-cards.md's note on this) - checked against the bank card
+// ids already loaded into `details`, since there's no other way to know which client a bare
+// bank-card id belongs to without a second lookup.
+const CLIENT_LEVEL_EVENTS = new Set([
+  "ClientNameChangedEvent",
+  "ClientMovedEvent",
+  "ClientPhoneNumberChangedEvent",
+  "AccountToClientAssignedEvent",
+  "NewBankCardForAccountAsignedEvent",
+]);
+const BANK_CARD_EVENTS = new Set(["BankCardWasCanceledByClientEvent", "BankCardWasReportedStolenEvent"]);
+
+const unsubscribe = subscribe((event) => {
+  if (CLIENT_LEVEL_EVENTS.has(event.eventType) && event.aggregateId === props.id) {
+    load();
+  } else if (BANK_CARD_EVENTS.has(event.eventType) && details.value?.bankCards?.some((c) => c.id === event.aggregateId)) {
+    load();
+  }
+});
+// Reconciliation: catches anything missed while the shared connection wasn't up yet (eventBus.ts).
+const unsubscribeReconnect = onReconnect(load);
+onBeforeUnmount(() => {
+  unsubscribe();
+  unsubscribeReconnect();
+});
 
 async function saveName() {
   savingName.value = true;
   error.value = null;
   try {
     await apiClient.changeClientName(props.id, new ChangeClientNameRequest(nameForm));
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -78,7 +100,6 @@ async function saveAddress() {
   error.value = null;
   try {
     await apiClient.changeClientAddress(props.id, new ClientIsMovingRequest(addressForm));
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -91,7 +112,6 @@ async function savePhoneNumber() {
   error.value = null;
   try {
     await apiClient.changeClientPhoneNumber(props.id, new ChangeClientPhoneNumberRequest(phoneForm));
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -105,7 +125,6 @@ async function openNewAccount() {
   try {
     await apiClient.openNewAccountForClient(props.id, new OpenNewAccountForClientRequest(newAccountForm));
     newAccountForm.accountName = "";
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -128,7 +147,6 @@ async function assignNewBankCard() {
   try {
     await apiClient.assignNewBankCard(props.id, new AssignNewBankCardRequest(newBankCardForm));
     newBankCardForm.accountId = "";
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -141,7 +159,6 @@ async function cancelBankCard(bankCardId: string) {
   error.value = null;
   try {
     await apiClient.cancelBankCard(props.id, bankCardId);
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {
@@ -154,7 +171,6 @@ async function reportBankCardStolen(bankCardId: string) {
   error.value = null;
   try {
     await apiClient.reportStolenBankCard(props.id, bankCardId);
-    reloadShortly();
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   } finally {

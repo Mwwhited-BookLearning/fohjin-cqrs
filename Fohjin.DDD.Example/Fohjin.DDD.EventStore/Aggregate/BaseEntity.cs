@@ -16,9 +16,12 @@ public abstract class BaseEntity<TDomainEvent> : IEntityEventProvider<TDomainEve
 
     protected void Apply<TEvent>(TEvent domainEvent) where TEvent : class, TDomainEvent
     {
-        domainEvent.AggregateId = Id;
         domainEvent.Version = _versionProvider?.Invoke() ?? -1;
         Apply(domainEvent.GetType(), domainEvent);
+        // See BaseAggregateRoot<T>.Apply's comment - same fix, same reason: stamping AggregateId
+        // from the pre-handler Id would silently record Guid.Empty for any entity whose Id gets
+        // assigned by its own creation event's handler rather than beforehand.
+        domainEvent.AggregateId = Id;
         _appliedEvents.Add(domainEvent);
     }
 

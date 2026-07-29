@@ -55,9 +55,9 @@ it.
   and the GoF Memento pattern (*Design Patterns: Elements of Reusable Object-Oriented
   Software*, Gamma/Helm/Johnson/Vlissides, 1994).
 - **In this repo**: `IOriginator.CreateMemento`/`SetMemento`, `SnapShotEntity`,
-  `EventStoreUnitOfWork.LoadSnapShotIfExistsAsync`. See `06-event-sourcing-infrastructure.md`
-  — including the gap where the write side of this pattern (`SaveShapShotAsync`) is never
-  triggered automatically.
+  `EventStoreUnitOfWork.LoadSnapShotIfExistsAsync`/`CommitAsync` (write side, cadence
+  controlled by `EventStoreOptions.SnapshotFrequency`). See
+  `06-event-sourcing-infrastructure.md`.
 
 ### Domain-Driven Design building blocks
 

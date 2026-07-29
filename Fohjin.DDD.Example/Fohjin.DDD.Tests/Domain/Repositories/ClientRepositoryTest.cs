@@ -55,6 +55,7 @@ public class clientRepositoryTest
             _domainEventStorage,
             _eventStoreIdentityMap,
             new Mock<IBus>().Object,
+            Microsoft.Extensions.Options.Options.Create(new EventStoreOptions()),
             Logger<EventStoreUnitOfWork<IDomainEvent>>()
             );
         _repository = new DomainRepository<IDomainEvent>(
@@ -110,6 +111,34 @@ public class clientRepositoryTest
         await _eventStoreUnitOfWork!.CommitAsync();
 
         Assert.IsNull((await _domainEventStorage!.GetSnapShotAsync(client.Id)));
+    }
+
+    // Every other "snapshot exists" test in this class calls SaveShapShotAsync itself right
+    // after CommitAsync() - which was the whole documented gap (docs/06-event-sourcing-infrastructure.md,
+    // docs/patterns/event-sourcing.md): CommitAsync alone never created one automatically. This
+    // is the one test that proves the fix - no manual SaveShapShotAsync call anywhere here.
+    [TestMethod]
+    public async Task When_calling_CommitAsync_after_10_events_a_snapshot_is_created_automatically_with_no_manual_call()
+    {
+        var client = Client.CreateNew(new ClientName("New Client"), new Address("Street", "123", "5000", "Bergen"), new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+        client.UpdatePhoneNumber(new PhoneNumber("1234567890"));
+
+        _repository?.Add(client);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        var snapShot = await _domainEventStorage!.GetSnapShotAsync(client.Id);
+
+        Assert.IsNotNull(snapShot);
+        Assert.AreEqual(10, snapShot.Version);
+        Assert.IsInstanceOfType<ClientMemento>(snapShot.Memento);
     }
 
     [TestMethod]

@@ -54,6 +54,7 @@ public class ActiveAccountRepositoryTest
             _domainEventStorage,
             _eventStoreIdentityMap,
             new Mock<IBus>().Object,
+            Microsoft.Extensions.Options.Options.Create(new EventStoreOptions()),
             Logger<EventStoreUnitOfWork<IDomainEvent>>()
             );
         _repository = new DomainRepository<IDomainEvent>(
@@ -109,6 +110,33 @@ public class ActiveAccountRepositoryTest
         await _eventStoreUnitOfWork!.CommitAsync();
 
         Assert.IsNull((await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id)));
+    }
+
+    // Every other "snapshot exists" test in this class calls SaveShapShotAsync itself right
+    // after CommitAsync() - which was the whole documented gap (docs/06-event-sourcing-infrastructure.md,
+    // docs/patterns/event-sourcing.md): CommitAsync alone never created one automatically. This
+    // is the one test that proves the fix - no manual SaveShapShotAsync call anywhere here.
+    [TestMethod]
+    public async Task When_calling_CommitAsync_after_10_events_a_snapshot_is_created_automatically_with_no_manual_call()
+    {
+        var activeAccount = ActiveAccount.CreateNew(Guid.NewGuid(), "AccountName", "Account Number");
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+        activeAccount.Deposit(new Amount(1));
+
+        _repository?.Add(activeAccount);
+        await _eventStoreUnitOfWork!.CommitAsync();
+
+        var snapShot = await _domainEventStorage!.GetSnapShotAsync(activeAccount.Id);
+
+        Assert.IsNotNull(snapShot);
+        Assert.IsInstanceOfType<ActiveAccountMemento>(snapShot.Memento);
     }
 
     [TestMethod]

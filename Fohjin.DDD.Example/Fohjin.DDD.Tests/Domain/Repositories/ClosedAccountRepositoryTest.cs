@@ -56,6 +56,7 @@ public class ClosedAccountRepositoryTest
             _domainEventStorage,
             _eventStoreIdentityMap,
             new Mock<IBus>().Object,
+            Microsoft.Extensions.Options.Options.Create(new EventStoreOptions()),
             Logger<EventStoreUnitOfWork<IDomainEvent>>()
             );
         _repository = new DomainRepository<IDomainEvent>(

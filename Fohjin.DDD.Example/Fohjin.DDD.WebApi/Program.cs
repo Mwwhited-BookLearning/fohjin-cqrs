@@ -163,6 +163,11 @@ builder.Services
     .AddDddServices()
     ;
 
+// AddEventStoreServices() above already registers a working default (every 10 events); this
+// just lets an "EventStore:SnapshotFrequency" appsettings.json value override it, same
+// Options<T> pattern as StsOptions/WebApiOptions/DevClientOptions elsewhere in this codebase.
+builder.Services.Configure<Fohjin.DDD.EventStore.EventStoreOptions>(builder.Configuration.GetSection(Fohjin.DDD.EventStore.EventStoreOptions.SectionName));
+
 // Phase 3: OData over the reporting DTOs, via the IDbContextFactory<ReportingDbContext>
 // AddReportingServices() already registers (used directly below rather than adding a second,
 // plain-scoped AddDbContext<ReportingDbContext> registration - EF Core merges the two

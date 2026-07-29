@@ -1,6 +1,7 @@
 using Fohjin.DDD.Bus;
 using Fohjin.DDD.EventStore.Storage.Memento;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Fohjin.DDD.EventStore.Storage;
 
@@ -8,6 +9,7 @@ public class EventStoreUnitOfWork<TDomainEvent>(
     IDomainEventStorage<TDomainEvent> domainEventStorage,
     IIdentityMap<TDomainEvent> identityMap,
     IBus bus,
+    IOptions<EventStoreOptions> eventStoreOptions,
     ILogger<EventStoreUnitOfWork<TDomainEvent>> log
         ) : IEventStoreUnitOfWork<TDomainEvent> where TDomainEvent : IDomainEvent
 {
@@ -17,6 +19,7 @@ public class EventStoreUnitOfWork<TDomainEvent>(
     private readonly IDomainEventStorage<TDomainEvent> _domainEventStorage = domainEventStorage;
     private readonly IIdentityMap<TDomainEvent> _identityMap = identityMap;
     private readonly IBus _bus = bus;
+    private readonly int _snapshotFrequency = eventStoreOptions.Value.SnapshotFrequency;
     private readonly List<IEventProvider<TDomainEvent>> _eventProviders = new ();
     private readonly ILogger _log = log;
 
@@ -53,6 +56,19 @@ public class EventStoreUnitOfWork<TDomainEvent>(
         foreach (var eventProvider in _eventProviders)
         {
             await _domainEventStorage.SaveAsync(eventProvider);
+
+            // The read path (LoadSnapShotIfExistsAsync/LoadRemainingHistoryEventsAsync above)
+            // has always honored a snapshot if one exists - this is the write side that used to
+            // be missing entirely (docs/06-event-sourcing-infrastructure.md,
+            // docs/patterns/event-sourcing.md): nothing ever called SaveShapShotAsync outside of
+            // test fixtures, so a snapshot never existed in the production commit path no matter
+            // how many events an aggregate accumulated. GetEventCountSinceLastSnapShotAsync is
+            // exactly the "should I snapshot now" predicate the storage layer already implements
+            // for this - SaveAsync above has already persisted this event and advanced
+            // eventProvider.Version, so the count below reflects it.
+            if (await _domainEventStorage.GetEventCountSinceLastSnapShotAsync(eventProvider.Id) >= _snapshotFrequency)
+                await _domainEventStorage.SaveShapShotAsync(eventProvider);
+
             _bus.Publish(eventProvider.GetChanges().Select(x => (object)x));
             eventProvider.Clear();
         }

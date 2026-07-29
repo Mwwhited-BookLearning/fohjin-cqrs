@@ -234,6 +234,40 @@ app.MapPost("/api/clients/{id:guid}/accounts", (Guid id, OpenNewAccountForClient
 .Produces(StatusCodes.Status202Accepted)
 .RequireAuthorization();
 
+// Bank cards (docs/02-bank-cards.md): domain + command handlers existed from the original
+// CQRS demo, but no UI or endpoint ever called them - GetClientDetailsById above already
+// returns ClientDetailsReport.BankCards via SqlServerReportingRepository's "{ParentTypeName}Id"
+// convention (BankCardReport.ClientDetailsReportId), so no separate GET endpoint is needed.
+app.MapPost("/api/clients/{id:guid}/bank-cards", (Guid id, AssignNewBankCardRequest request, IBus bus) =>
+{
+    bus.Publish(new AssignNewBankCardCommand(id, request.AccountId));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("AssignNewBankCard")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/clients/{id:guid}/bank-cards/{bankCardId:guid}/cancel", (Guid id, Guid bankCardId, IBus bus) =>
+{
+    bus.Publish(new CancelBankCardCommand(id, bankCardId));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("CancelBankCard")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
+app.MapPost("/api/clients/{id:guid}/bank-cards/{bankCardId:guid}/report-stolen", (Guid id, Guid bankCardId, IBus bus) =>
+{
+    bus.Publish(new ReportStolenBankCardCommand(id, bankCardId));
+    bus.CommitAsync();
+    return Results.Accepted($"/api/clients/{id}/details");
+})
+.WithName("ReportStolenBankCard")
+.Produces(StatusCodes.Status202Accepted)
+.RequireAuthorization();
+
 // Phase 6: the Account Details screen and its "transfer to" account picker.
 app.MapGet("/api/accounts", async (IReportingRepository repository) =>
     await repository.GetByExampleAsync<AccountReport>(null))
@@ -413,6 +447,7 @@ record ChangeClientNameRequest(string? ClientName);
 record ClientIsMovingRequest(string? Street, string? StreetNumber, string? PostalCode, string? City);
 record ChangeClientPhoneNumberRequest(string? PhoneNumber);
 record OpenNewAccountForClientRequest(string? AccountName);
+record AssignNewBankCardRequest(Guid AccountId);
 record ChangeAccountNameRequest(string? AccountName);
 record DepositCashRequest(decimal Amount);
 record WithdrawalCashRequest(decimal Amount);

@@ -7,6 +7,7 @@ public record ClientDetailsReport
     public Guid Id { get; set; }
     public List<AccountReport> Accounts { get; set; } = new();
     public List<ClosedAccountReport> ClosedAccounts { get; set; } = new();
+    public List<BankCardReport> BankCards { get; set; } = new();
     public string? ClientName { get; set; }
     public string? Street { get; set; }
     public string? StreetNumber { get; set; }

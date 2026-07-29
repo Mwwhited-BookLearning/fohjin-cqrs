@@ -258,6 +258,106 @@
         }
       }
     },
+    "/api/clients/{id}/bank-cards": {
+      "post": {
+        "tags": [
+          "Fohjin.DDD.WebApi"
+        ],
+        "operationId": "AssignNewBankCard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignNewBankCardRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/clients/{id}/bank-cards/{bankCardId}/cancel": {
+      "post": {
+        "tags": [
+          "Fohjin.DDD.WebApi"
+        ],
+        "operationId": "CancelBankCard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "bankCardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/clients/{id}/bank-cards/{bankCardId}/report-stolen": {
+      "post": {
+        "tags": [
+          "Fohjin.DDD.WebApi"
+        ],
+        "operationId": "ReportStolenBankCard",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "bankCardId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
     "/api/accounts": {
       "get": {
         "tags": [
@@ -595,6 +695,41 @@
           }
         }
       },
+      "AssignNewBankCardRequest": {
+        "required": [
+          "accountId"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "BankCardReport": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientDetailsReportId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ChangeAccountNameRequest": {
         "required": [
           "accountName"
@@ -654,6 +789,12 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ClosedAccountReport"
+            }
+          },
+          "bankCards": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BankCardReport"
             }
           },
           "clientName": {

@@ -12,6 +12,7 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
     public DbSet<ClosedAccountReport> ClosedAccountReports => Set<ClosedAccountReport>();
     public DbSet<ClosedAccountDetailsReport> ClosedAccountDetailsReports => Set<ClosedAccountDetailsReport>();
     public DbSet<LedgerReport> LedgerReports => Set<LedgerReport>();
+    public DbSet<BankCardReport> BankCardReports => Set<BankCardReport>();
 
     // Child collections (Accounts/ClosedAccounts/Ledgers) are populated by the repository with
     // a follow-up query keyed on the existing "{ParentTypeName}Id" convention instead of being
@@ -33,6 +34,7 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
             entity.HasKey(x => x.Id);
             entity.Ignore(x => x.Accounts);
             entity.Ignore(x => x.ClosedAccounts);
+            entity.Ignore(x => x.BankCards);
         });
 
         modelBuilder.Entity<AccountReport>(entity =>
@@ -68,6 +70,13 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
         modelBuilder.Entity<LedgerReport>(entity =>
         {
             entity.ToTable(nameof(LedgerReport));
+            entity.HasKey(x => x.Id);
+            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<BankCardReport>(entity =>
+        {
+            entity.ToTable(nameof(BankCardReport));
             entity.HasKey(x => x.Id);
             entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
         });

@@ -348,6 +348,124 @@ export class FohjinApiClient {
     }
 
     /**
+     * @return Accepted
+     */
+    assignNewBankCard(id: string, body: AssignNewBankCardRequest): Promise<void> {
+        let url_ = this.baseUrl + "/api/clients/{id}/bank-cards";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processAssignNewBankCard(_response);
+        });
+    }
+
+    protected processAssignNewBankCard(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    cancelBankCard(id: string, bankCardId: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/clients/{id}/bank-cards/{bankCardId}/cancel";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (bankCardId === undefined || bankCardId === null)
+            throw new globalThis.Error("The parameter 'bankCardId' must be defined.");
+        url_ = url_.replace("{bankCardId}", encodeURIComponent("" + bankCardId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCancelBankCard(_response);
+        });
+    }
+
+    protected processCancelBankCard(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
+     * @return Accepted
+     */
+    reportStolenBankCard(id: string, bankCardId: string): Promise<void> {
+        let url_ = this.baseUrl + "/api/clients/{id}/bank-cards/{bankCardId}/report-stolen";
+        if (id === undefined || id === null)
+            throw new globalThis.Error("The parameter 'id' must be defined.");
+        url_ = url_.replace("{id}", encodeURIComponent("" + id));
+        if (bankCardId === undefined || bankCardId === null)
+            throw new globalThis.Error("The parameter 'bankCardId' must be defined.");
+        url_ = url_.replace("{bankCardId}", encodeURIComponent("" + bankCardId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "POST",
+            headers: {
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processReportStolenBankCard(_response);
+        });
+    }
+
+    protected processReportStolenBankCard(response: Response): Promise<void> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 202) {
+            return response.text().then((_responseText) => {
+            return;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<void>(null as any);
+    }
+
+    /**
      * @return OK
      */
     getAccounts(): Promise<AccountReport[]> {
@@ -854,6 +972,114 @@ export interface IAccountReport {
     [key: string]: any;
 }
 
+export class AssignNewBankCardRequest implements IAssignNewBankCardRequest {
+    accountId!: string;
+
+    [key: string]: any;
+
+    constructor(data?: IAssignNewBankCardRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.accountId = _data["accountId"];
+        }
+    }
+
+    static fromJS(data: any): AssignNewBankCardRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new AssignNewBankCardRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["accountId"] = this.accountId;
+        return data;
+    }
+}
+
+export interface IAssignNewBankCardRequest {
+    accountId: string;
+
+    [key: string]: any;
+}
+
+export class BankCardReport implements IBankCardReport {
+    id?: string;
+    clientDetailsReportId?: string;
+    accountId?: string;
+    status?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IBankCardReport) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.id = _data["id"];
+            this.clientDetailsReportId = _data["clientDetailsReportId"];
+            this.accountId = _data["accountId"];
+            this.status = _data["status"];
+        }
+    }
+
+    static fromJS(data: any): BankCardReport {
+        data = typeof data === 'object' ? data : {};
+        let result = new BankCardReport();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["id"] = this.id;
+        data["clientDetailsReportId"] = this.clientDetailsReportId;
+        data["accountId"] = this.accountId;
+        data["status"] = this.status;
+        return data;
+    }
+}
+
+export interface IBankCardReport {
+    id?: string;
+    clientDetailsReportId?: string;
+    accountId?: string;
+    status?: string | undefined;
+
+    [key: string]: any;
+}
+
 export class ChangeAccountNameRequest implements IChangeAccountNameRequest {
     accountName!: string | undefined;
 
@@ -1002,6 +1228,7 @@ export class ClientDetailsReport implements IClientDetailsReport {
     id?: string;
     accounts?: AccountReport[];
     closedAccounts?: ClosedAccountReport[];
+    bankCards?: BankCardReport[];
     clientName?: string | undefined;
     street?: string | undefined;
     streetNumber?: string | undefined;
@@ -1037,6 +1264,11 @@ export class ClientDetailsReport implements IClientDetailsReport {
                 for (let item of _data["closedAccounts"])
                     this.closedAccounts!.push(ClosedAccountReport.fromJS(item));
             }
+            if (Array.isArray(_data["bankCards"])) {
+                this.bankCards = [] as any;
+                for (let item of _data["bankCards"])
+                    this.bankCards!.push(BankCardReport.fromJS(item));
+            }
             this.clientName = _data["clientName"];
             this.street = _data["street"];
             this.streetNumber = _data["streetNumber"];
@@ -1070,6 +1302,11 @@ export class ClientDetailsReport implements IClientDetailsReport {
             for (let item of this.closedAccounts)
                 data["closedAccounts"].push(item ? item.toJSON() : undefined as any);
         }
+        if (Array.isArray(this.bankCards)) {
+            data["bankCards"] = [];
+            for (let item of this.bankCards)
+                data["bankCards"].push(item ? item.toJSON() : undefined as any);
+        }
         data["clientName"] = this.clientName;
         data["street"] = this.street;
         data["streetNumber"] = this.streetNumber;
@@ -1084,6 +1321,7 @@ export interface IClientDetailsReport {
     id?: string;
     accounts?: AccountReport[];
     closedAccounts?: ClosedAccountReport[];
+    bankCards?: BankCardReport[];
     clientName?: string | undefined;
     street?: string | undefined;
     streetNumber?: string | undefined;

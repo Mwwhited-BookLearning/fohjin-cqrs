@@ -3,6 +3,7 @@ import { reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { apiClient } from "../api/client";
 import {
+  AssignNewBankCardRequest,
   ChangeClientNameRequest,
   ChangeClientPhoneNumberRequest,
   ClientIsMovingRequest,
@@ -21,11 +22,16 @@ const nameForm = reactive({ clientName: "" });
 const addressForm = reactive({ street: "", streetNumber: "", postalCode: "", city: "" });
 const phoneForm = reactive({ phoneNumber: "" });
 const newAccountForm = reactive({ accountName: "" });
+const newBankCardForm = reactive({ accountId: "" });
 
 const savingName = ref(false);
 const savingAddress = ref(false);
 const savingPhoneNumber = ref(false);
 const openingAccount = ref(false);
+const assigningBankCard = ref(false);
+// Per-bank-card-id busy flag, so clicking Cancel/Report stolen on one card doesn't disable
+// every other card's buttons while its request is in flight.
+const bankCardActionInFlight = reactive<Record<string, boolean>>({});
 
 async function load() {
   loading.value = true;
@@ -106,6 +112,55 @@ async function openNewAccount() {
     openingAccount.value = false;
   }
 }
+
+function accountLabel(accountId: string): string {
+  const account = details.value?.accounts?.find((a) => a.id === accountId);
+  return account ? `${account.accountName} (${account.accountNumber})` : accountId;
+}
+
+// AssignNewBankCardForAccount (Fohjin.DDD.Domain/Client.cs) guards that the account belongs to
+// this client - only open accounts are ever in Client's own _accounts list, so only those are
+// offered here (docs/02-bank-cards.md: this whole feature has no read-model card number/type,
+// just an id + linked account + status - nothing here is invented beyond what the domain has).
+async function assignNewBankCard() {
+  assigningBankCard.value = true;
+  error.value = null;
+  try {
+    await apiClient.assignNewBankCard(props.id, new AssignNewBankCardRequest(newBankCardForm));
+    newBankCardForm.accountId = "";
+    reloadShortly();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    assigningBankCard.value = false;
+  }
+}
+
+async function cancelBankCard(bankCardId: string) {
+  bankCardActionInFlight[bankCardId] = true;
+  error.value = null;
+  try {
+    await apiClient.cancelBankCard(props.id, bankCardId);
+    reloadShortly();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    bankCardActionInFlight[bankCardId] = false;
+  }
+}
+
+async function reportBankCardStolen(bankCardId: string) {
+  bankCardActionInFlight[bankCardId] = true;
+  error.value = null;
+  try {
+    await apiClient.reportStolenBankCard(props.id, bankCardId);
+    reloadShortly();
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : String(e);
+  } finally {
+    bankCardActionInFlight[bankCardId] = false;
+  }
+}
 </script>
 
 <template>
@@ -164,6 +219,35 @@ async function openNewAccount() {
           <button type="submit" :disabled="openingAccount">{{ openingAccount ? "Opening..." : "Open account" }}</button>
         </form>
       </section>
+
+      <section>
+        <h2>Bank cards</h2>
+        <ul class="bank-card-list">
+          <li v-for="card in details.bankCards" :key="card.id">
+            <span class="bank-card-account">{{ accountLabel(card.accountId!) }}</span>
+            <span class="bank-card-status" :class="card.status?.toLowerCase()">{{ card.status }}</span>
+            <span class="bank-card-actions" v-if="card.status === 'Active'">
+              <button :disabled="bankCardActionInFlight[card.id!]" @click="cancelBankCard(card.id!)">Cancel</button>
+              <button :disabled="bankCardActionInFlight[card.id!]" @click="reportBankCardStolen(card.id!)">Report stolen</button>
+            </span>
+          </li>
+          <li v-if="!details.bankCards?.length" class="empty">No bank cards.</li>
+        </ul>
+
+        <form @submit.prevent="assignNewBankCard" v-if="details.accounts?.length">
+          <label>
+            Account
+            <select v-model="newBankCardForm.accountId" required>
+              <option value="" disabled>Select an account</option>
+              <option v-for="account in details.accounts" :key="account.id" :value="account.id">
+                {{ account.accountName }} ({{ account.accountNumber }})
+              </option>
+            </select>
+          </label>
+          <button type="submit" :disabled="assigningBankCard">{{ assigningBankCard ? "Assigning..." : "Assign new bank card" }}</button>
+        </form>
+        <p v-else class="empty">Open an account before assigning a bank card.</p>
+      </section>
     </template>
     <p v-else class="error">{{ error }}</p>
   </div>
@@ -198,5 +282,37 @@ label {
 }
 .account-list li:not(.empty):hover {
   background: #f5f5f5;
+}
+.bank-card-list {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1rem;
+}
+.bank-card-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+.bank-card-status {
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  background: #eee;
+  font-size: 0.85rem;
+}
+.bank-card-status.active {
+  background: #d4edda;
+  color: #155724;
+}
+.bank-card-status.cancelled,
+.bank-card-status.reportedstolen {
+  background: #f8d7da;
+  color: #721c24;
+}
+.bank-card-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
 }
 </style>

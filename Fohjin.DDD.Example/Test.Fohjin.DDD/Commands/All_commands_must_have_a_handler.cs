@@ -16,7 +16,7 @@ namespace Test.Fohjin.DDD.Commands;
 public class All_commands_must_have_a_handler : ContextualTestClassBase
 {
     [ContextualTestMethod]
-    [DynamicData(nameof(TestData), DynamicDataSourceType.Method, DynamicDataDisplayName = nameof(TestDataDisplayName))]
+    [DynamicData(nameof(TestData), DynamicDataDisplayName = nameof(TestDataDisplayName))]
     public async Task TestCommandHandlers(Type commandType, Type handlerType)
     {
         Assert.IsNotNull(handlerType, "No handlers exist");

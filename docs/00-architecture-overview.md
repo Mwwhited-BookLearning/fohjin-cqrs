@@ -159,22 +159,33 @@ kept its Presenter/View screens (`09-winforms-ui.md`) but now drives them throug
 
 Every request that crosses this system — browser → `Fohjin.DDD.WebApi`/`Fohjin.DDD.Sts` →
 event store/reporting store — reports to the same place: the Aspire dashboard
-`Fohjin.DDD.AppHost` starts. Two independent pieces feed it, joined into single distributed
-traces by the standard `traceparent` header:
+`Fohjin.DDD.AppHost` starts. Two independent pieces feed it both traces (joined into single
+distributed traces by the standard `traceparent` header) and metrics:
 
 - **Backend** (`Fohjin.DDD.WebApi`, `Fohjin.DDD.Sts`): `Fohjin.DDD.ServiceDefaults`'
   `AddServiceDefaults()`/`ConfigureOpenTelemetry()` (ASP.NET Core, HttpClient, and runtime
-  instrumentation) was already wired into both projects' `Program.cs` from early on in the
-  Aspire-hosting work — `Fohjin.DDD.AppHost` auto-injects the OTLP endpoint/headers into
-  every `AddProject<>` resource, so this needed no new code, only live verification.
+  instrumentation, for both traces and metrics) was already wired into both projects'
+  `Program.cs` from early on in the Aspire-hosting work — `Fohjin.DDD.AppHost` auto-injects
+  the OTLP endpoint/headers into every `AddProject<>` resource, so this needed no new code,
+  only live verification. Its metrics include the standard `http.server.request.duration`
+  (incoming requests) and `http.client.request.duration` (outgoing - e.g. WebApi calling
+  Sts's discovery document).
 - **Browser** (`Fohjin.DDD.WebUI`): `src/telemetry.ts` (`startTelemetry()`, called from
-  `main.ts` before anything else) sends traces straight from the browser using
-  `@opentelemetry/sdk-trace-web` + `@opentelemetry/exporter-trace-otlp-proto`, with
-  `DocumentLoadInstrumentation` (page load) and `FetchInstrumentation` (API calls, scoped
-  via `propagateTraceHeaderCorsUrls` to just the WebApi/Sts origins so `traceparent` isn't
-  sent to arbitrary third parties). It no-ops entirely unless `VITE_OTLP_TRACE_ENDPOINT_URL`
-  is set — true for a plain `npm run dev` outside Aspire, so nothing needs disabling by hand
-  outside the AppHost-orchestrated dev flow.
+  `main.ts` before anything else) sends both signals straight from the browser:
+  - Traces via `@opentelemetry/sdk-trace-web` + `@opentelemetry/exporter-trace-otlp-proto`,
+    with `DocumentLoadInstrumentation` (page load) and `FetchInstrumentation` (API calls,
+    scoped via `propagateTraceHeaderCorsUrls` to just the WebApi/Sts origins so
+    `traceparent` isn't sent to arbitrary third parties).
+  - Metrics via `@opentelemetry/sdk-metrics` + `@opentelemetry/exporter-metrics-otlp-proto`,
+    recording two histograms from real browser Performance-API data (nothing invented):
+    `webui.document_load.duration` (Navigation Timing, the same data the document-load trace
+    span already carries) and `http.client.request.duration` (Resource Timing entries for
+    `fetch` calls, filtered to the same WebApi/Sts origins as the trace propagation
+    allow-list) — the latter deliberately reuses the backend's own metric name so the
+    dashboard shows a matching browser-side/server-side pair.
+  - Both no-op entirely unless `VITE_OTLP_TRACE_ENDPOINT_URL` is set — true for a plain
+    `npm run dev` outside Aspire, so nothing needs disabling by hand outside the
+    AppHost-orchestrated dev flow.
 
 The wiring that makes the browser piece possible:
 
@@ -194,7 +205,7 @@ Dashboard -> Dashboard : also binds an OTLP/HTTP listener\nalongside its default
 AppHost -> AppHost : reads builder.Configuration["AppHost:OtlpApiKey"]\n(populated by Aspire automatically)
 AppHost -> WebUI : WithEnvironment(VITE_OTLP_TRACE_ENDPOINT_URL, ...)\nWithEnvironment(VITE_OTLP_HEADERS, "x-otlp-api-key=...")
 WebUI -> Browser : Vite exposes both as import.meta.env.VITE_*\nat dev-server start
-Browser -> Dashboard : POST {endpoint}/v1/traces\n(x-otlp-api-key header)
+Browser -> Dashboard : POST {endpoint}/v1/traces\nPOST {endpoint}/v1/metrics\n(both with x-otlp-api-key header)
 note right of Dashboard
   No CORS config needed: Aspire auto-allows every
   resource origin in its own model when both the

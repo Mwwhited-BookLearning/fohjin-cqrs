@@ -155,6 +155,7 @@ await using (var scope = app.Services.CreateAsyncScope())
         Permissions =
         {
             Permissions.Endpoints.Authorization,
+            Permissions.Endpoints.EndSession,
             Permissions.Endpoints.Token,
             Permissions.GrantTypes.AuthorizationCode,
             Permissions.ResponseTypes.Code,
@@ -165,6 +166,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     };
     foreach (var redirectUri in devClientOptions.RedirectUris)
         devClientDescriptor.RedirectUris.Add(new Uri(redirectUri));
+    foreach (var postLogoutRedirectUri in devClientOptions.PostLogoutRedirectUris)
+        devClientDescriptor.PostLogoutRedirectUris.Add(new Uri(postLogoutRedirectUri));
 
     var existingDevClient = await applicationManager.FindByClientIdAsync(devClientDescriptor.ClientId);
     if (existingDevClient is null)

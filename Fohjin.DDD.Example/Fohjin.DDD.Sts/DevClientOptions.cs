@@ -11,4 +11,5 @@ public sealed class DevClientOptions
     public string? ClientId { get; set; }
     public string? DisplayName { get; set; }
     public string[] RedirectUris { get; set; } = [];
+    public string[] PostLogoutRedirectUris { get; set; } = [];
 }

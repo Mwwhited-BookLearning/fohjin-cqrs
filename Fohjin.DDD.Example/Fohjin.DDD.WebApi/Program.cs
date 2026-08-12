@@ -27,6 +27,7 @@ using Saunter;
 using Saunter.AsyncApiSchema.v2;
 using System.Net.ServerSentEvents;
 using System.Reactive.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Channels;
@@ -232,8 +233,22 @@ app.MapDefaultEndpoints();
 app.MapAsyncApiDocuments();
 app.MapAsyncApiUi();
 
-await app.Services.BootStrapApplicationAsync();
-app.Services.SubscribeEventHandlers();
+// Fohjin.DDD.WebApi.csproj's GenerateOpenApiDocuments MSBuild target (Microsoft.Extensions.
+// ApiDescription.Server) loads this assembly by reflection and invokes this Main for real,
+// inside its own GetDocument.Insider.dll host process, so it can introspect the actually-
+// registered endpoints - the package provides no flag distinguishing this from a normal run,
+// but that process's own entry assembly is GetDocument.Insider, never this one, which is what
+// SubscribeEventHandlers/BootStrapApplicationAsync below rely on to tell the two apart.
+// Skipping both here means building this project (and therefore Fohjin.DDD.AppHost, which
+// references it) no longer requires a live SQL Server to already be running - previously
+// every build ran a real EF Core migration against 127.0.0.1:14330 during doc generation,
+// which fails from a cold machine since Aspire's own SQL Server container isn't created
+// until the AppHost actually starts running, well after this project has already built.
+if (Assembly.GetEntryAssembly()?.GetName().Name != "GetDocument.Insider")
+{
+    await app.Services.BootStrapApplicationAsync();
+    app.Services.SubscribeEventHandlers();
+}
 
 if (app.Environment.IsDevelopment())
 {

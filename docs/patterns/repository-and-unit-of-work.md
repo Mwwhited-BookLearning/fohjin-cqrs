@@ -38,6 +38,64 @@ over denormalized tables). Neither depends on the other's storage type, which is
 the write/read separation `cqrs.md` describes — Repository is *how* each side hides its own
 storage, independently.
 
+### The read side's Repository returns a composable query, not a fixed result
+
+`IDomainRepository<T>.GetByIdAsync` above returns a materialized aggregate — there's exactly
+one shape a caller could want (the whole thing). `IReportingRepository` is different: any
+given DTO might need filtering, sorting, or paging in ways no fixed set of methods can
+anticipate. Its `Query<TDto>()` hides the storage mechanism the same way `GetByIdAsync` does
+above, but what it returns is an `IQueryable<TDto>` — a *composable* query object, not a result —
+so a caller adds `.Where()`/`.OrderBy()`/etc itself, and the OData endpoints
+(`08-reporting-read-models.md`) apply `$filter`/`$orderby` to that exact same object. One
+mechanism serves every DTO and every filter shape, rather than a hand-written method (or an
+ad hoc "example object", which is what this codebase used before) per case.
+
+```plantuml
+@startuml
+skinparam classAttributeIconSize 0
+hide circle
+
+interface "IReportingRepository" as IRepo {
+  + Query<TDto>() : IQueryable<TDto>
+  + GetByIdAsync<TDto>(object id) : Task<TDto?>
+}
+class "GET /api/accounts" as RestEndpoint
+class "GET /odata/Accounts" as ODataEndpoint
+RestEndpoint --> IRepo : Query<AccountReport>().ToListAsync()
+ODataEndpoint --> IRepo : ODataQueryOptions.ApplyTo(\n  Query<AccountReport>())
+note right of IRepo
+  Same IQueryable, two different callers
+  composing different things onto it -
+  neither needs its own repository method.
+end note
+@enduml
+```
+
+This is sometimes called a "leaky abstraction": exposing `IQueryable<T>` means a caller *can*
+write a query the backing store can't translate, or one that behaves differently against a
+real database than against an in-memory test double. That's a real, narrow constraint — this
+codebase hit it directly (`MoneyTransferService`/`MoneyReceiveService` use a synchronous
+`.First()` rather than EF Core's async `.FirstAsync()`, because `.FirstAsync()` requires an
+`IAsyncQueryProvider`, which a Moq'd `List<T>.AsQueryable()` in a unit test doesn't implement —
+a testing-strategy constraint, not a broken abstraction, and one a custom `IAsyncQueryProvider`
+or expression-tree visitor could resolve if it mattered enough here). It is a different
+criticism from Ayende Rahien's *Repository is the new Singleton*
+(https://ayende.com/blog/3955/repository-is-the-new-singleton), which is sometimes cited
+against `IQueryable` repositories but is actually about something else: a Singleton/Service
+Locator hides *what a class depends on* and shares mutable state across every unrelated
+caller, which is what makes it hard to reason about and hard to test. An `IQueryable<T>`
+returned from a constructor-injected interface hides neither — the dependency is declared and
+injected like any other, and every caller gets its own query to compose independently, with no
+shared state between them. Composability is the opposite of the Singleton failure mode, not a
+variant of it.
+
+**In this repo**: `IReportingRepository.Query<TDto>()`/`GetByIdAsync<TDto>()`
+(`Fohjin.DDD.Reporting/Infrastructure/SqlServerReportingRepository.cs`), consumed by both plain
+REST endpoints and every OData endpoint (top-level entity sets and nested/contained routes
+alike) in `Fohjin.DDD.WebApi/Program.cs`. Full mechanism, including why `Query`/`GetByIdAsync`
+each open a fresh `DbContext` per call rather than reusing or eagerly disposing one, in
+`../08-reporting-read-models.md`.
+
 ## Unit of Work
 
 **Track a batch of changes and commit or roll them back as one transaction.** A single
@@ -131,7 +189,7 @@ duplicated.
 - `../06-event-sourcing-infrastructure.md` — the full repository/unit-of-work class diagram
   and both sequence diagrams (load-with-snapshot, commit).
 - `../07-messaging-bus.md` — `TransactionHandler`, and the `IUnitOfWork` naming collision.
-- `../10-patterns-and-practices.md#repository`, `#unit-of-work`, and
-  `#optimistic-concurrency` — the catalog entries.
+- `../10-patterns-and-practices.md#repository`, `#unit-of-work`, `#optimistic-concurrency`,
+  and `#iqueryable-repository--odata` — the catalog entries.
 - Martin Fowler, *Patterns of Enterprise Application Architecture* (Addison-Wesley, 2002) —
   Unit of Work, and Optimistic Offline Lock (the general form of optimistic concurrency).

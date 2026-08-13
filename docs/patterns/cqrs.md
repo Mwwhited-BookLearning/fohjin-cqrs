@@ -153,8 +153,8 @@ The full sequence diagrams for command dispatch and event fan-out are in
 
 - `Client.UpdateClientName` can enforce "the client must exist" (`Id != Guid.Empty`) without
   that guard clause ever running on a pure read — because reads never call it.
-- `SqlServerReportingRepository.GetByExampleAsync` can build an arbitrary filter across
-  `ClientReport` (see `08-reporting-read-models.md`) without that query logic having any way
+- `IReportingRepository.Query<TDto>()` can compose an arbitrary `$filter`/`$orderby` across
+  any reporting DTO (see `08-reporting-read-models.md`) without that query logic having any way
   to accidentally mutate a `Client` aggregate — because it has no reference to
   `IDomainRepository` at all.
 - The read side can be denormalized however the UI actually wants it —

@@ -11,6 +11,10 @@ public record AccountDetailsReport
     public decimal Balance { get; init; }
     public string? AccountNumber { get; init; }
 
+    // "Open" or "Closed" - replaces the former separate ClosedAccountDetailsReport type/table,
+    // see AccountReport.Status for why.
+    public string Status { get; init; } = "Open";
+
     [JsonConstructor]
     public AccountDetailsReport()
     {
@@ -21,7 +25,8 @@ public record AccountDetailsReport
         Guid clientReportId,
         string? accountName,
         decimal balance,
-        string? accountNumber
+        string? accountNumber,
+        string status = "Open"
         )
     {
         Id = id;
@@ -30,6 +35,7 @@ public record AccountDetailsReport
         AccountName = accountName;
         Balance = balance;
         AccountNumber = accountNumber;
+        Status = status;
     }
 
     public static AccountDetailsReport New => new() { Id = Guid.NewGuid() };

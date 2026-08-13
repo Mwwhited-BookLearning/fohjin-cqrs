@@ -859,6 +859,556 @@ export class FohjinApiClient {
         return Promise.resolve<ClientReport[]>(null as any);
     }
 
+    /**
+     * @return OK
+     */
+    queryClientDetails(): Promise<ClientDetailsReport[]> {
+        let url_ = this.baseUrl + "/odata/ClientDetails";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryClientDetails(_response);
+        });
+    }
+
+    protected processQueryClientDetails(response: Response): Promise<ClientDetailsReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ClientDetailsReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClientDetailsReport[]>(null as any);
+    }
+
+    /**
+     * Same as GET /odata/ClientDetails, but for $filter expressions too large/complex for a query string (RFC 10008).
+     * @param body (optional) 
+     * @return OK
+     */
+    queryClientDetailsViaQueryMethod(body: Body2 | undefined): Promise<ClientDetailsReport[]> {
+        let url_ = this.baseUrl + "/odata/ClientDetails";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "QUERY",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryClientDetailsViaQueryMethod(_response);
+        });
+    }
+
+    protected processQueryClientDetailsViaQueryMethod(response: Response): Promise<ClientDetailsReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(ClientDetailsReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ClientDetailsReport[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    queryAccounts(): Promise<AccountReport[]> {
+        let url_ = this.baseUrl + "/odata/Accounts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryAccounts(_response);
+        });
+    }
+
+    protected processQueryAccounts(response: Response): Promise<AccountReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AccountReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AccountReport[]>(null as any);
+    }
+
+    /**
+     * Same as GET /odata/Accounts, but for $filter expressions too large/complex for a query string (RFC 10008).
+     * @param body (optional) 
+     * @return OK
+     */
+    queryAccountsViaQueryMethod(body: Body3 | undefined): Promise<AccountReport[]> {
+        let url_ = this.baseUrl + "/odata/Accounts";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "QUERY",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryAccountsViaQueryMethod(_response);
+        });
+    }
+
+    protected processQueryAccountsViaQueryMethod(response: Response): Promise<AccountReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AccountReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AccountReport[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    queryAccountDetails(): Promise<AccountDetailsReport[]> {
+        let url_ = this.baseUrl + "/odata/AccountDetails";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryAccountDetails(_response);
+        });
+    }
+
+    protected processQueryAccountDetails(response: Response): Promise<AccountDetailsReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AccountDetailsReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AccountDetailsReport[]>(null as any);
+    }
+
+    /**
+     * Same as GET /odata/AccountDetails, but for $filter expressions too large/complex for a query string (RFC 10008).
+     * @param body (optional) 
+     * @return OK
+     */
+    queryAccountDetailsViaQueryMethod(body: Body4 | undefined): Promise<AccountDetailsReport[]> {
+        let url_ = this.baseUrl + "/odata/AccountDetails";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "QUERY",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryAccountDetailsViaQueryMethod(_response);
+        });
+    }
+
+    protected processQueryAccountDetailsViaQueryMethod(response: Response): Promise<AccountDetailsReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(AccountDetailsReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<AccountDetailsReport[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    queryLedgers(): Promise<LedgerReport[]> {
+        let url_ = this.baseUrl + "/odata/Ledgers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryLedgers(_response);
+        });
+    }
+
+    protected processQueryLedgers(response: Response): Promise<LedgerReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(LedgerReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<LedgerReport[]>(null as any);
+    }
+
+    /**
+     * Same as GET /odata/Ledgers, but for $filter expressions too large/complex for a query string (RFC 10008).
+     * @param body (optional) 
+     * @return OK
+     */
+    queryLedgersViaQueryMethod(body: Body5 | undefined): Promise<LedgerReport[]> {
+        let url_ = this.baseUrl + "/odata/Ledgers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "QUERY",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryLedgersViaQueryMethod(_response);
+        });
+    }
+
+    protected processQueryLedgersViaQueryMethod(response: Response): Promise<LedgerReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(LedgerReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<LedgerReport[]>(null as any);
+    }
+
+    /**
+     * @return OK
+     */
+    queryBankCards(): Promise<BankCardReport[]> {
+        let url_ = this.baseUrl + "/odata/BankCards";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_: RequestInit = {
+            method: "GET",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryBankCards(_response);
+        });
+    }
+
+    protected processQueryBankCards(response: Response): Promise<BankCardReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(BankCardReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BankCardReport[]>(null as any);
+    }
+
+    /**
+     * Same as GET /odata/BankCards, but for $filter expressions too large/complex for a query string (RFC 10008).
+     * @param body (optional) 
+     * @return OK
+     */
+    queryBankCardsViaQueryMethod(body: Body6 | undefined): Promise<BankCardReport[]> {
+        let url_ = this.baseUrl + "/odata/BankCards";
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "QUERY",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processQueryBankCardsViaQueryMethod(_response);
+        });
+    }
+
+    protected processQueryBankCardsViaQueryMethod(response: Response): Promise<BankCardReport[]> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200!.push(BankCardReport.fromJS(item));
+            }
+            else {
+                result200 = null as any;
+            }
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+                result400 = resultData400 !== undefined ? resultData400 : null as any;
+    
+            return throwException("Bad Request", status, _responseText, _headers, result400);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<BankCardReport[]>(null as any);
+    }
+
     streamEvents(): Promise<void> {
         let url_ = this.baseUrl + "/api/events";
         url_ = url_.replace(/[?&]$/, "");
@@ -901,6 +1451,7 @@ export class AccountDetailsReport implements IAccountDetailsReport {
     accountName?: string | undefined;
     balance?: number;
     accountNumber?: string | undefined;
+    status?: string;
 
     [key: string]: any;
 
@@ -929,6 +1480,7 @@ export class AccountDetailsReport implements IAccountDetailsReport {
             this.accountName = _data["accountName"];
             this.balance = _data["balance"];
             this.accountNumber = _data["accountNumber"];
+            this.status = _data["status"];
         }
     }
 
@@ -955,6 +1507,7 @@ export class AccountDetailsReport implements IAccountDetailsReport {
         data["accountName"] = this.accountName;
         data["balance"] = this.balance;
         data["accountNumber"] = this.accountNumber;
+        data["status"] = this.status;
         return data;
     }
 }
@@ -966,6 +1519,7 @@ export interface IAccountDetailsReport {
     accountName?: string | undefined;
     balance?: number;
     accountNumber?: string | undefined;
+    status?: string;
 
     [key: string]: any;
 }
@@ -975,6 +1529,7 @@ export class AccountReport implements IAccountReport {
     clientDetailsReportId?: string;
     accountName?: string | undefined;
     accountNumber?: string | undefined;
+    status?: string;
 
     [key: string]: any;
 
@@ -997,6 +1552,7 @@ export class AccountReport implements IAccountReport {
             this.clientDetailsReportId = _data["clientDetailsReportId"];
             this.accountName = _data["accountName"];
             this.accountNumber = _data["accountNumber"];
+            this.status = _data["status"];
         }
     }
 
@@ -1017,6 +1573,7 @@ export class AccountReport implements IAccountReport {
         data["clientDetailsReportId"] = this.clientDetailsReportId;
         data["accountName"] = this.accountName;
         data["accountNumber"] = this.accountNumber;
+        data["status"] = this.status;
         return data;
     }
 }
@@ -1026,6 +1583,7 @@ export interface IAccountReport {
     clientDetailsReportId?: string;
     accountName?: string | undefined;
     accountNumber?: string | undefined;
+    status?: string;
 
     [key: string]: any;
 }
@@ -1284,8 +1842,8 @@ export interface IChangeClientPhoneNumberRequest {
 
 export class ClientDetailsReport implements IClientDetailsReport {
     id?: string;
-    accounts?: AccountReport[];
-    closedAccounts?: ClosedAccountReport[];
+    accounts?: AccountReport[] | undefined;
+    closedAccounts?: AccountReport[] | undefined;
     bankCards?: BankCardReport[];
     clientName?: string | undefined;
     street?: string | undefined;
@@ -1320,7 +1878,7 @@ export class ClientDetailsReport implements IClientDetailsReport {
             if (Array.isArray(_data["closedAccounts"])) {
                 this.closedAccounts = [] as any;
                 for (let item of _data["closedAccounts"])
-                    this.closedAccounts!.push(ClosedAccountReport.fromJS(item));
+                    this.closedAccounts!.push(AccountReport.fromJS(item));
             }
             if (Array.isArray(_data["bankCards"])) {
                 this.bankCards = [] as any;
@@ -1377,8 +1935,8 @@ export class ClientDetailsReport implements IClientDetailsReport {
 
 export interface IClientDetailsReport {
     id?: string;
-    accounts?: AccountReport[];
-    closedAccounts?: ClosedAccountReport[];
+    accounts?: AccountReport[] | undefined;
+    closedAccounts?: AccountReport[] | undefined;
     bankCards?: BankCardReport[];
     clientName?: string | undefined;
     street?: string | undefined;
@@ -1498,66 +2056,6 @@ export class ClientReport implements IClientReport {
 export interface IClientReport {
     id?: string;
     name?: string | undefined;
-
-    [key: string]: any;
-}
-
-export class ClosedAccountReport implements IClosedAccountReport {
-    id?: string;
-    clientDetailsReportId?: string;
-    accountName?: string | undefined;
-    accountNumber?: string | undefined;
-
-    [key: string]: any;
-
-    constructor(data?: IClosedAccountReport) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (this as any)[property] = (data as any)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            for (var property in _data) {
-                if (_data.hasOwnProperty(property))
-                    this[property] = _data[property];
-            }
-            this.id = _data["id"];
-            this.clientDetailsReportId = _data["clientDetailsReportId"];
-            this.accountName = _data["accountName"];
-            this.accountNumber = _data["accountNumber"];
-        }
-    }
-
-    static fromJS(data: any): ClosedAccountReport {
-        data = typeof data === 'object' ? data : {};
-        let result = new ClosedAccountReport();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        for (var property in this) {
-            if (this.hasOwnProperty(property))
-                data[property] = this[property];
-        }
-        data["id"] = this.id;
-        data["clientDetailsReportId"] = this.clientDetailsReportId;
-        data["accountName"] = this.accountName;
-        data["accountNumber"] = this.accountNumber;
-        return data;
-    }
-}
-
-export interface IClosedAccountReport {
-    id?: string;
-    clientDetailsReportId?: string;
-    accountName?: string | undefined;
-    accountNumber?: string | undefined;
 
     [key: string]: any;
 }
@@ -1930,6 +2428,256 @@ export class Body implements IBody {
 }
 
 export interface IBody {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+}
+
+export class Body2 implements IBody2 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IBody2) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.filter = _data["filter"];
+        }
+    }
+
+    static fromJS(data: any): Body2 {
+        data = typeof data === 'object' ? data : {};
+        let result = new Body2();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["filter"] = this.filter;
+        return data;
+    }
+}
+
+export interface IBody2 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+}
+
+export class Body3 implements IBody3 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IBody3) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.filter = _data["filter"];
+        }
+    }
+
+    static fromJS(data: any): Body3 {
+        data = typeof data === 'object' ? data : {};
+        let result = new Body3();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["filter"] = this.filter;
+        return data;
+    }
+}
+
+export interface IBody3 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+}
+
+export class Body4 implements IBody4 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IBody4) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.filter = _data["filter"];
+        }
+    }
+
+    static fromJS(data: any): Body4 {
+        data = typeof data === 'object' ? data : {};
+        let result = new Body4();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["filter"] = this.filter;
+        return data;
+    }
+}
+
+export interface IBody4 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+}
+
+export class Body5 implements IBody5 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IBody5) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.filter = _data["filter"];
+        }
+    }
+
+    static fromJS(data: any): Body5 {
+        data = typeof data === 'object' ? data : {};
+        let result = new Body5();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["filter"] = this.filter;
+        return data;
+    }
+}
+
+export interface IBody5 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+}
+
+export class Body6 implements IBody6 {
+    /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
+    filter?: string | undefined;
+
+    [key: string]: any;
+
+    constructor(data?: IBody6) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (this as any)[property] = (data as any)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            for (var property in _data) {
+                if (_data.hasOwnProperty(property))
+                    this[property] = _data[property];
+            }
+            this.filter = _data["filter"];
+        }
+    }
+
+    static fromJS(data: any): Body6 {
+        data = typeof data === 'object' ? data : {};
+        let result = new Body6();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        for (var property in this) {
+            if (this.hasOwnProperty(property))
+                data[property] = this[property];
+        }
+        data["filter"] = this.filter;
+        return data;
+    }
+}
+
+export interface IBody6 {
     /** An OData $filter expression, e.g. "contains(Name, 'Smith')". */
     filter?: string | undefined;
 

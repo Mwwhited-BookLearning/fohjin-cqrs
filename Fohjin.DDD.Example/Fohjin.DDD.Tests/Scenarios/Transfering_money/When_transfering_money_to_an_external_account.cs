@@ -17,8 +17,8 @@ public class When_transfering_money_to_an_external_account : BaseTestFixture<Mon
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
-            .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
+            ?.Setup(x => x.Query<AccountReport>())
+            .Returns(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") }.AsQueryable());
 
         // !!! This is DEMO code !!!
         // Setup the SystemRandom class to return the value where the account is not found

@@ -138,8 +138,8 @@ Closed --> Closed : any mutator\n[throws ClosedAccountException]
 |---|---|
 | `AccountOpenedEvent` | Save `AccountReport` + `AccountDetailsReport` (Balance = 0) |
 | `AccountNameChangedEvent` | Update `AccountReport`/`AccountDetailsReport`.AccountName |
-| `AccountClosedEvent` | **Delete** `AccountReport` + `AccountDetailsReport` |
-| `ClosedAccountCreatedEvent` | Save `ClosedAccountReport` + `ClosedAccountDetailsReport` + one `LedgerReport` per archived ledger entry |
+| `AccountClosedEvent` | Update `AccountReport`/`AccountDetailsReport`.Status = "Closed" (same row, same id - `08-reporting-read-models.md`) |
+| `ClosedAccountCreatedEvent` | none (no-op - the row was already marked closed in place above) |
 
 ## Sequence: open then close an account
 

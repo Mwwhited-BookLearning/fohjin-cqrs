@@ -1,47 +1,18 @@
 using Fohjin.DDD.Events.Account;
-using Fohjin.DDD.Reporting;
-using Fohjin.DDD.Reporting.Dtos;
 
 namespace Fohjin.DDD.EventHandlers;
 
-public class ClosedAccountCreatedEventHandler(IReportingRepository reportingRepository) : EventHandlerBase<ClosedAccountCreatedEvent>
+// A no-op on the read-model side. AccountReport/AccountDetailsReport are marked Status =
+// "Closed" in place by AccountClosedEventHandler, which fires first in the same commit
+// (CloseAccountCommandHandler calls ActiveAccount.Close() - which applies AccountClosedEvent
+// to the still-tracked ActiveAccount - before it registers the new ClosedAccount aggregate
+// this event belongs to). There is no longer a separate ClosedAccountReport/
+// ClosedAccountDetailsReport row to create, and the original LedgerReport rows from the
+// account's open period are never deleted, so there's nothing left to (re)project here either.
+// Kept as a registered handler - rather than deleted outright - only because
+// Fohjin.DDD.Tests/Events/All_domain_events_must_have_a_handler.cs asserts every domain event
+// has one.
+public class ClosedAccountCreatedEventHandler : EventHandlerBase<ClosedAccountCreatedEvent>
 {
-    private readonly IReportingRepository _reportingRepository = reportingRepository;
-
-    public override async Task ExecuteAsync(ClosedAccountCreatedEvent theEvent)
-    {
-        var closedAccount = new ClosedAccountReport(theEvent.AccountId, theEvent.ClientId, theEvent.AccountName, theEvent.AccountNumber);
-        var closedAccountDetails = new ClosedAccountDetailsReport(theEvent.AccountId, theEvent.ClientId, theEvent.AccountName, 0, theEvent.AccountNumber);
-
-        await _reportingRepository.SaveAsync(closedAccount);
-        await _reportingRepository.SaveAsync(closedAccountDetails);
-
-        foreach (var ledger in theEvent.Ledgers)
-        {
-            var split = ledger.Value.Split('|');
-            var amount = Convert.ToDecimal(split[0]);
-            var account = split.Length > 1 ? split[1] : string.Empty;
-            await _reportingRepository.SaveAsync(new LedgerReport(Guid.NewGuid(), theEvent.AccountId, GetDescription(ledger.Key, account), amount));
-        }
-    }
-
-    private static string GetDescription(string transferType, string accountNumber)
-    {
-        if (transferType == "CreditMutation")
-            return "Deposit";
-
-        if (transferType == "DebitMutation")
-            return "Withdrawal";
-
-        if (transferType == "CreditTransfer")
-            return string.Format("Transfer to {0}", accountNumber);
-
-        if (transferType == "DebitTransfer")
-            return string.Format("Transfer from {0}", accountNumber);
-
-        if (transferType == "DebitTransferFailed")
-            return string.Format("Transfer to {0} failed", accountNumber);
-
-        throw new UnsupportedTransferTypeException(transferType);
-    }
+    public override Task ExecuteAsync(ClosedAccountCreatedEvent theEvent) => Task.CompletedTask;
 }

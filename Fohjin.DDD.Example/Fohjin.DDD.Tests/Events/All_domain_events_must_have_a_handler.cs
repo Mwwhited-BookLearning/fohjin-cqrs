@@ -1,5 +1,4 @@
 using Fohjin.DDD.EventHandlers;
-using Fohjin.DDD.Events.Account;
 using Fohjin.DDD.EventStore;
 using Fohjin.DDD.Reporting;
 using Fohjin.DDD.Services;
@@ -44,11 +43,6 @@ public class All_domain_events_must_have_a_handler
 
         if (eventType.GetNonDefaultValue(serviceProvider) is IDomainEvent evnt && ActivatorUtilities.CreateInstance(serviceProvider, handlerType!) is IEventHandler instance)
         {
-            // Generic KeyValuePair<string,string> fill can't know "Key" is really a closed set of
-            // ledger transfer-type names - force it to a real one so the handler's happy path runs.
-            if (evnt is ClosedAccountCreatedEvent closedAccountCreated)
-                closedAccountCreated.Ledgers = new() { new("CreditMutation", "100.00") };
-
             try
             {
                 await instance.ExecuteAsync(evnt);

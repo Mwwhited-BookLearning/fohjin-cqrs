@@ -578,7 +578,7 @@
     "/odata/Clients": {
       "get": {
         "tags": [
-          "Fohjin.DDD.WebApi"
+          "EndpointRouteBuilderExtensions"
         ],
         "operationId": "QueryClients",
         "responses": {
@@ -609,7 +609,7 @@
       },
       "query": {
         "tags": [
-          "Fohjin.DDD.WebApi"
+          "EndpointRouteBuilderExtensions"
         ],
         "summary": "Same as GET /odata/Clients, but for $filter expressions too large/complex for a query string (RFC 10008).",
         "operationId": "QueryClientsViaQueryMethod",
@@ -640,6 +640,421 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ClientReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/odata/ClientDetails": {
+      "get": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "operationId": "QueryClientDetails",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientDetailsReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "query": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "summary": "Same as GET /odata/ClientDetails, but for $filter expressions too large/complex for a query string (RFC 10008).",
+        "operationId": "QueryClientDetailsViaQueryMethod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClientDetailsReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/odata/Accounts": {
+      "get": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "operationId": "QueryAccounts",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "query": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "summary": "Same as GET /odata/Accounts, but for $filter expressions too large/complex for a query string (RFC 10008).",
+        "operationId": "QueryAccountsViaQueryMethod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/odata/AccountDetails": {
+      "get": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "operationId": "QueryAccountDetails",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountDetailsReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "query": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "summary": "Same as GET /odata/AccountDetails, but for $filter expressions too large/complex for a query string (RFC 10008).",
+        "operationId": "QueryAccountDetailsViaQueryMethod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountDetailsReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/odata/Ledgers": {
+      "get": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "operationId": "QueryLedgers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LedgerReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "query": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "summary": "Same as GET /odata/Ledgers, but for $filter expressions too large/complex for a query string (RFC 10008).",
+        "operationId": "QueryLedgersViaQueryMethod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LedgerReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/odata/BankCards": {
+      "get": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "operationId": "QueryBankCards",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BankCardReport"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "query": {
+        "tags": [
+          "EndpointRouteBuilderExtensions"
+        ],
+        "summary": "Same as GET /odata/BankCards, but for $filter expressions too large/complex for a query string (RFC 10008).",
+        "operationId": "QueryBankCardsViaQueryMethod",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filter": {
+                    "type": [
+                      "null",
+                      "string"
+                    ],
+                    "description": "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BankCardReport"
                   }
                 }
               }
@@ -717,6 +1132,9 @@
               "null",
               "string"
             ]
+          },
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -742,6 +1160,9 @@
               "null",
               "string"
             ]
+          },
+          "status": {
+            "type": "string"
           }
         }
       },
@@ -830,15 +1251,21 @@
             "format": "uuid"
           },
           "accounts": {
-            "type": "array",
+            "type": [
+              "null",
+              "array"
+            ],
             "items": {
               "$ref": "#/components/schemas/AccountReport"
             }
           },
           "closedAccounts": {
-            "type": "array",
+            "type": [
+              "null",
+              "array"
+            ],
             "items": {
-              "$ref": "#/components/schemas/ClosedAccountReport"
+              "$ref": "#/components/schemas/AccountReport"
             }
           },
           "bankCards": {
@@ -928,31 +1355,6 @@
             "format": "uuid"
           },
           "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
-      "ClosedAccountReport": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "clientDetailsReportId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "accountName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "accountNumber": {
             "type": [
               "null",
               "string"
@@ -1129,6 +1531,9 @@
   "tags": [
     {
       "name": "Fohjin.DDD.WebApi"
+    },
+    {
+      "name": "EndpointRouteBuilderExtensions"
     }
   ]
 }

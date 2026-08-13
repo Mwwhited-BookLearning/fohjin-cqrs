@@ -38,10 +38,9 @@ public class AccountDetailsAndTransactionCommandsTest : WebApiIntegrationTestFix
         details = await PollUntilAsync(() => _client.GetAccountDetailsByIdAsync(accountId), d => d.AccountName == "Savings");
 
         await _client.CloseAccountAsync(accountId);
-        // AccountClosedEventHandler deletes the live AccountDetailsReport row and
-        // ClosedAccountCreatedEventHandler saves a ClosedAccountDetailsReport with the same id
-        // in its place - GetAccountDetailsById falls back to it, so this still returns 200
-        // (not 404) once the close has been processed, preserving the final balance.
+        // AccountClosedEventHandler marks the same AccountDetailsReport row Status = "Closed" in
+        // place (docs/08-reporting-read-models.md) rather than deleting/recreating it under a
+        // second type/table, so this keeps returning 200 with the final balance intact.
         details = await PollUntilAsync(() => _client.GetAccountDetailsByIdAsync(accountId), d => d.Balance == 60d);
         Assert.AreEqual("Savings", details.AccountName);
     }

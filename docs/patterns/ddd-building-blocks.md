@@ -100,7 +100,10 @@ rule every caller has to remember to check by hand.
 same condition as inline code wherever it's needed.** The classic formulation (Evans &
 Fowler's *Specification* paper) builds full boolean-composable predicate objects
 (`AndSpecification`, `OrSpecification`, ...); this codebase uses a much smaller, practical
-slice of the same idea.
+slice of the same idea — and, as of `IReportingRepository.Query<TDto>()`/`GetByIdAsync<TDto>()`
+replacing the old `GetByExampleAsync<TDto>`, only on the *write* side now (`UpdateAsync`/
+`DeleteAsync`'s "where" object). Reads compose a real `IQueryable<TDto>` instead (below) — a
+different pattern, not a variant of this one.
 
 ```plantuml
 @startuml
@@ -108,18 +111,24 @@ participant "Caller" as Caller
 participant "SqlServerReportingRepository" as Repo
 participant "BuildPredicate<TDto>" as Builder
 
-Caller -> Repo : GetByExampleAsync(new { Name = "Alice" })
-Repo -> Builder : reflect over the anonymous\nobject's properties
+Caller -> Repo : UpdateAsync<AccountReport>(\n  new { Status = "Closed" },\n  new { Id = accountId })
+Repo -> Builder : reflect over the "where"\nobject's properties
 Builder --> Repo : Expression<Func<TDto,bool>>\n(built at runtime, not hand-written)
-Repo -> Repo : Where(predicate) against\nthe DbSet<TDto>
+Repo -> Repo : Where(predicate) against\nthe DbSet<TDto>, then apply\nthe "update" object's properties
 @enduml
 ```
 
-Rather than a hand-written LINQ query per DTO/filter combination,
+Rather than a hand-written LINQ predicate per DTO/filter combination,
 `SqlServerReportingRepository.BuildPredicate<TDto>` builds an `Expression<Func<TDto,bool>>`
-at runtime from an anonymous object's properties — one generic query mechanism instead of N
-hand-written ones, at the cost of only supporting equality predicates (no `Or`, no ranges) —
-see `../08-reporting-read-models.md` for the full mechanism.
+at runtime from an anonymous object's properties — one generic mechanism instead of N
+hand-written ones, at the cost of only supporting equality predicates (no `Or`, no ranges).
+This is a natural fit for `UpdateAsync`/`DeleteAsync` specifically: "set/remove rows matching
+these equality conditions" is a fixed enough shape that a runtime-built predicate loses nothing
+a hand-written one would have offered. Reading was a worse fit — every different filter/sort/
+paging need meant either a new "example" shape or falling back to loading everything and
+filtering in memory — which is why the read side moved to a genuinely composable
+`IQueryable<TDto>` (`IReportingRepository.Query<TDto>()`) instead; see
+`../08-reporting-read-models.md` for both mechanisms in full.
 
 ## See also
 

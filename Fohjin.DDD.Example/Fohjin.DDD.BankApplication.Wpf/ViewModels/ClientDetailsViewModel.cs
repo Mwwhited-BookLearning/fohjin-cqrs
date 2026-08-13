@@ -49,7 +49,7 @@ public partial class ClientDetailsViewModel : ViewModelBase
     private AccountReport? selectedNewBankCardAccount;
 
     public ObservableCollection<AccountReport> Accounts { get; } = [];
-    public ObservableCollection<ClosedAccountReport> ClosedAccounts { get; } = [];
+    public ObservableCollection<AccountReport> ClosedAccounts { get; } = [];
     public ObservableCollection<BankCardReport> BankCards { get; } = [];
 
     public ClientDetailsViewModel(FohjinApiClient apiClient, INavigationService navigation)

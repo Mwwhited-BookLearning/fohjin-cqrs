@@ -137,7 +137,7 @@ sent to the API until step 3.
   ==
   Client Name | "________________"
   --
-  [Save]  [Cancel]
+  { [Save] | [Cancel] }
 }
 @endsalt
 ```
@@ -152,7 +152,7 @@ sent to the API until step 3.
   Postal Code   | "______"
   City          | "________________"
   --
-  [Save]  [Cancel]
+  { [Save] | [Cancel] }
 }
 @endsalt
 ```
@@ -164,7 +164,7 @@ sent to the API until step 3.
   ==
   Phone Number | "________________"
   --
-  [Save]  [Cancel]
+  { [Save] | [Cancel] }
 }
 @endsalt
 ```
@@ -212,7 +212,7 @@ read model to show, same as Vue's equivalent section).
   Assign a new bank card to an account
   Account | "^Checking^"
   --
-  [Assign]  [Close]
+  { [Assign] | [Close] }
 }
 @endsalt
 ```
@@ -445,6 +445,156 @@ a `fetch`-based TypeScript client (`src/api/generated-client.ts`) instead of the
 Vue's equivalent of WinForms blocking on `DesktopAuthService.LoginAsync()` before showing
 any window, just enforced per-navigation instead of once at startup.
 
+### Screens
+
+`LoginCallback.vue` renders nothing of its own — it's a bare redirect target
+(`completeLogin()` then an immediate router push), so it has no wireframe below.
+
+**Login.**
+
+```plantuml
+@startsalt
+{
+  Fohjin Bank
+  ==
+  [Sign in]
+}
+@endsalt
+```
+
+**Client Search** — same role as WinForms' main window, as a route instead.
+
+```plantuml
+@startsalt
+{
+  { "Search clients..." | [New client] | [Refresh] }
+  ==
+  {
+    "Doe, John"
+    "Smith, Jane"
+  }
+}
+@endsalt
+```
+
+**Client Create** — a single form for all three fields, unlike WinForms' three-step wizard
+(`docs/patterns/vue-architecture.md`'s Structure layer has no notion of a multi-step flow to
+reuse here, and nothing about client creation needs one).
+
+```plantuml
+@startsalt
+{
+  New client
+  ==
+  Name          | "________________"
+  Street        | "________________"
+  Street number | "____"
+  Postal code   | "______"
+  City          | "________________"
+  Phone number  | "________________"
+  --
+  [Create client]
+}
+@endsalt
+```
+
+**Client Details** — edit fields, accounts, and bank cards all on one scrollable page
+(`02-bank-cards.md`: no card number/type/expiry exists in the read model to show, same as
+WinForms' equivalent screen).
+
+```plantuml
+@startsalt
+{
+  Mark Nijhof
+  ==
+  Name
+  "Mark Nijhof" | [Save name]
+  --
+  Address
+  Street        | "Welhavens gate"
+  Street number | "49b"
+  Postal code   | "5000"
+  City          | "Bergen"
+  [Save address]
+  --
+  Phone number
+  "95009937" | [Save phone number]
+  --
+  Accounts
+  {
+    "Checking (123456)"
+  }
+  Closed accounts
+  {
+    "Old Savings (000111)"
+  }
+  New account name | "________________"
+  [Open account]
+  --
+  Bank cards
+  {
+    "Checking - Active"
+  }
+  { [Cancel] | [Report stolen] }
+  --
+  Account | "^Checking^"
+  [Assign new bank card]
+}
+@endsalt
+```
+
+**Account Details.**
+
+```plantuml
+@startsalt
+{
+  Checking
+  "Account number: 123456 · Balance: $1,234.56"
+  ==
+  Name
+  "Checking" | [Save name]
+  --
+  Deposit
+  Amount | "______" | [Deposit]
+  --
+  Withdrawal
+  Amount | "______" | [Withdraw]
+  --
+  Transfer
+  Amount     | "______"
+  To account | "^Savings^"
+  [Transfer]
+  --
+  Transaction history
+  {
+    "Deposit: $100.00"
+    "Withdrawal: $50.00"
+  }
+  --
+  [Close account]
+}
+@endsalt
+```
+
+**Monitoring** — a route rather than a companion window, since a browser tab can't open a
+second top-level window the way WinForms/WPF do; connect state and a type filter replace
+what's otherwise the same shared-event-bus idea as the desktop clients'.
+
+```plantuml
+@startsalt
+{
+  Monitoring
+  ==
+  { Filter by event type | "________________" } | [Pause] | [Clear] | "Live"
+  --
+  {
+    "ClientCreatedEvent  10:03:41  aggregate 3f2a...  v0"
+    "AccountOpenedEvent  10:03:41  aggregate 91cd...  v0"
+  }
+}
+@endsalt
+```
+
 ### Sign-in: browser redirect, not a loopback listener
 
 `src/auth/authService.ts` wraps `oidc-client-ts`'s `UserManager` — `login()` calls
@@ -564,12 +714,145 @@ ViewModel's `OnDomainEvent(...)` mirrors the exact same event-name/aggregate-id 
 the same reconciliation-retry fix already applied to Vue for the SSE-vs-read-model race
 (`07-messaging-bus.md`).
 
-Screens: `ClientSearchView` (a live-filtered `ICollectionView` over the client list),
-`ClientCreateView` (one form, like Vue — no wizard), `ClientDetailsView` (edit fields +
-accounts + bank cards, same three-groupbox layout WinForms uses on its Overview tab, all on
-one scrollable page instead of separate tabs), `AccountDetailsView`, and a separate
-non-modal `MonitoringWindow` (WPF's equivalent of WinForms' `MonitoringForm`) shown alongside
-the main window at startup.
+### Screens
+
+**Client Search** (`ClientSearchView`) — a live-filtered `ICollectionView` over the client
+list, shown in `MainWindow`'s content area rather than as a top-level form.
+
+```plantuml
+@startsalt
+{
+  Clients
+  ==
+  { "________________" | [New client] | [Refresh] }
+  {
+    "Doe, John"
+    "Smith, Jane"
+  }
+}
+@endsalt
+```
+
+**Client Create** (`ClientCreateView`) — one form, like Vue, not WinForms' three-step wizard.
+
+```plantuml
+@startsalt
+{
+  New client
+  ==
+  Name          | "________________"
+  Street        | "________________"
+  Street number | "____"
+  Postal code   | "______"
+  City          | "________________"
+  Phone number  | "________________"
+  --
+  { [Create client] | [Cancel] }
+}
+@endsalt
+```
+
+**Client Details** (`ClientDetailsView`) — edit fields, accounts, and bank cards, the same
+three-`GroupBox` layout WinForms uses on its Overview tab, all on one scrollable page instead
+of separate tabs.
+
+```plantuml
+@startsalt
+{
+  Mark Nijhof
+  ==
+  Name
+  { "Mark Nijhof" | [Save name] }
+  --
+  Address
+  Street        | "Welhavens gate"
+  Street number | "49b"
+  Postal code   | "5000"
+  City          | "Bergen"
+  [Save address]
+  --
+  Phone number
+  { "95009937" | [Save phone number] }
+  --
+  Accounts
+  {
+    "Checking (123456)"
+  }
+  Closed accounts
+  {
+    "Old Savings (000111)"
+  }
+  New account name | "________________"
+  [Open account]
+  --
+  Bank cards
+  {
+    "Checking - Active"
+  }
+  { [Cancel] | [Report stolen] }
+  --
+  Assign a new bank card to an account
+  Account | "^Checking^"
+  [Assign]
+}
+@endsalt
+```
+
+**Account Details** (`AccountDetailsView`).
+
+```plantuml
+@startsalt
+{
+  Checking
+  "Account number: 123456   Balance: $1,234.56"
+  ==
+  Name
+  { "Checking" | [Save name] }
+  --
+  Deposit
+  { "______" | [Deposit] }
+  --
+  Withdrawal
+  { "______" | [Withdraw] }
+  --
+  Transfer
+  Amount     | "______"
+  To account | "^Savings^"
+  [Transfer]
+  --
+  Transaction history
+  {
+    "Deposit: $100.00"
+    "Withdrawal: $50.00"
+  }
+  --
+  [Close account]
+}
+@endsalt
+```
+
+**Monitoring** (`MonitoringWindow`) — a separate non-modal window, WPF's equivalent of
+WinForms' `MonitoringForm`, shown alongside the main window at startup.
+
+```plantuml
+@startsalt
+{
+  Monitoring
+  ==
+  {
+    Logs | [Clear]
+    {
+      "10:03:41.201 [Information] POST /api/clients -> 202 (14 ms)"
+    }
+  } | {
+    Events | [Clear]
+    {
+      "10:03:41.215  ClientCreatedEvent  AggregateId=3f2a...  Version=0"
+    }
+  }
+}
+@endsalt
+```
 
 ### Bugs found live-verifying the WPF client
 

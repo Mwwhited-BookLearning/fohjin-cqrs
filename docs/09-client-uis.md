@@ -420,6 +420,29 @@ same seeded `dev-client`, against the same `Fohjin.DDD.Sts` — the difference i
 mechanical: a real browser tab doing a page redirect vs. a desktop process opening a
 system browser and listening on a loopback port for the same redirect.
 
+### Sign-out: the client's `post_logout_redirect_uri` has to be registered too
+
+`logout()` calls `signoutRedirect()`, which sends the browser to `Fohjin.DDD.Sts`'s
+`/connect/logout` with `post_logout_redirect_uri: window.location.origin`. OpenIddict
+validates that URI against the calling client's own registration before it will honor it -
+`Fohjin.DDD.Sts/Program.cs`'s dev-client seeding registered `RedirectUris` (for sign-in) from
+the start, but never `PostLogoutRedirectUris` or the `EndSession` endpoint permission a
+client needs to use `/connect/logout` at all. With neither registered, OpenIddict rejected
+every sign-out attempt outright (`error:invalid_request` /
+`error_description: The specified 'post_logout_redirect_uri' is invalid.` /
+`error_uri: https://documentation.openiddict.com/errors/ID2052`), and
+`AuthorizationController.LogoutPost()`'s `SignOut(...)` call fell back to its own
+`RedirectUri = "/"` - landing the browser on `Fohjin.DDD.Sts`'s generic MVC home page
+(`Views/Home/Index.cshtml`, unrelated template scaffolding) instead of back in the Vue app,
+which is easy to mistake for a second, unrelated web app rather than the STS's own fallback
+page. Fixed by adding `DevClientOptions.PostLogoutRedirectUris` (bound from
+`DevClient:PostLogoutRedirectUris` in `appsettings.Development.json`) and granting
+`Permissions.Endpoints.EndSession` alongside the existing `Authorization`/`Token`
+permissions. `Fohjin.DDD.BankApplication.UITests/VueSignInSignOutTest.cs` drives this whole
+round trip through a real headless browser and asserts the final URL is back on the Vue
+app, not `Fohjin.DDD.Sts`'s own page - the assertion that actually catches this bug, since
+"no error" alone doesn't prove the redirect went anywhere useful.
+
 ### Live refresh: a shared client-side event bus, not a poll
 
 `src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection for the whole

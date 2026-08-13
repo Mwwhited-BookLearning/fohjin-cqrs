@@ -143,7 +143,14 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
   and WPF `.exe`s end to end (`ClientAndAccountWorkflowTest.cs` /
   `WpfClientAndAccountWorkflowTest.cs`, sharing window-finding helpers in
   `Win32WindowFinder.cs`) — run this after anything touching either desktop client or shared
-  backend behavior. Needs STS/WebApi built and a real Edge install.
+  backend behavior. Needs STS/WebApi built and a real Edge install. The same project also has
+  `VueSignInSignOutTest.cs`, which drives the Vue dev server directly through Playwright
+  (headless Chromium, no CDP-attach needed since there's no desktop app in the loop) — its own
+  `VueAppFixture.cs` starts `Fohjin.DDD.Sts`, `Fohjin.DDD.WebApi`, and `npm run dev` itself, so
+  it needs Node.js on `PATH` in addition to the above. Added after a real bug
+  (`docs/09-client-uis.md`'s Vue section): `Fohjin.DDD.Sts` never registered
+  `PostLogoutRedirectUris`/the `EndSession` permission for the dev client, so sign-out always
+  fell back to the Sts's own home page instead of returning to the caller.
 - Both suites passing does not substitute for the live-browser check above when the change is
   UI-facing or touches how a live event stream is consumed.
 - `Fohjin.DDD.WebUI` has its own Vitest suite (`npm test` from that directory) covering

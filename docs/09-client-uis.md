@@ -438,7 +438,7 @@ a `fetch`-based TypeScript client (`src/api/generated-client.ts`) instead of the
 | `/clients/new` | `ClientCreate.vue` | Single form for all three fields — no wizard, one `POST /api/clients` on submit |
 | `/clients/:id` | `ClientDetails.vue` | Equivalent of WinForms' Client Details (edit + accounts list + bank cards — all three clients have feature parity, `02-bank-cards.md`) |
 | `/accounts/:id` | `AccountDetails.vue` | Equivalent of WinForms' Account Details |
-| `/monitoring` | `Monitoring.vue` | Live event stream, connect/disconnect/filter controls |
+| `/monitoring` | `Monitoring.vue` | Live event stream, connect/disconnect, multi-select event-type filter (none selected = show all) |
 
 `router/index.ts`'s `beforeEach` guard redirects any non-public route to `/login` unless
 `getUser()` (from `oidc-client-ts`'s `UserManager`) returns a non-expired user — this is

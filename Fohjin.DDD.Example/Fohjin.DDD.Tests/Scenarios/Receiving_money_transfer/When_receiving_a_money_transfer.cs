@@ -16,8 +16,8 @@ public class When_receiving_a_money_transfer : BaseTestFixture<MoneyReceiveServi
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
-            .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
+            ?.Setup(x => x.Query<AccountReport>())
+            .Returns(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") }.AsQueryable());
     }
 
     protected override Task WhenAsync() =>

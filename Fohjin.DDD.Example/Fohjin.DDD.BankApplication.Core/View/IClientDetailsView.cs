@@ -20,8 +20,8 @@ public interface IClientDetailsView : IView
     IEnumerable<AccountReport>? Accounts { get; set; }
     AccountReport? GetSelectedAccount();
 
-    IEnumerable<ClosedAccountReport>? ClosedAccounts { get; set; }
-    ClosedAccountReport? GetSelectedClosedAccount();
+    IEnumerable<AccountReport>? ClosedAccounts { get; set; }
+    AccountReport? GetSelectedClosedAccount();
 
     IEnumerable<BankCardReport>? BankCards { get; set; }
     BankCardReport? GetSelectedBankCard();

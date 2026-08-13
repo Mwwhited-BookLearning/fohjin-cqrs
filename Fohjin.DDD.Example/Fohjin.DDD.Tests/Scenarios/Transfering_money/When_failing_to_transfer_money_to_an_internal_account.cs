@@ -26,9 +26,18 @@ public class When_failing_to_transfer_money_to_an_internal_account : BaseTestFix
             ?.Setup(x => x.Publish(It.IsAny<ReceiveMoneyTransferCommand>()))
             .Throws(new Exception("exception message"));
 
+        // Both the target account (looked up on the happy path) and the source account
+        // (looked up by CompensatingActionBecauseOfFailedMoneyTransferAsync once Publish
+        // throws below) need a real matching row now that Query<AccountReport>() runs a real
+        // filter against this list, rather than GetByExampleAsync's old It.IsAny<object>()
+        // mock, which returned the same canned account regardless of what was actually asked.
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
-            .ReturnsAsync(new List<AccountReport> { new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "AccountName", "target account number") });
+            ?.Setup(x => x.Query<AccountReport>())
+            .Returns(new List<AccountReport>
+            {
+                new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Target Account", "target account number"),
+                new AccountReport(Guid.NewGuid(), Guid.NewGuid(), "Source Account", "source account number"),
+            }.AsQueryable());
 
         // !!! This is DEMO code !!!
         // Setup the SystemRandom class to return the value where the account is not found

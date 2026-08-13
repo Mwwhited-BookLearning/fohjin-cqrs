@@ -14,7 +14,7 @@ public class When_receiving_a_money_transfer_for_an_unknown_account : BaseTestFi
     protected override void SetupDependencies()
     {
         OnDependency<IReportingRepository>()
-            ?.Setup(x => x.GetByExampleAsync<AccountReport>(It.IsAny<object>()))
+            ?.Setup(x => x.Query<AccountReport>())
             .Throws(new Exception("account not found"));
     }
 

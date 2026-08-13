@@ -1,7 +1,9 @@
+using Fohjin.DDD.Diagnostics;
 using Fohjin.DDD.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
@@ -72,6 +74,10 @@ public class DirectBus : IBus
         {
             if (message is IDomainEvent domainEvent)
             {
+                // Counter only, no span - one publish here fans out to N per-handler
+                // "event.handle" spans (EventSubscriptionBootstrapper.Subscribe) that would
+                // just be duplicated by a span at this single, pre-fan-out point.
+                Telemetry.EventsPublished.Add(1, new TagList { { "cqrs.event.type", domainEvent.GetType().Name } });
                 _events.OnNext(domainEvent);
             }
             else

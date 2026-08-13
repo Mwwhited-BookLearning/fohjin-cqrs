@@ -4,6 +4,7 @@ using Fohjin.DDD.Reporting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Fohjin.DDD.Reporting.Migrations
 {
     [DbContext(typeof(ReportingDbContext))]
-    partial class ReportingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260813130304_MergeAccountReportStatus")]
+    partial class MergeAccountReportStatus
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -76,8 +79,6 @@ namespace Fohjin.DDD.Reporting.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClientDetailsReportId");
-
                     b.ToTable("AccountReport", (string)null);
                 });
 
@@ -103,8 +104,6 @@ namespace Fohjin.DDD.Reporting.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ClientDetailsReportId");
 
                     b.ToTable("BankCardReport", (string)null);
                 });
@@ -176,48 +175,7 @@ namespace Fohjin.DDD.Reporting.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountDetailsReportId");
-
                     b.ToTable("LedgerReport", (string)null);
-                });
-
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountReport", b =>
-                {
-                    b.HasOne("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", null)
-                        .WithMany("AllAccounts")
-                        .HasForeignKey("ClientDetailsReportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.BankCardReport", b =>
-                {
-                    b.HasOne("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", null)
-                        .WithMany("BankCards")
-                        .HasForeignKey("ClientDetailsReportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.LedgerReport", b =>
-                {
-                    b.HasOne("Fohjin.DDD.Reporting.Dtos.AccountDetailsReport", null)
-                        .WithMany("Ledgers")
-                        .HasForeignKey("AccountDetailsReportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.AccountDetailsReport", b =>
-                {
-                    b.Navigation("Ledgers");
-                });
-
-            modelBuilder.Entity("Fohjin.DDD.Reporting.Dtos.ClientDetailsReport", b =>
-                {
-                    b.Navigation("AllAccounts");
-
-                    b.Navigation("BankCards");
                 });
 #pragma warning restore 612, 618
         }

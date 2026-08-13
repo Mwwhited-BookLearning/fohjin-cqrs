@@ -6,6 +6,7 @@ export const useMonitoringStore = defineStore("monitoring", {
     events: [] as EventEnvelope[],
     status: "disconnected" as ConnectionStatus,
     paused: false,
-    filter: { eventType: "" },
+    // Empty array = no filter = show every event type (Monitoring.config.ts's matchesEventTypeFilter).
+    filter: { eventTypes: [] as string[] },
   }),
 });

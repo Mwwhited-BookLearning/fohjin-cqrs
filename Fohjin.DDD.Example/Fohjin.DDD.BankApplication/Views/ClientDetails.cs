@@ -105,17 +105,17 @@ public partial class ClientDetails : ViewFormBase, IClientDetailsView
     }
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public IEnumerable<ClosedAccountReport>? ClosedAccounts
+    public IEnumerable<AccountReport>? ClosedAccounts
     {
-        get { return _closedAccounts.DataSource as IEnumerable<ClosedAccountReport>; }
+        get { return _closedAccounts.DataSource as IEnumerable<AccountReport>; }
         set { _closedAccounts.DataSource = value; }
     }
 
     public AccountReport? GetSelectedAccount() =>
         _accounts.SelectedItem as AccountReport;
 
-    public ClosedAccountReport? GetSelectedClosedAccount() =>
-        _closedAccounts.SelectedItem as ClosedAccountReport;
+    public AccountReport? GetSelectedClosedAccount() =>
+        _closedAccounts.SelectedItem as AccountReport;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public IEnumerable<BankCardReport>? BankCards

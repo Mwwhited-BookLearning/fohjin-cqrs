@@ -9,17 +9,19 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
     public DbSet<ClientDetailsReport> ClientDetailsReports => Set<ClientDetailsReport>();
     public DbSet<AccountReport> AccountReports => Set<AccountReport>();
     public DbSet<AccountDetailsReport> AccountDetailsReports => Set<AccountDetailsReport>();
-    public DbSet<ClosedAccountReport> ClosedAccountReports => Set<ClosedAccountReport>();
-    public DbSet<ClosedAccountDetailsReport> ClosedAccountDetailsReports => Set<ClosedAccountDetailsReport>();
     public DbSet<LedgerReport> LedgerReports => Set<LedgerReport>();
     public DbSet<BankCardReport> BankCardReports => Set<BankCardReport>();
 
-    // Child collections (Accounts/ClosedAccounts/Ledgers) are populated by the repository with
-    // a follow-up query keyed on the existing "{ParentTypeName}Id" convention instead of being
-    // modeled as EF navigations: LedgerReport.AccountDetailsReportId is shared, by that same
-    // convention, between both AccountDetailsReport and ClosedAccountDetailsReport (a closed
-    // account keeps its original account's id), which one FK property can't represent as two
-    // distinct EF relationships at once.
+    // ClientDetailsReport.AllAccounts/BankCards and AccountDetailsReport.Ledgers are real EF
+    // navigations (docs/08-reporting-read-models.md) - IReportingRepository.Query<TDto>()/
+    // GetByIdAsync<TDto>() compose against them normally (.Include(), OData $expand, nested
+    // OData routes). ClientDetailsReport.Accounts/ClosedAccounts stay computed, .Ignore()d
+    // filtered views over AllAccounts by Status, not separate navigations.
+    // AccountReport/AccountDetailsReport carry their own Status ("Open"/"Closed") rather than
+    // being split into a second ClosedAccountReport/ClosedAccountDetailsReport type/table - that
+    // split used to force LedgerReport.AccountDetailsReportId to mean "whichever of two tables
+    // currently has this id", which a single FK property can't represent; one table with a
+    // status column has one unambiguous target instead.
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ClientReport>(entity =>
@@ -32,9 +34,10 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
         {
             entity.ToTable(nameof(ClientDetailsReport));
             entity.HasKey(x => x.Id);
+            entity.HasMany(x => x.AllAccounts).WithOne().HasForeignKey(x => x.ClientDetailsReportId);
+            entity.HasMany(x => x.BankCards).WithOne().HasForeignKey(x => x.ClientDetailsReportId);
             entity.Ignore(x => x.Accounts);
             entity.Ignore(x => x.ClosedAccounts);
-            entity.Ignore(x => x.BankCards);
         });
 
         modelBuilder.Entity<AccountReport>(entity =>
@@ -48,23 +51,7 @@ public class ReportingDbContext(DbContextOptions<ReportingDbContext> options) : 
         {
             entity.ToTable(nameof(AccountDetailsReport));
             entity.HasKey(x => x.Id);
-            entity.Ignore(x => x.Ledgers);
-        });
-
-        modelBuilder.Entity<ClosedAccountReport>(entity =>
-        {
-            entity.HasBaseType((Type?)null);
-            entity.ToTable(nameof(ClosedAccountReport));
-            entity.HasKey(x => x.Id);
-            entity.Property<long>(InsertionSequenceShadowProperty).ValueGeneratedOnAdd();
-        });
-
-        modelBuilder.Entity<ClosedAccountDetailsReport>(entity =>
-        {
-            entity.HasBaseType((Type?)null);
-            entity.ToTable(nameof(ClosedAccountDetailsReport));
-            entity.HasKey(x => x.Id);
-            entity.Ignore(x => x.Ledgers);
+            entity.HasMany(x => x.Ledgers).WithOne().HasForeignKey(x => x.AccountDetailsReportId);
         });
 
         modelBuilder.Entity<LedgerReport>(entity =>

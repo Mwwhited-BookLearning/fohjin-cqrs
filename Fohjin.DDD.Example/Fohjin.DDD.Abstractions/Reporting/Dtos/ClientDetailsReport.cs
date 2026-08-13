@@ -5,8 +5,17 @@ namespace Fohjin.DDD.Reporting.Dtos;
 public record ClientDetailsReport
 {
     public Guid Id { get; set; }
-    public List<AccountReport> Accounts { get; set; } = new();
-    public List<ClosedAccountReport> ClosedAccounts { get; set; } = new();
+
+    // The real EF navigation (every account belonging to this client, open and closed alike) -
+    // Accounts/ClosedAccounts below are what actually get serialized to callers, filtered
+    // views over this same collection, matching the wire shape from before AccountReport and
+    // ClosedAccountReport were merged into one type with a Status field.
+    [JsonIgnore]
+    public List<AccountReport> AllAccounts { get; set; } = new();
+
+    public IEnumerable<AccountReport> Accounts => AllAccounts.Where(a => a.Status != "Closed");
+    public IEnumerable<AccountReport> ClosedAccounts => AllAccounts.Where(a => a.Status == "Closed");
+
     public List<BankCardReport> BankCards { get; set; } = new();
     public string? ClientName { get; set; }
     public string? Street { get; set; }

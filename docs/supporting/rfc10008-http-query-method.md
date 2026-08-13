@@ -19,9 +19,9 @@ safety/idempotency/cacheability semantics that a real query deserves.
   helper.
 - **No `MapQuery` convenience method and no `[HttpQuery]` MVC attribute ship in .NET 10** —
   only the primitive constant. Registering an endpoint means using the generic form:
-  `app.MapMethods(pattern, [HttpMethods.Query], handler)`. Plan to write a small
-  `MapQuery(...)` extension wrapping this for readability, matching the existing
-  `MapGet`/`MapPost` style.
+  `app.MapMethods(pattern, [HttpMethods.Query], handler)`. This codebase adds that missing
+  `MapQuery(...)` extension (`Fohjin.DDD.WebApi/OData/EndpointRouteBuilderExtensions.cs`),
+  matching the existing `MapGet`/`MapPost` style.
 - **OpenAPI generation gap (worked around, not a dead end)**: ASP.NET Core 10's OpenAPI
   document generator recognizes the QUERY method exists, but excludes QUERY endpoints from
   the generated OpenAPI document entirely, rather than describing them. The underlying
@@ -31,13 +31,18 @@ safety/idempotency/cacheability semantics that a real query deserves.
   hand that adding an operation keyed on it serializes correctly through
   `SerializeAsV31`. So the gap is entirely in the *generator*, not the *model* or the
   *serializer*: `Fohjin.DDD.WebApi/Program.cs` adds a document transformer that manually
-  inserts the missing `"query"` operation for `/odata/Clients` back into the document
-  (mirroring its existing GET operation's response shape, describing the filter as a JSON
-  request body instead of a query string). NSwag 14.7.1 then generates a real client method
-  from it on both sides - `FohjinApiClient.QueryClientsViaQueryMethodAsync(...)` (C#) and
-  `queryClientsViaQueryMethod(...)` (TypeScript) - each literally emitting
-  `new HttpMethod("QUERY")`/`method: "QUERY"`, not a POST substitute. Verified end to end in
-  `Fohjin.DDD.ApiClient.Tests/ODataClientsEndpointTest.cs`.
+  inserts the missing `"query"` operation back into the document for every one of the six
+  top-level OData entity sets (mirroring each one's existing GET operation's response shape,
+  describing the filter as a JSON request body instead of a query string) — originally
+  written for `/odata/Clients` alone, generalized once every reporting DTO got its own
+  top-level entity set (`08-reporting-read-models.md`). NSwag 14.7.1 then generates a real
+  client method from each one on both sides - `FohjinApiClient.QueryClientsViaQueryMethodAsync(...)`
+  (C#) and `queryClientsViaQueryMethod(...)` (TypeScript), and the same for
+  `QueryAccountsViaQueryMethod`/etc - each literally emitting `new HttpMethod("QUERY")`/
+  `method: "QUERY"`, not a POST substitute. Verified end to end for `Clients` in
+  `Fohjin.DDD.ApiClient.Tests/ODataClientsEndpointTest.cs`, and for a second entity set
+  (`Accounts`, proving the generalized document transformer/handler isn't `Clients`-specific)
+  in `ODataTopLevelEntitySetsTest.cs`.
 
 ## Design implication for this project
 

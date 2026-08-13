@@ -161,9 +161,13 @@ second implementation of this pattern.
 
 *Deep dive: `patterns/ddd-building-blocks.md` (covered alongside the DDD building blocks).*
 
-Rather than writing a LINQ query per DTO/filter combination, `GetByExampleAsync` builds an
-`Expression<Func<TDto,bool>>` at runtime from an anonymous object's properties — one
-generic query mechanism instead of N hand-written ones.
+Rather than writing a predicate per DTO/filter combination, `UpdateAsync`/`DeleteAsync`'s
+"where" object builds an `Expression<Func<TDto,bool>>` at runtime from an anonymous object's
+properties — one generic mechanism instead of N hand-written ones. This used to also cover
+reads (`GetByExampleAsync`); that's gone in favor of a genuinely composable `IQueryable<TDto>`
+(the pattern below) — equality-only predicates built by reflection were a worse fit for
+`$filter`/`$orderby`/paging than for the fixed "set/remove rows matching these fields" shape a
+write naturally has.
 
 - **Reference**: Eric Evans & Martin Fowler, *Specification*
   (https://martinfowler.com/apsupp/spec.pdf) — the general idea of representing a business
@@ -171,6 +175,33 @@ generic query mechanism instead of N hand-written ones.
   version is a simplified, reflection-driven take on the same idea (equality-only
   predicates, not full boolean composition).
 - **In this repo**: `SqlServerReportingRepository.BuildPredicate<TDto>`. See
+  `08-reporting-read-models.md`.
+
+### IQueryable repository + OData
+
+*Deep dive: `patterns/repository-and-unit-of-work.md`.*
+
+The read side's Repository (`IReportingRepository`) exposes composition, not a menu of
+pre-built queries: `Query<TDto>()` returns a plain `IQueryable<TDto>` that callers
+`.Where()`/`.OrderBy()`/etc themselves, and a `GetByIdAsync<TDto>(object id)` fast path covers
+the common single-row-by-primary-key case. Both plain REST endpoints and every OData endpoint
+(top-level entity sets *and* nested/contained routes like
+`/odata/ClientDetails(id)/Accounts?$filter=...`) apply their query options to the exact same
+`IQueryable` — one query mechanism for every DTO, rather than a hand-rolled example-object shape
+per call site. The oft-cited "IQueryable repositories are a leaky abstraction" critique (e.g.
+Ayende Rahien) is real but narrow: the leak is that LINQ-provider translation differs between a
+real EF Core `DbSet<T>` and, say, `List<T>.AsQueryable()` in a test double (`.FirstAsync()`/
+`.ToListAsync()` require `IAsyncQueryProvider`, which only the former has) — not the "hidden
+global dependency" failure mode Rahien's *Repository is the new Singleton* critique describes
+for Singletons/Service Locators. A composable `IQueryable` doesn't hide what it depends on or
+share mutable state across unrelated callers.
+
+- **Reference**: Ayende Rahien, *Repository is the new Singleton*
+  (https://ayende.com/blog/3955/repository-is-the-new-singleton) — the critique this pattern is
+  usually raised against, and why it doesn't actually apply here (see above).
+- **In this repo**: `IReportingRepository.Query<TDto>()`/`GetByIdAsync<TDto>()`,
+  `EndpointRouteBuilderExtensions.MapODataEntitySet<TDto>`,
+  `OData/Controllers/ClientDetailsController.cs`/`AccountDetailsController.cs`. See
   `08-reporting-read-models.md`.
 
 ### Compensating transaction

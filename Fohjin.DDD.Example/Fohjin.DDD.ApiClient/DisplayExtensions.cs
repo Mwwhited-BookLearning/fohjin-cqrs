@@ -23,11 +23,6 @@ public partial class AccountReport
     public override string ToString() => $"{AccountNumber} - ({AccountName})";
 }
 
-public partial class ClosedAccountReport
-{
-    public override string ToString() => $"{AccountNumber} - ({AccountName})";
-}
-
 public partial class LedgerReport
 {
     public override string ToString() => $"{Action} - {Amount:C}";

@@ -49,6 +49,12 @@ builder.AddServiceDefaults();
 var stsOptions = builder.Configuration.GetSection(StsOptions.SectionName).Get<StsOptions>() ?? new StsOptions();
 builder.Services.Configure<StsOptions>(builder.Configuration.GetSection(StsOptions.SectionName));
 var stsAuthority = stsOptions.Authority;
+
+// Every top-level OData entity set (EndpointRouteBuilderExtensions.MapODataEntitySet calls
+// below, ODataModel.Build()'s EntitySet<TDto>(...) calls) - one shared list so the QUERY-verb
+// OpenAPI document transformer above can generate its "query" operation for each of them
+// without hardcoding the set a second time.
+var odataEntitySetNames = new[] { "Clients", "ClientDetails", "Accounts", "AccountDetails", "Ledgers", "BankCards" };
 builder.Services.AddOpenApi(options =>
 {
     // RFC 10008's QUERY method (docs/supporting/rfc10008-http-query-method.md) is a real,
@@ -56,46 +62,50 @@ builder.Services.AddOpenApi(options =>
     // serializes a "query" operation key - confirmed by hand: adding one to
     // OpenApiPathItem.Operations[HttpMethod.Query] round-trips through SerializeAsV31 just like
     // get/post/etc do. The gap is entirely in Microsoft.AspNetCore.OpenApi's endpoint-to-document
-    // generator, which silently drops any endpoint mapped only to HttpMethods.Query -
-    // /odata/Clients below is mapped to [Get, Query] together, so its "get" operation still gets
-    // generated normally; this transformer adds the missing "query" one back in, describing the
-    // same filter as a JSON body instead of a query string, so it's visible in Scalar and NSwag
-    // generates a real client method for it (confirmed: NSwag emits
-    // `request_.Method = new HttpMethod("QUERY")`, a genuine QUERY request, not a POST
-    // workaround - Fohjin.DDD.ApiClient.Tests/ODataClientsEndpointTest.cs proves it end to end).
-    // This only affects the generated document - the endpoint itself already handles real QUERY
-    // requests regardless (see the handler below).
+    // generator, which silently drops any endpoint mapped only to HttpMethods.Query - every
+    // /odata/{EntitySet} route below is mapped via two separate calls, MapGet and MapQuery, so
+    // each one's "get" operation still gets generated normally; this transformer adds the
+    // missing "query" one back in for each of them, describing the same filter as a JSON body
+    // instead of a query string, so it's visible in Scalar and NSwag generates a real client
+    // method for it (confirmed: NSwag emits `request_.Method = new HttpMethod("QUERY")`, a
+    // genuine QUERY request, not a POST workaround -
+    // Fohjin.DDD.ApiClient.Tests/ODataClientsEndpointTest.cs proves it end to end for Clients).
+    // This only affects the generated document - the endpoints themselves already handle real
+    // QUERY requests regardless (see EndpointRouteBuilderExtensions.MapODataEntitySet).
     options.AddDocumentTransformer((document, _, _) =>
     {
-        if (document.Paths.TryGetValue("/odata/Clients", out var odataClientsPath) &&
-            odataClientsPath?.Operations is { } operations &&
-            operations.TryGetValue(System.Net.Http.HttpMethod.Get, out var getOperation) && getOperation is not null &&
-            !operations.ContainsKey(System.Net.Http.HttpMethod.Query))
+        foreach (var entitySetName in odataEntitySetNames)
         {
-            operations[System.Net.Http.HttpMethod.Query] = new OpenApiOperation
+            if (document.Paths.TryGetValue($"/odata/{entitySetName}", out var odataPath) &&
+                odataPath?.Operations is { } operations &&
+                operations.TryGetValue(System.Net.Http.HttpMethod.Get, out var getOperation) && getOperation is not null &&
+                !operations.ContainsKey(System.Net.Http.HttpMethod.Query))
             {
-                Tags = getOperation.Tags,
-                Summary = "Same as GET /odata/Clients, but for $filter expressions too large/complex for a query string (RFC 10008).",
-                OperationId = "QueryClientsViaQueryMethod",
-                RequestBody = new OpenApiRequestBody
+                operations[System.Net.Http.HttpMethod.Query] = new OpenApiOperation
                 {
-                    Content = new Dictionary<string, OpenApiMediaType>
+                    Tags = getOperation.Tags,
+                    Summary = $"Same as GET /odata/{entitySetName}, but for $filter expressions too large/complex for a query string (RFC 10008).",
+                    OperationId = $"Query{entitySetName}ViaQueryMethod",
+                    RequestBody = new OpenApiRequestBody
                     {
-                        ["application/json"] = new OpenApiMediaType
+                        Content = new Dictionary<string, OpenApiMediaType>
                         {
-                            Schema = new OpenApiSchema
+                            ["application/json"] = new OpenApiMediaType
                             {
-                                Type = JsonSchemaType.Object,
-                                Properties = new Dictionary<string, IOpenApiSchema>
+                                Schema = new OpenApiSchema
                                 {
-                                    ["filter"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null, Description = "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"." },
+                                    Type = JsonSchemaType.Object,
+                                    Properties = new Dictionary<string, IOpenApiSchema>
+                                    {
+                                        ["filter"] = new OpenApiSchema { Type = JsonSchemaType.String | JsonSchemaType.Null, Description = "An OData $filter expression, e.g. \"contains(Name, 'Smith')\"." },
+                                    },
                                 },
                             },
                         },
                     },
-                },
-                Responses = getOperation.Responses,
-            };
+                    Responses = getOperation.Responses,
+                };
+            }
         }
 
         return Task.CompletedTask;
@@ -169,26 +179,26 @@ builder.Services
 // Options<T> pattern as StsOptions/WebApiOptions/DevClientOptions elsewhere in this codebase.
 builder.Services.Configure<Fohjin.DDD.EventStore.EventStoreOptions>(builder.Configuration.GetSection(Fohjin.DDD.EventStore.EventStoreOptions.SectionName));
 
-// Phase 3: OData over the reporting DTOs, via the IDbContextFactory<ReportingDbContext>
-// AddReportingServices() already registers (used directly below rather than adding a second,
-// plain-scoped AddDbContext<ReportingDbContext> registration - EF Core merges the two
-// registrations' internal option-configuration services, and since IDbContextFactory<T> is a
-// singleton, mixing in a scoped one breaks resolving it from the root provider, which
-// SubscribeEventHandlers below does at startup).
+// Phase 3/7: OData over the reporting DTOs, via IReportingRepository.Query<TDto>() (the same
+// composable IQueryable every other read path in this app uses) rather than a directly-injected
+// IDbContextFactory<ReportingDbContext> - see EndpointRouteBuilderExtensions.MapODataEntitySet.
 
-// Filter + OrderBy only: the /odata/Clients handler below applies query options by hand
-// (ApplyTo + a hard cast back to IQueryable<ClientReport>, then plain System.Text.Json
-// serialization) rather than through [EnableQuery]'s own OData-aware formatter, so it can't
-// honor $select/$count/$expand - those change the result's shape (a projection wrapper type,
-// an envelope with an inline count) that this endpoint doesn't know how to serialize. Enabling
-// them here without validating the request would let them through and either throw or be
-// silently ignored; ODataValidationSettings.AllowedQueryOptions below (set to just these two)
-// is what turns "silently wrong" into a clear 400 instead.
+// Filter + OrderBy only for the top-level entity sets: MapODataEntitySet<TDto> (below, via
+// EndpointRouteBuilderExtensions) applies query options by hand (ApplyTo + a hard cast back to
+// IQueryable<TDto>, then plain System.Text.Json serialization) rather than through
+// [EnableQuery]'s own OData-aware formatter, so it can't honor $select/$count/$expand - those
+// change the result's shape (a projection wrapper type, an envelope with an inline count) that
+// these endpoints don't know how to serialize. Enabling them here without validating the
+// request would let them through and either throw or be silently ignored;
+// ODataValidationSettings.AllowedQueryOptions in MapODataEntitySet (set to just these two) is
+// what turns "silently wrong" into a clear 400 instead. The nested/contained routes below
+// (OData/Controllers/*.cs) go through real ODataController + [EnableQuery] instead and opt into
+// the full AllowedQueryOptions.All per action, independently of this global default.
 var edmModel = ODataModel.Build();
 builder.Services.AddKeyedSingleton<IEdmModel>("odata", edmModel);
 builder.Services.AddControllers().AddOData(options => options
     .AddRouteComponents("odata", edmModel)
-    .Filter().OrderBy().SetMaxTop(100));
+    .Filter().OrderBy().Expand().Select().Count().SetMaxTop(100));
 
 // Phase 4: the SSE event stream gets its own, separate EDM model (over EventEnvelope, not any
 // reporting DTO). Both are IEdmModel, so they're registered as KEYED singletons ("odata" /
@@ -286,6 +296,15 @@ app.UseCors(VueDevCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Every other endpoint in this file is minimal-API (MapGet/MapPost/MapMethods) - this is the
+// one call that makes an actual [Controller] class reachable at all. Needed for the nested/
+// contained OData routes (OData/Controllers/*.cs, e.g. /odata/ClientDetails(id)/Accounts) -
+// those are only expressible through OData's own controller-based routing conventions, which
+// AddOData() above registers but nothing before this line ever wired into the endpoint pipeline.
+// .RequireAuthorization() here matches every other endpoint below rather than relying on each
+// controller/action remembering its own [Authorize].
+app.MapControllers().RequireAuthorization();
+
 // The CQRS core (Bus, CommandHandlers, EventHandlers, EventStore, Reporting) is composed
 // exactly as Fohjin.DDD.BankApplication composes it, just hosted over HTTP instead of called
 // in-process from WinForms - auth/OData/SSE below build on top of this same composition.
@@ -309,14 +328,14 @@ app.MapPost("/api/clients", (CreateClientRequest request, IBus bus) =>
 .RequireAuthorization();
 
 app.MapGet("/api/clients", async (IReportingRepository repository) =>
-    await repository.GetByExampleAsync<ClientReport>(null))
+    await repository.Query<ClientReport>().ToListAsync())
 .WithName("GetClients")
 .Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK)
 .RequireAuthorization();
 
 app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository repository) =>
 {
-    var client = (await repository.GetByExampleAsync<ClientReport>(new { Id = id })).FirstOrDefault();
+    var client = await repository.GetByIdAsync<ClientReport>(id);
     return client is null ? Results.NotFound() : Results.Ok(client);
 })
 .WithName("GetClientById")
@@ -325,13 +344,12 @@ app.MapGet("/api/clients/{id:guid}", async (Guid id, IReportingRepository reposi
 .RequireAuthorization();
 
 // Phase 6: the Client Details screen needs the richer ClientDetailsReport (address, phone
-// number, linked accounts) rather than the bare id+name ClientReport above. Same
-// IReportingRepository.GetByExampleAsync read pattern as GetClientById - SqlServerReportingRepository
-// auto-loads ClientDetailsReport.Accounts/ClosedAccounts via its "{ParentTypeName}Id" convention,
-// so no extra join code is needed here.
+// number, linked accounts) rather than the bare id+name ClientReport above. GetByIdAsync loads
+// ClientDetailsReport.AllAccounts/BankCards via a real, ordered EF navigation Include
+// (docs/08-reporting-read-models.md), unlike the plain GetClientById lookup above.
 app.MapGet("/api/clients/{id:guid}/details", async (Guid id, IReportingRepository repository) =>
 {
-    var client = (await repository.GetByExampleAsync<ClientDetailsReport>(new { Id = id })).FirstOrDefault();
+    var client = await repository.GetByIdAsync<ClientDetailsReport>(id);
     return client is null ? Results.NotFound() : Results.Ok(client);
 })
 .WithName("GetClientDetailsById")
@@ -418,19 +436,18 @@ app.MapPost("/api/clients/{id:guid}/bank-cards/{bankCardId:guid}/report-stolen",
 
 // Phase 6: the Account Details screen and its "transfer to" account picker.
 app.MapGet("/api/accounts", async (IReportingRepository repository) =>
-    await repository.GetByExampleAsync<AccountReport>(null))
+    await repository.Query<AccountReport>().ToListAsync())
 .WithName("GetAccounts")
 .Produces<IEnumerable<AccountReport>>(StatusCodes.Status200OK)
 .RequireAuthorization();
 
-// AccountClosedEventHandler (Fohjin.DDD.EventHandlers) deletes the live AccountDetailsReport
-// row and ClosedAccountCreatedEventHandler saves a ClosedAccountDetailsReport in its place
-// (same live/closed split as ClientDetailsReport.Accounts/ClosedAccounts) - fall back to the
-// closed report so this endpoint still works for an account after it's been closed.
+// AccountDetailsReport.Status covers open/closed on the same row and id now (AccountClosedEventHandler
+// marks it Closed in place instead of deleting it and ClosedAccountCreatedEventHandler recreating
+// it under a new id in a separate table) - one call works for both states. GetByIdAsync loads
+// Ledgers via a real, ordered EF navigation Include (docs/08-reporting-read-models.md).
 app.MapGet("/api/accounts/{id:guid}/details", async (Guid id, IReportingRepository repository) =>
 {
-    var account = (await repository.GetByExampleAsync<AccountDetailsReport>(new { Id = id })).FirstOrDefault()
-        ?? (await repository.GetByExampleAsync<ClosedAccountDetailsReport>(new { Id = id })).FirstOrDefault();
+    var account = await repository.GetByIdAsync<AccountDetailsReport>(id);
     return account is null ? Results.NotFound() : Results.Ok(account);
 })
 .WithName("GetAccountDetailsById")
@@ -491,49 +508,20 @@ app.MapPost("/api/accounts/{id:guid}/close", (Guid id, IBus bus) =>
 .Produces(StatusCodes.Status202Accepted)
 .RequireAuthorization();
 
-// Phase 3: /api/clients above is the plain REST surface from Phase 1; /odata/Clients is the
-// new OData one, backed by a real IQueryable rather than IReportingRepository's example-object
-// queries. GET and QUERY share this single handler - QUERY (RFC 10008) exists for filters too
-// large/complex for a query string, so it takes the same $filter syntax in a JSON body
-// instead. Routing them to the same delegate, rather than two independently-written ones, is
-// what guarantees identical results for identical filters: there's only one code path applying
-// the OData query options.
-app.MapMethods("/odata/Clients", [HttpMethods.Get, HttpMethods.Query], async (HttpContext httpContext, IDbContextFactory<ReportingDbContext> dbContextFactory, [FromKeyedServices("odata")] IEdmModel edmModel) =>
-{
-    if (HttpMethods.IsQuery(httpContext.Request.Method) && httpContext.Request.HasJsonContentType())
-    {
-        ODataQueryRequest? body;
-        try
-        {
-            body = await httpContext.Request.ReadFromJsonAsync<ODataQueryRequest>();
-        }
-        catch (JsonException ex)
-        {
-            return Results.BadRequest($"Malformed JSON body: {ex.Message}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(body?.Filter))
-            httpContext.Request.QueryString = new QueryString($"?$filter={Uri.EscapeDataString(body.Filter)}");
-    }
-
-    var queryOptions = new ODataQueryOptions<ClientReport>(new ODataQueryContext(edmModel, typeof(ClientReport), path: null), httpContext.Request);
-    try
-    {
-        queryOptions.Validate(new ODataValidationSettings { AllowedQueryOptions = AllowedQueryOptions.Filter | AllowedQueryOptions.OrderBy });
-    }
-    catch (ODataException ex)
-    {
-        return Results.BadRequest(ex.Message);
-    }
-
-    await using var context = await dbContextFactory.CreateDbContextAsync();
-    var filtered = (IQueryable<ClientReport>)queryOptions.ApplyTo(context.ClientReports);
-    return Results.Ok(await filtered.ToListAsync());
-})
-.WithName("QueryClients")
-.Produces<IEnumerable<ClientReport>>(StatusCodes.Status200OK)
-.Produces<string>(StatusCodes.Status400BadRequest)
-.RequireAuthorization();
+// Phase 3/7: /api/clients above is the plain REST surface from Phase 1; /odata/{EntitySet} is
+// the OData one, backed by a real IQueryable (IReportingRepository.Query<TDto>()) rather than
+// the old example-object queries - one call per top-level entity set, all going through the
+// exact same MapODataEntitySet<TDto> code path (EndpointRouteBuilderExtensions.cs), so there's
+// only one place that applies OData query options for any of them. GET and QUERY (RFC 10008,
+// for filters too large/complex for a query string) share a single delegate per entity set for
+// the same reason. Nested/contained routes under ClientDetails/AccountDetails are the
+// OData/Controllers/*.cs ODataControllers instead - see app.MapControllers() above.
+app.MapODataEntitySet<ClientReport>("Clients");
+app.MapODataEntitySet<ClientDetailsReport>("ClientDetails");
+app.MapODataEntitySet<AccountReport>("Accounts");
+app.MapODataEntitySet<AccountDetailsReport>("AccountDetails");
+app.MapODataEntitySet<LedgerReport>("Ledgers");
+app.MapODataEntitySet<BankCardReport>("BankCards");
 
 // Phase 4: live domain events over Server-Sent Events (native System.Net.ServerSentEvents,
 // .NET 10). Every event DirectBus.Events (Fohjin.DDD.Bus/Direct/DirectBus.cs) publishes gets
@@ -624,7 +612,6 @@ record ChangeAccountNameRequest(string? AccountName);
 record DepositCashRequest(decimal Amount);
 record WithdrawalCashRequest(decimal Amount);
 record SendMoneyTransferRequest(decimal Amount, string? AccountNumber);
-record ODataQueryRequest(string? Filter);
 
 // Lets WebApplicationFactory<Program> (Fohjin.DDD.ApiClient.Tests) host this app in-process for
 // integration tests - top-level statements otherwise leave Program inaccessible to other assemblies.

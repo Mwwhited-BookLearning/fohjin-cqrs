@@ -65,7 +65,13 @@ public class MoneyTransferService : ISendMoneyTransfer
 
     private async Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
     {
-        var account = (await _reportingRepository.GetByExampleAsync<AccountReport>(new { AccountNumber = moneyTransfer.TargetAccount })).First();
+        // Sync .First(), not .FirstAsync(): EF Core's async LINQ operators require the
+        // IQueryable's provider to implement IAsyncQueryProvider, which a real EF context
+        // does but a plain List<T>.AsQueryable() (how this gets substituted in unit tests)
+        // does not - calling .FirstAsync() against one throws InvalidOperationException.
+        // Acceptable here specifically: this whole flow simulates an external bank rather
+        // than being a real hot path (see DoSendAsync's own comment).
+        var account = _reportingRepository.Query<AccountReport>().First(x => x.AccountNumber == moneyTransfer.TargetAccount);
         _bus.Publish(new ReceiveMoneyTransferCommand(account.Id, moneyTransfer.Amount, moneyTransfer.SourceAccount));
         await _bus.CommitAsync();
     }
@@ -79,9 +85,10 @@ public class MoneyTransferService : ISendMoneyTransfer
             moneyTransfer.TargetAccount is null ? null : new string([.. moneyTransfer.TargetAccount.Reverse()]),
             moneyTransfer.Amount));
 
-    private async Task CompensatingActionBecauseOfFailedMoneyTransferAsync(MoneyTransfer moneyTransfer)
+    private Task CompensatingActionBecauseOfFailedMoneyTransferAsync(MoneyTransfer moneyTransfer)
     {
-        var account = (await _reportingRepository.GetByExampleAsync<AccountReport>(new { AccountNumber = moneyTransfer.SourceAccount })).First();
+        var account = _reportingRepository.Query<AccountReport>().First(x => x.AccountNumber == moneyTransfer.SourceAccount);
         _bus.Publish(new MoneyTransferFailedCompensatingCommand(account.Id, moneyTransfer.Amount, moneyTransfer.TargetAccount));
+        return Task.CompletedTask;
     }
 }

@@ -20,12 +20,12 @@ public class When_an_account_was_closed : EventTestFixture<AccountClosedEvent, A
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_account_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.DeleteAsync<AccountReport>(It.IsAny<object>()), Times.Once());
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<AccountReport>(It.IsAny<object>(), It.IsAny<object>()), Times.Once());
     }
 
     [TestMethod]
     public void Then_the_reporting_repository_will_be_used_to_update_the_account_details_report()
     {
-        OnDependency<IReportingRepository>().Verify(x => x.DeleteAsync<AccountDetailsReport>(It.IsAny<object>()), Times.Once());
+        OnDependency<IReportingRepository>().Verify(x => x.UpdateAsync<AccountDetailsReport>(It.IsAny<object>(), It.IsAny<object>()), Times.Once());
     }
 }

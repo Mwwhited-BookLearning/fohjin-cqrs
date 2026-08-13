@@ -15,17 +15,22 @@ public class MoneyReceiveService(IBus bus, IReportingRepository reportingReposit
     public Task Receive(MoneyTransfer moneyTransfer) =>
         MoneyTransferIsGoingToAnInternalAccountAsync(moneyTransfer);
 
-    private async Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
+    private Task MoneyTransferIsGoingToAnInternalAccountAsync(MoneyTransfer moneyTransfer)
     {
         try
         {
-            var account = (await _reportingRepository.GetByExampleAsync<AccountReport>(new { moneyTransfer.TargetAccount })).First();
+            // Sync .First(), not .FirstAsync() - see MoneyTransferService's own comment on the
+            // same pattern: EF Core's async LINQ operators need an IAsyncQueryProvider, which
+            // a real EF context has but a mocked List<T>.AsQueryable() doesn't.
+            var account = _reportingRepository.Query<AccountReport>().First(x => x.AccountNumber == moneyTransfer.TargetAccount);
             _bus.Publish(new ReceiveMoneyTransferCommand(account.Id, moneyTransfer.Amount, moneyTransfer.SourceAccount));
         }
         catch (Exception)
         {
             RequestedAccountDoesNotExist(moneyTransfer);
         }
+
+        return Task.CompletedTask;
     }
 
     private static void RequestedAccountDoesNotExist(MoneyTransfer moneyTransfer)

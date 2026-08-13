@@ -247,6 +247,28 @@ distributed traces by the standard `traceparent` header) and metrics:
   only live verification. Its metrics include the standard `http.server.request.duration`
   (incoming requests) and `http.client.request.duration` (outgoing - e.g. WebApi calling
   Sts's discovery document).
+  - **Database spans**: `ConfigureOpenTelemetry` also adds
+    `OpenTelemetry.Instrumentation.EntityFrameworkCore` (no stable release exists for this
+    package as of this writing — pinned at `1.17.0-beta.1`, matching the other
+    `OpenTelemetry.*` packages here). Every EF Core query against the event store, the
+    reporting store, or `Sts`'s own `ApplicationDbContext` now shows up as a real span with
+    its SQL text, nested under whatever request/command span triggered it - it hooks EF
+    Core's `DiagnosticListener` at runtime, so it's a no-op (and needs no project reference)
+    in a process that never loads EF Core.
+  - **Custom CQRS pipeline telemetry**: `Fohjin.DDD.Diagnostics.Telemetry`
+    (`Fohjin.DDD.Abstractions/Diagnostics/Telemetry.cs`) is a shared `ActivitySource`/`Meter`
+    named `Fohjin.DDD.Cqrs`, registered into `ServiceDefaults` by that literal string (it has
+    no `ProjectReference`s by design, so it can't reference the type directly - keep the name
+    in sync by hand if it ever changes). Three call sites emit it: `TransactionHandler`
+    (a `command.execute {CommandType}` span + `cqrs.commands.handled`/`cqrs.command.duration`,
+    tagged by command type and `cqrs.outcome`), `EventSubscriptionBootstrapper.Subscribe`
+    (an `event.handle {EventType}` span per handler invocation +
+    `cqrs.events.handled`/`cqrs.event.handler.duration`), and `DirectBus.DoPublishAsync`
+    (`cqrs.events.published`, one increment per publish regardless of handler fan-out - no
+    span there, since it would only duplicate the per-handler `event.handle` spans that
+    immediately follow). Only `Fohjin.DDD.WebApi` ever creates activities on this source -
+    `Sts` doesn't run the CQRS pipeline, so it only benefits from the EF Core spans above.
+    See `07-messaging-bus.md`'s dispatch/fan-out sequence diagrams for where each fits.
 - **Browser** (`Fohjin.DDD.WebUI`): `src/telemetry.ts` (`startTelemetry()`, called from
   `main.ts` before anything else) sends both signals straight from the browser:
   - Traces via `@opentelemetry/sdk-trace-web` + `@opentelemetry/exporter-trace-otlp-proto`,

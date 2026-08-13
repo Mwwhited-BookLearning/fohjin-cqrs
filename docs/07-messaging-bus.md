@@ -117,6 +117,11 @@ Bus -> Queue : (finally) PopAsync(DoPublishAsync)\nre-registers for next message
 @enduml
 ```
 
+`Txn.ExecuteAsync` (`TransactionHandler`) now also emits a `command.execute {CommandType}`
+Activity span and `cqrs.commands.handled`/`cqrs.command.duration` metrics, tagged by outcome,
+via `Fohjin.DDD.Diagnostics.Telemetry` (`00-architecture-overview.md`'s Observability section)
+— wrapping the same success/exception branches shown above, not changing them.
+
 ## Sequence: domain event fan-out (Rx)
 
 ```plantuml
@@ -144,6 +149,14 @@ Each event handler gets its **own** independent Rx subscription over the same sh
 event type means N independent invocations per publish, each with its own try/catch — one
 handler's failure never blocks or is seen by another (see `EventSubscriptionBootstrapper`
 in `Fohjin.DDD.MessageRouting`).
+
+Two distinct telemetry points sit in this same path (`Fohjin.DDD.Diagnostics.Telemetry`,
+`00-architecture-overview.md`'s Observability section): `Bus -> Subject : OnNext(domainEvent)`
+above increments `cqrs.events.published` exactly once per publish, regardless of how many
+handlers subscribe; each independent subscription's try/catch around
+`handler.ExecuteAsync(e)` emits its own `event.handle {EventType}` span and
+`cqrs.events.handled`/`cqrs.event.handler.duration` measurement — so N subscribers produce
+one `published` increment but N `handled` ones, by design.
 
 The Vue frontend has its own client-side mirror of exactly this shape:
 `Fohjin.DDD.WebUI/src/events/eventBus.ts` is one shared `GET /api/events` (SSE) connection

@@ -57,11 +57,25 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    // Fohjin.DDD.Diagnostics.Telemetry.ServiceName, kept as a literal string -
+                    // this project intentionally has no ProjectReferences (portable, domain-
+                    // agnostic "add this to any Aspire service" file), so it can't reference
+                    // that type directly. Harmless in any process that never creates a Meter
+                    // with this name (e.g. Fohjin.DDD.Sts, which doesn't run the CQRS pipeline).
+                    .AddMeter("Fohjin.DDD.Cqrs");
             })
             .WithTracing(tracing =>
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
+                    // Same literal-name coupling as AddMeter above - see that comment.
+                    .AddSource("Fohjin.DDD.Cqrs")
+                    // Unlike OpenTelemetry.Instrumentation.SqlClient's opt-in
+                    // SetDbStatementForText, this package's EntityFrameworkInstrumentationOptions
+                    // has no such toggle (confirmed against the installed 1.17.0-beta.1 assembly -
+                    // it only exposes Filter/EnrichWithIDbCommand) - it captures the SQL text EF
+                    // Core's own diagnostic events already carry unconditionally, no options needed.
+                    .AddEntityFrameworkCoreInstrumentation()
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>

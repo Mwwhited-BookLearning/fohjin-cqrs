@@ -1,7 +1,7 @@
 import { storeToRefs } from "pinia";
 import { useMonitoringStore } from "../stores/monitoring";
 import { onStatusChange, subscribe } from "../events/eventBus";
-import { MAX_MONITORING_EVENTS } from "../views/Monitoring.config";
+import { MAX_MONITORING_EVENTS, matchesEventTypeFilter } from "../views/Monitoring.config";
 
 export function useMonitoring() {
   const store = useMonitoringStore();
@@ -15,7 +15,7 @@ export function useMonitoring() {
     const unsubscribeStatus = onStatusChange((next) => (store.status = next));
     const unsubscribe = subscribe((envelope) => {
       if (store.paused) return;
-      if (store.filter.eventType.trim() && envelope.eventType !== store.filter.eventType.trim()) return;
+      if (!matchesEventTypeFilter(envelope.eventType, store.filter.eventTypes)) return;
 
       store.events.unshift(envelope);
       if (store.events.length > MAX_MONITORING_EVENTS) store.events.length = MAX_MONITORING_EVENTS;

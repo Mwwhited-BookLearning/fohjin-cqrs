@@ -197,6 +197,41 @@ actually driving the button in a browser, not by reading the code:
    `07-messaging-bus.md` and `09-client-uis.md`'s Vue section), which is the same
    `GET /api/events` stream the Monitoring screen in both clients watches directly.
 
+## Dev environment
+
+Fixed, not guessed per session — every port, credential, and hostname below is the same
+across every machine this runs on, since so much of the system (seeded OAuth redirect URIs,
+CORS policies, connection strings, launch profiles) hard-codes them rather than discovering
+them dynamically.
+
+- **Ports**: `Fohjin.DDD.Sts` = 5310, `Fohjin.DDD.WebApi` = 5320, Vue dev server = 5173,
+  WinForms desktop OIDC loopback = 5330, WPF desktop OIDC loopback = 5340, WinForms FlaUI
+  test browser remote-debugging = 9333, WPF FlaUI test browser remote-debugging = 9334, SQL
+  Server = 14330.
+- **SQL Server**: one instance for everything (event store, reporting, STS's
+  Identity/OpenIddict tables) — `sa` / `Dev!Passw0rd`,
+  `TrustServerCertificate=True;Encrypt=False`. Databases: `FohjinDomainEventStore`,
+  `FohjinReporting`, `FohjinSts`. A persistent dev container named `fohjin-sqlserver-dev` is
+  the usual way to have one running outside Aspire/`Fohjin.DDD.AppHost`.
+- **STS seeded dev user**: `dev@fohjin.local` / `Dev!Passw0rd`. Seeded client: `dev-client`
+  (public, PKCE).
+- `Fohjin.DDD.AppHost` (`dotnet run`) boots the whole system — SQL Server container, STS,
+  WebApi, Vue dev server — with one command; this is the primary way to run everything
+  together, not five separate terminals. Its `AddSqlServer(...)` resource creates its own
+  container each run (`ContainerLifetime.Session`, the Aspire default — it stops with the
+  AppHost on a graceful shutdown, though a forceful kill of the AppHost process bypasses that
+  and leaves it orphaned); `Fohjin.DDD.WebApi.csproj`'s build-time OpenAPI generation actually
+  boots the real app in-process (`docs/supporting/nswag-client-codegen.md`), so building
+  `Fohjin.DDD.WebApi` — and therefore starting the AppHost, which references it — needs a
+  live SQL Server reachable *before* the build even starts, not just before the app runs.
+- **Node.js on this machine**: `C:\repo\oobdev\RunScripts\node.bat`/`npm.bat` sit earlier on
+  `PATH` than the real `C:\Program Files\nodejs` install and are broken (fail outside an
+  interactive terminal). Prefix any `npm`/`node` invocation from a non-interactive shell with
+  `PATH="/c/Program Files/nodejs:$PATH"` — including before `dotnet run` on
+  `Fohjin.DDD.AppHost` itself, since it spawns the Vue dev server as a child process that
+  inherits this same broken `PATH` otherwise (the Vite resource then silently never starts;
+  the giveaway is `dcp.exe` listening on 5173 but every request to it timing out).
+
 ## Observability
 
 Every request that crosses this system — browser → `Fohjin.DDD.WebApi`/`Fohjin.DDD.Sts` →

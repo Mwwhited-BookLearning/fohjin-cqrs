@@ -384,6 +384,42 @@ there's no retry. `ISystemTimer.Trigger` captures the UI `SynchronizationContext
 scheduled and marshals the callback back onto it, so setting a WinForms control's
 `DataSource` from the timer's background thread doesn't throw invisibly.
 
+### Bugs found live-verifying the WinForms HTTP retargeting
+
+Retargeting WinForms from in-process CQRS calls to real HTTP calls against `Fohjin.DDD.WebApi`
+introduced four production bugs, none caught by `dotnet build` or the existing unit/integration
+suite - every one only surfaced by driving the compiled `.exe` with FlaUI + Playwright:
+
+- **Missing a real `Application.Run()` message loop**: `Program.cs`'s `Main` used to show a
+  form and return once its constructor finished, because every CQRS call used to complete
+  synchronously in-process. Real HTTP calls are genuine async I/O - `ClientSearchFormPresenter.
+  Display()`'s `await LoadDataAsync()` now always actually suspends, so without a message loop
+  pumping, `Main()` would return and the whole process would exit before that continuation
+  ever ran, silently dropping the initial data load.
+- **A premature `HttpListener.Stop()`**: `DesktopAuthService`'s OIDC loopback listener used to
+  call `listener.Stop()` immediately after `GetContextAsync()` returned, before writing the
+  browser's "you can close this tab" response. `Stop()` tears down resources
+  (e.g. the response stream's `ThreadPoolBoundHandle`) shared with any still-in-flight
+  `HttpListenerContext`, so the write threw `ObjectDisposedException` - sign-in appeared to
+  hang with the browser tab never confirming success. Fixed by leaving cleanup to the
+  `using var listener` declaration, which stops/disposes it only once the method actually
+  returns or throws, after the response is written.
+- **A DI registration gap**: `AddHttpMessageHandler<AuthorizationHandler>()`/
+  `<HttpCallLoggingHandler>()` on the typed `FohjinApiClient`/`EventStreamClient` registrations
+  require the handler types themselves to already be resolvable from the container - without
+  their own `services.AddTransient<AuthorizationHandler>()`/`AddTransient<HttpCallLoggingHandler>()`
+  calls, every HTTP call threw `InvalidOperationException: No service for type
+  'AuthorizationHandler' has been registered.` at the first API call, not at startup.
+- **A transient-client bug**: `DesktopAuthService` was briefly registered via
+  `services.AddHttpClient<DesktopAuthService>(...)`, which resolves a *new*
+  `DesktopAuthService` instance on every injection (only the underlying `HttpMessageHandler`
+  is pooled). `AuthorizationHandler` needs to read back the *same* instance's `AccessToken`
+  that `Main` sets via `LoginAsync()` before any window opens - a fresh instance's
+  `AccessToken` is always `null`, so every request silently went out with no `Authorization`
+  header, producing 401s that looked like an auth/config problem rather than a DI lifetime
+  one. Fixed by registering `DesktopAuthService` as a plain `services.AddSingleton(sp => new
+  DesktopAuthService(...))` instead.
+
 ## Vue (`Fohjin.DDD.WebUI`)
 
 A single-page app (Vue 3 + Vite + Vue Router) covering the same screens as WinForms, built

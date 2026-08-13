@@ -22,85 +22,15 @@ against what an earlier doc/commit *says* happened.
 `vue-tsc`/`dotnet build` passing does not mean a feature works. Start the real stack
 (STS + WebApi + Vue dev server, or WinForms) and exercise the feature in an actual browser —
 a scratch Playwright script in the scratchpad directory is the established way to do this for
-Vue (`playwright.Chromium.LaunchAsync`, no need for the CDP-attach dance WinForms needs). This
-caught real, otherwise-invisible bugs more than once:
-- Four production bugs in the WinForms HTTP retargeting (missing `Application.Run()`, a
-  premature `HttpListener.Stop()`, a DI registration gap, a transient-client bug) — found only
-  by driving the compiled `.exe` with FlaUI + Playwright, never by reading the retargeted code.
-- A core event-sourcing bug: `BaseAggregateRoot<T>.Apply`/`BaseEntity<T>.Apply` stamped
-  `AggregateId` on a domain event *before* dispatching to its handler — but a "created" event's
-  handler is what assigns the aggregate its own `Id`, so every aggregate's own creation event
-  (`ClientCreatedEvent`, `AccountOpenedEvent`, `ClosedAccountCreatedEvent`) always carried
-  `AggregateId = Guid.Empty`. Found because a live Vue client-side event bus filtering on
-  `AggregateId` never matched a freshly-created client — every C# unit/integration test passed
-  throughout, since none of them observed a live event stream end to end.
-- An unordered-child-collection bug that only appeared after the SQLite→SQL Server migration
-  (SQLite happened to preserve insertion order; SQL Server doesn't).
-- `Fohjin.DDD.WebApi`'s leftover `app.UseHttpsRedirection()` (a `dotnet new webapi` template
-  default, running before `app.UseCors(...)`) 307-redirected every request — including the
-  browser's own CORS preflight `OPTIONS` — to a `launchSettings.json` https port nothing
-  listens on under `Fohjin.DDD.AppHost`. Browsers reject any redirect on a preflight outright,
-  and even after fixing the ordering, the real request still got redirected cross-origin and
-  lost its `Authorization` header doing so — breaking every authenticated call from
-  `Fohjin.DDD.WebUI` with an opaque browser-console CORS error and nothing server-side to
-  point at it. Only surfaced once something ran the whole stack through
-  `Fohjin.DDD.AppHost` end to end in a real browser (see `docs/00-architecture-overview.md`'s
-  Observability section) — every prior live-browser check had run the pieces standalone.
-- `Fohjin.DDD.WebApi`'s `/api/events` SSE endpoint threw an unhandled `OperationCanceledException`
-  on every single client disconnect (browser tab closed, `eventBus.ts` reconnecting) - a
-  Visual Studio "first-chance"/user-unhandled exception break, not something visible in the
-  Aspire dashboard's own log viewer, which is why a Playwright-driven negative control (comparing
-  the same disconnect test against the pre-fix code) showed no difference there even though the
-  bug was real - confirmed instead by matching the exact stack trace to `Program.cs`'s `Stream`
-  local function. Fixed by catching cancellation there instead of leaving it to escape
-  (`docs/07-messaging-bus.md`).
-- Getting Scalar's OAuth2 "Authorize" login working against `Fohjin.DDD.Sts` surfaced two more
-  CORS/redirect gaps, both only visible by actually clicking the button in a browser: Scalar's
-  OAuth2 popup redirects back to its own page rather than a dedicated callback route (needed
-  registering as another `dev-client` redirect URI), and the token exchange is a cross-origin
-  browser `fetch()` straight to Sts (needed adding WebApi's origin to Sts's CORS policy) - see
-  `docs/00-architecture-overview.md`'s Observability section.
-- A rename-then-reload race in `Fohjin.DDD.WebUI`, found while live-verifying the Pinia
-  refactor (`docs/patterns/vue-architecture.md`): the SSE stream and a reporting-store event
-  handler are independent Rx subscriptions on the same event with no ordering guarantee, so a
-  live-triggered reload sometimes re-fetched before the read model had actually finished
-  writing, silently showing stale data until something else (a manual reload) triggered a
-  further reload. A single automated test that only checked "did *a* reload fire" (not "is the
-  displayed value now correct") had missed this earlier in the same session. Fixed with a
-  short-delay reconciliation retry after every live-triggered reload (`docs/07-messaging-bus.md`).
-- `EventStreamClient` (shared by WinForms and the WPF client, `docs/09-client-uis.md`)
-  deserialized every SSE event to an all-default `EventEnvelope` (`EventType=""`,
-  `AggregateId=Guid.Empty`) - `Fohjin.DDD.WebApi`'s `Results.ServerSentEvents` serializes with
-  ASP.NET Core's default camelCase JSON options, but the client called
-  `JsonSerializer.Deserialize<EventEnvelope>(data)` with no matching options (case-sensitive
-  PascalCase-only by default). This doesn't throw - it silently binds nothing, so every
-  ViewModel's `OnDomainEvent(eventType, ...)` check against the always-empty `eventType`
-  never matched, breaking every event-driven reload in the WPF client with no visible error.
-  Only surfaced via a FlaUI-driven live run creating a real client and watching the search
-  list never refresh. Fixed by deserializing with `JsonSerializerOptions.Web`.
-- A `ListBox.InputBindings` + `MouseBinding MouseAction="LeftDoubleClick"` never fired in the
-  WPF client's `ClientSearchView`/`ClientDetailsView` - a commonly-suggested WPF pattern that
-  doesn't actually work here: `ListBoxItem`'s own `MouseLeftButtonDown` handling (selection)
-  never lets the bubbled double-click reach the ListBox's own `InputBindings` gesture
-  recognition. Selection worked, the bound command never executed, no exception anywhere -
-  confirmed by adding a temporary `Console.WriteLine` in the command handler and seeing it
-  never print across many FlaUI-driven attempts. Fixed with an `ItemContainerStyle`
-  `EventSetter Event="MouseDoubleClick"` targeting `ListBoxItem` directly instead
-  (`docs/09-client-uis.md`).
-- WinForms' bank-card "Assign" button could stay permanently disabled for a client with
-  exactly one open account: `_newBankCardAccount` auto-selects its first item the instant its
-  `DataSource` is (re)assigned, including during the *account-creation* background refresh
-  that lands before the Bank Cards tab is ever opened - firing `SelectedIndexChanged` while
-  `ClientDetailsPresenter`'s "current process" flags don't yet match the bank-card step,
-  which disables every step's shared save button (including the not-yet-visible Assign
-  button) with nothing to re-enable it, since a single-item combo never fires a real
-  selection-change event again. Found live via FlaUI keyboard-probing the combo (its bound
-  value was correct; only the button's `Enabled` state was wrong). Fixed by having
-  `InitiateAssignNewBankCard()` explicitly re-validate against the current selection when the
-  panel opens, instead of only reacting to a change event that may never come
-  (`docs/09-client-uis.md`).
-
-Don't assume a plausible-looking change works — prove it against a running system.
+Vue (`playwright.Chromium.LaunchAsync`, no need for the CDP-attach dance WinForms needs).
+Don't assume a plausible-looking change works — prove it against a running system. This has
+caught real, otherwise-invisible bugs more than once — every one is narrated in full where it
+was fixed, not here: `docs/09-client-uis.md` (four WinForms HTTP-retargeting bugs, the
+EventStreamClient JSON-casing bug, the WPF double-click bug, the WinForms bank-card button
+bug), `docs/06-event-sourcing-infrastructure.md` (the `AggregateId`-on-creation bug),
+`docs/07-messaging-bus.md` (the SSE disconnect exception, the reload-vs-read-model race), and
+`docs/00-architecture-overview.md`'s Observability section (the `UseHttpsRedirection()` CORS
+gap, Scalar's OAuth2 login gaps).
 
 ## Don't invent domain data that doesn't exist
 
@@ -108,33 +38,19 @@ When adding a UI for an existing domain concept (e.g. bank cards), show only wha
 actually exposes. Check the aggregate/entity's real fields before designing a screen — don't
 add a card number, timestamp, or other plausible-sounding field that isn't really there.
 
-## Dev environment conventions (fixed, not guessed per session)
+## Dev environment
 
-- Ports: `Fohjin.DDD.Sts` = 5310, `Fohjin.DDD.WebApi` = 5320, Vue dev server = 5173, WinForms
-  desktop OIDC loopback = 5330, WPF desktop OIDC loopback = 5340, WinForms FlaUI test browser
-  remote-debugging = 9333, WPF FlaUI test browser remote-debugging = 9334, SQL Server = 14330.
-- SQL Server: one instance for everything (event store, reporting, STS's Identity/OpenIddict
-  tables) — `sa` / `Dev!Passw0rd`, `TrustServerCertificate=True;Encrypt=False`. Databases:
-  `FohjinDomainEventStore`, `FohjinReporting`, `FohjinSts`. A persistent dev container named
-  `fohjin-sqlserver-dev` is the usual way to have one running outside Aspire/AppHost.
-- STS seeded dev user: `dev@fohjin.local` / `Dev!Passw0rd`. Seeded client: `dev-client`
-  (public, PKCE).
-- `Fohjin.DDD.AppHost` (`dotnet run`) boots the whole system — SQL Server container, STS,
-  WebApi, Vue dev server — with one command; this is the primary way to run everything
-  together, not five separate terminals.
-- **Node.js on this machine**: `C:\repo\oobdev\RunScripts\node.bat`/`npm.bat` sit earlier on
-  `PATH` than the real `C:\Program Files\nodejs` install and are broken (fail outside an
-  interactive terminal). Prefix any `npm`/`node` invocation from the Bash tool with
-  `PATH="/c/Program Files/nodejs:$PATH"` — including before `dotnet run` on
-  `Fohjin.DDD.AppHost` itself, since it spawns the Vue dev server as a child process that
-  inherits this same broken `PATH` otherwise (the Vite resource then silently never starts;
-  the giveaway is `dcp.exe` listening on 5173 but every request to it timing out).
-- Observability: `Fohjin.DDD.AppHost` reports to its own Aspire dashboard, and that dashboard
-  also accepts traces reported directly from the browser (`Fohjin.DDD.WebUI/src/telemetry.ts`)
-  over a second OTLP/HTTP endpoint, which only exists because
-  `Fohjin.DDD.AppHost/Properties/launchSettings.json` sets
-  `ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL` — see `docs/00-architecture-overview.md`'s
-  Observability section for why that has to be set there rather than left to Aspire's default.
+Ports, SQL Server/STS credentials, `Fohjin.DDD.AppHost` behavior, and Observability are all
+documented in `docs/00-architecture-overview.md`'s "Dev environment" and "Observability"
+sections — read those before assuming a value, don't re-derive or re-guess them.
+
+One thing to actually act on every session, not just know: **Node.js on this machine** —
+`C:\repo\oobdev\RunScripts\node.bat`/`npm.bat` sit earlier on `PATH` than the real
+`C:\Program Files\nodejs` install and are broken outside an interactive terminal. Prefix any
+`npm`/`node` invocation from the Bash tool with `PATH="/c/Program Files/nodejs:$PATH"` —
+including before `dotnet run` on `Fohjin.DDD.AppHost` itself, since it spawns the Vue dev
+server as a child process that inherits this same broken `PATH` otherwise (the giveaway is
+`dcp.exe` listening on 5173 but every request to it timing out).
 
 ## Testing
 
@@ -148,10 +64,8 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
   `VueSignInSignOutTest.cs`, which drives the Vue dev server directly through Playwright
   (headless Chromium, no CDP-attach needed since there's no desktop app in the loop) — its own
   `VueAppFixture.cs` starts `Fohjin.DDD.Sts`, `Fohjin.DDD.WebApi`, and `npm run dev` itself, so
-  it needs Node.js on `PATH` in addition to the above. Added after a real bug
-  (`docs/09-client-uis.md`'s Vue section): `Fohjin.DDD.Sts` never registered
-  `PostLogoutRedirectUris`/the `EndSession` permission for the dev client, so sign-out always
-  fell back to the Sts's own home page instead of returning to the caller.
+  it needs Node.js on `PATH` in addition to the above (`docs/09-client-uis.md`'s Vue section
+  has the bug it guards against).
 - Both suites passing does not substitute for the live-browser check above when the change is
   UI-facing or touches how a live event stream is consumed.
 - `Fohjin.DDD.WebUI` has its own Vitest suite (`npm test` from that directory) covering

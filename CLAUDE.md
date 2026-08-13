@@ -111,7 +111,8 @@ add a card number, timestamp, or other plausible-sounding field that isn't reall
 ## Dev environment conventions (fixed, not guessed per session)
 
 - Ports: `Fohjin.DDD.Sts` = 5310, `Fohjin.DDD.WebApi` = 5320, Vue dev server = 5173, WinForms
-  desktop OIDC loopback = 5330, FlaUI test browser remote-debugging = 9333, SQL Server = 14330.
+  desktop OIDC loopback = 5330, WPF desktop OIDC loopback = 5340, WinForms FlaUI test browser
+  remote-debugging = 9333, WPF FlaUI test browser remote-debugging = 9334, SQL Server = 14330.
 - SQL Server: one instance for everything (event store, reporting, STS's Identity/OpenIddict
   tables) — `sa` / `Dev!Passw0rd`, `TrustServerCertificate=True;Encrypt=False`. Databases:
   `FohjinDomainEventStore`, `FohjinReporting`, `FohjinSts`. A persistent dev container named

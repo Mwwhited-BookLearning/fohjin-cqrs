@@ -63,6 +63,11 @@ view --> theme : var(--...) in\nscoped <style>
 @enduml
 ```
 
+`ClientDetails` is used here as the illustrative example for all four layers together;
+`clientDetails.config.ts` in the diagram is the *general* shape of a Structure-layer file,
+not a claim that this specific one exists — see §4's folder structure for which screens
+currently have one.
+
 ## 3. Sequence: load and mutate
 
 ```plantuml
@@ -116,10 +121,8 @@ src/
 ├── views/
 │   ├── ClientSearch.vue
 │   ├── ClientSearch.config.ts     # STRUCTURE (search/refresh config)
-│   ├── ClientDetails.vue
-│   ├── ClientDetails.config.ts
-│   ├── AccountDetails.vue
-│   └── AccountDetails.config.ts
+│   ├── ClientDetails.vue          # no ClientDetails.config.ts yet - see note below
+│   └── AccountDetails.vue         # no AccountDetails.config.ts yet - see note below
 ├── theme/
 │   └── tokens.css                  # STYLING (shared, global)
 └── main.ts
@@ -130,8 +133,12 @@ Conventions:
 - One store + one composable per screen/domain concept (`clientDetails`, not a single
   monolithic store for everything) — mirrors the existing one-file-per-view layout, just
   splitting each view's logic out of the `.vue` file instead of inlining it.
-- A view's structure config file sits next to its `.vue` file and shares its name
-  (`ClientDetails.vue` + `ClientDetails.config.ts`).
+- A view's structure config file, when one exists, sits next to its `.vue` file and shares
+  its name (`ClientSearch.vue` + `ClientSearch.config.ts`). `ClientDetails.vue` and
+  `AccountDetails.vue` currently skip this file and import `refreshRules.ts`'s predicate
+  directly (`useClientDetails.ts`/`useAccountDetails.ts`) - there's no other static shape
+  (form fields, menu items) for either screen that would justify the extra indirection yet,
+  so the Structure layer is optional per screen rather than mandatory.
 - Composables are named `use<Domain>.ts` and grouped by domain, not by component.
 - `src/api/` is the *only* place that imports the generated NSwag client or calls
   `authenticatedFetch` directly — composables call `apiClient`, never `fetch`.
@@ -163,9 +170,10 @@ Conventions:
 
 - Which events refresh a screen, which form fields exist, menu/nav structure — anything
   describing *shape* rather than *behavior* — lives in a plain `.ts` file.
-- `ClientDetails.config.ts` is a thin re-export/composition of `refreshRules.ts`'s
-  predicate for that screen plus any other static shape (e.g. the bank-card status values
-  that get an action button) — it doesn't duplicate logic that already has a home.
+- `ClientSearch.config.ts` is a thin re-export/composition of `refreshRules.ts`'s predicate
+  for that screen plus any other static shape — it doesn't duplicate logic that already has
+  a home. `ClientDetails`/`AccountDetails` don't have one today (see the folder-structure
+  note above) since neither has accumulated enough static shape to warrant it yet.
 
 ### Presentation (`.vue` files)
 

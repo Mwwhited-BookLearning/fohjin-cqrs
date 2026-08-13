@@ -55,6 +55,23 @@ Two things ended up differently than this research originally proposed:
   without creating a real compile-time dependency between the two. See
   `00-architecture-overview.md`.
 
+> **Bug found live-verifying `Fohjin.DDD.AppHost`'s cold start**: this build-time generation
+> genuinely boots `Fohjin.DDD.WebApi`'s real `Program.cs` top-level statements in-process
+> (`Microsoft.Extensions.ApiDescription.Server`'s `dotnet-getdocument`/`GetDocument.Insider`
+> tool loads the built assembly and invokes its `Main` by reflection so it can introspect the
+> actually-registered endpoints) - including `await app.Services.BootStrapApplicationAsync()`,
+> which runs a real EF Core migration against a real SQL Server. That makes *building*
+> `Fohjin.DDD.WebApi` require a live, reachable SQL Server, which is a problem specifically
+> because `Fohjin.DDD.AppHost` references this project: `dotnet run` on the AppHost builds it
+> first, and building it tries to migrate a database before Aspire's own orchestrator has run
+> long enough to create the SQL Server container that database would live in - so a genuinely
+> cold machine (no container from a prior run already up) could never start the AppHost at
+> all, regardless of whether that container is Aspire-managed or a standalone one. Fixed by
+> skipping `BootStrapApplicationAsync`/`SubscribeEventHandlers` when
+> `Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider"` - that process's own
+> entry assembly is never `Fohjin.DDD.WebApi` on a normal run, which is what tells the two
+> apart with no framework-provided flag to rely on instead.
+
 There's no equivalent gap on the AsyncAPI side (`asyncapi-saunter.md`) - it's served
 entirely at runtime by Saunter, with no static snapshot file to ever drift out of sync in
 the first place.

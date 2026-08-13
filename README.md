@@ -56,6 +56,7 @@ These are documented, deliberate, or accepted trade-offs, not hidden bugs — se
 `docs/README.md`'s linked docs for the reasoning behind each one where it's called out
 in place:
 
-- Neither desktop client (WinForms or WPF) refreshes its OIDC access token; it just
-  expires after an hour with no silent renewal (`docs/09-client-uis.md`) — an accepted
-  limitation for a dev sample.
+- No UI client (WinForms, WPF, or Vue) refreshes its OIDC access token; the dev STS's seeded
+  client doesn't grant refresh tokens at all, so every session just expires after an hour
+  with no silent renewal anywhere (`docs/09-client-uis.md`) — an accepted limitation for a
+  dev sample.

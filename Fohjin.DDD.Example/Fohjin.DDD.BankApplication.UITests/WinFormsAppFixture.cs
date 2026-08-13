@@ -6,8 +6,8 @@ using Microsoft.Playwright;
 
 namespace Fohjin.DDD.BankApplication.UITests;
 
-// Drives a real, end-to-end run of the retargeted WinForms app (docs/11-migration-plan.md
-// Phase 7): starts the real Fohjin.DDD.Sts and Fohjin.DDD.WebApi processes (native `dotnet run`,
+// Drives a real, end-to-end run of the retargeted WinForms app (docs/09-client-uis.md):
+// starts the real Fohjin.DDD.Sts and Fohjin.DDD.WebApi processes (native `dotnet run`,
 // not TestServer/WebApplicationFactory - the whole point is exercising the real HTTP+OIDC path
 // the compiled Fohjin.DDD.BankApplication.exe actually uses), then launches the compiled exe
 // itself with FOHJIN_TEST_BROWSER_EXECUTABLE pointed at a real Edge instance so this fixture can

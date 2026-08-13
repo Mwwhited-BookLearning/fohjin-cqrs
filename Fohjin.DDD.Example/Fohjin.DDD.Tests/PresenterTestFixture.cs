@@ -64,7 +64,7 @@ public abstract class PresenterTestFixture<TPresenter>
 
     private static object CreateMock(Type type)
     {
-        // FohjinApiClient (Phase 7, docs/11-migration-plan.md) has no parameterless
+        // FohjinApiClient (docs/09-client-uis.md) has no parameterless
         // constructor - it's generated with exactly one, taking an HttpClient - so it needs
         // its own Mock<T>(args) call instead of the reflection-based new Mock<T>() every other
         // (interface-typed) presenter dependency uses.

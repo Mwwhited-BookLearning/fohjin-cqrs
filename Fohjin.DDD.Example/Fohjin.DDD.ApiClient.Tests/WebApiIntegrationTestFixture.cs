@@ -61,7 +61,7 @@ public abstract class WebApiIntegrationTestFixture
         DropDatabase(_reportingConnectionString);
     }
 
-    // Same local dev/CI SQL Server instance every project's tests connect to (docs/11-migration-plan.md Phase 8).
+    // Same local dev/CI SQL Server instance every project's tests connect to (CLAUDE.md's dev environment conventions).
     private static string ConnectionStringFor(string databaseName) =>
         $"Server=127.0.0.1,14330;Database={databaseName};User Id=sa;Password=Dev!Passw0rd;TrustServerCertificate=True;Encrypt=False";
 

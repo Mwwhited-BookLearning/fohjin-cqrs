@@ -28,7 +28,7 @@ static class Program
 
         var monitoringLoggerProvider = new MonitoringLoggerProvider();
 
-        // Phase 7 (docs/11-migration-plan.md): every operation is now an HTTP call to
+        // docs/09-client-uis.md: every operation is now an HTTP call to
         // Fohjin.DDD.WebApi through the generated FohjinApiClient (Fohjin.DDD.ApiClient) instead
         // of an in-process call - no more AddBusServices()/AddEventStoreServices()/etc. wiring
         // the CQRS core directly, and no more BootStrapApplicationAsync()/SubscribeEventHandlers()
@@ -95,8 +95,8 @@ static class Program
 
         var serviceProvider = services.BuildServiceProvider();
 
-        // Desktop OIDC login (docs/11-migration-plan.md Phase 7's system-browser + loopback
-        // redirect decision) happens once, up front, before any window is shown - every
+        // Desktop OIDC login (docs/09-client-uis.md's system-browser + loopback redirect
+        // decision) happens once, up front, before any window is shown - every
         // presenter's FohjinApiClient calls assume a signed-in AuthorizationHandler.AccessToken
         // is already in place by the time they run.
         await serviceProvider.GetRequiredService<DesktopAuthService>().LoginAsync();

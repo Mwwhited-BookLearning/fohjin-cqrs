@@ -145,7 +145,7 @@ builder.Services.AddOpenApi(options =>
 // the WinForms desktop client (Phase 7), which never runs in a browser context at all.
 // http://host.docker.internal:5173 is how a Playwright container sees the Vue dev server when
 // driving a real headless browser for this project's E2E verification (no native Node.js
-// install on this machine - see docs/11-migration-plan.md Phase 6).
+// install on this machine - see CLAUDE.md's Node.js convention).
 const string VueDevCorsPolicy = "VueDev";
 builder.Services.AddCors(options => options.AddPolicy(VueDevCorsPolicy, policy => policy
     .WithOrigins("http://localhost:5173", "http://host.docker.internal:5173")
@@ -286,15 +286,13 @@ app.UseCors(VueDevCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Phase 1: prove the wiring - the CQRS core (Bus, CommandHandlers, EventHandlers, EventStore,
-// Reporting) is composed exactly as Fohjin.DDD.BankApplication composes it today, just hosted
-// over HTTP instead of called in-process from WinForms. No auth, no OData, no SSE yet - those
-// arrive in later phases (see docs/11-migration-plan.md).
+// The CQRS core (Bus, CommandHandlers, EventHandlers, EventStore, Reporting) is composed
+// exactly as Fohjin.DDD.BankApplication composes it, just hosted over HTTP instead of called
+// in-process from WinForms - auth/OData/SSE below build on top of this same composition.
 //
 // Note: DirectBus.CommitAsync() is fire-and-forget by design (docs/07-messaging-bus.md) - the
 // POST below returns as soon as the command is queued, not once it's been handled. A GET
-// immediately afterwards can race the write; this is an existing property of the bus, not
-// something Phase 1 introduces.
+// immediately afterwards can race the write; this is an existing property of the bus.
 
 app.MapPost("/api/clients", (CreateClientRequest request, IBus bus) =>
 {

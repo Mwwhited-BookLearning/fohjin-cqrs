@@ -18,7 +18,7 @@ builder.Services.AddRazorPages();
 // client (Phase 7), which never runs this code in a browser context at all.
 // http://host.docker.internal:5173 is how a Playwright container sees the Vue dev server when
 // driving a real headless browser for this project's E2E verification (no native Node.js
-// install on this machine - see docs/11-migration-plan.md Phase 6).
+// install on this machine - see CLAUDE.md's Node.js convention).
 // http://127.0.0.1:5320 is Fohjin.DDD.WebApi's own origin - Scalar's OAuth2 "Authorize" flow
 // (WebApi/Program.cs's MapScalarApiReference) calls this STS's /connect/token endpoint directly
 // from the browser, cross-origin, to exchange the auth code for a token; without it here, that
@@ -116,9 +116,9 @@ app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Inde
 app.MapRazorPages();
 
 // Migrate the STS's own database (applications/authorizations/scopes/tokens + Identity's user
-// table) and seed the one dev client + one dev user this STS exists to serve - matching
-// docs/11-migration-plan.md Phase 5's "preconfigured/seeded accounts, no interactive
-// registration" decision. Idempotent: safe to run on every startup.
+// table) and seed the one dev client + one dev user this STS exists to serve - preconfigured/
+// seeded accounts, no interactive registration flow (CLAUDE.md's dev environment
+// conventions). Idempotent: safe to run on every startup.
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

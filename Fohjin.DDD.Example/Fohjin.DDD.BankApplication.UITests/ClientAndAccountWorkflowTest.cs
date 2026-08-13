@@ -5,8 +5,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Fohjin.DDD.BankApplication.UITests;
 
-// End-to-end UI automation for the retargeted WinForms app (docs/11-migration-plan.md Phase 7) -
-// the desktop equivalent of the Playwright scripts used to verify Fohjin.DDD.WebUI in Phase 6.
+// End-to-end UI automation for the retargeted WinForms app (docs/09-client-uis.md) - the
+// desktop equivalent of the Playwright scripts used to verify Fohjin.DDD.WebUI.
 // Drives the real compiled Fohjin.DDD.BankApplication.exe against real, separately-running
 // Fohjin.DDD.Sts and Fohjin.DDD.WebApi processes: sign in through the real STS login page,
 // create a client, open it, open a new account, deposit cash, and confirm the balance updates -

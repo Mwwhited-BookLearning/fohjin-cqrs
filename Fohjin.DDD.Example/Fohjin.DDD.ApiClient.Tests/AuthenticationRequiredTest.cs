@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Fohjin.DDD.ApiClient.Tests;
 
-// Phase 5 exit criteria (partial - see docs/11-migration-plan.md for the full live verification
-// against a real dev STS, which this test doesn't attempt): unauthenticated requests to the
+// Partial coverage only - see CLAUDE.md's "Verify UI/frontend changes live" section for the
+// full live verification against a real dev STS, which this test doesn't attempt:
+// unauthenticated requests to the
 // command/query/SSE endpoints are rejected. Deliberately does NOT use
 // WebApiIntegrationTestFixture - that fixture swaps in an always-succeeds test auth scheme so
 // other tests can exercise endpoint behavior without authentication getting in the way, which

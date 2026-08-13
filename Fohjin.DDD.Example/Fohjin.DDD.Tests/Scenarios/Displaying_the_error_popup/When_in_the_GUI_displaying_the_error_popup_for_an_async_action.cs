@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Fohjin.DDD.Tests.Scenarios.Displaying_the_error_popup;
 
-// Phase 7 (docs/11-migration-plan.md): CatchPossibleExceptionAsync is the async counterpart to
+// docs/09-client-uis.md: CatchPossibleExceptionAsync is the async counterpart to
 // CatchPossibleException, added because HTTP calls are real async I/O rather than the
 // fire-and-forget in-process bus.Publish()/CommitAsync() pairs presenters used to wrap - see
 // PopupPresenter.cs's own comment.

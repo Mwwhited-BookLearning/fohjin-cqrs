@@ -13,7 +13,7 @@ public partial class ClientSearchForm : ViewFormBase, IClientSearchFormView
         tabControl1.SizeMode = TabSizeMode.Fixed;
         RegisterCLientEvents();
 
-        // Phase 7 (docs/11-migration-plan.md): Program.cs now needs a real Application.Run()
+        // docs/09-client-uis.md: Program.cs now needs a real Application.Run()
         // message loop (real HTTP calls never complete synchronously the way the old in-process
         // calls sometimes did, so ClientSearchFormPresenter.Display()'s `await LoadDataAsync()`
         // always genuinely suspends - without a message loop pumping, Main() would return and

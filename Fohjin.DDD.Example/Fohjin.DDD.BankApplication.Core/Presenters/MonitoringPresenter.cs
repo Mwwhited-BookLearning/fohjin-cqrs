@@ -19,7 +19,7 @@ public class MonitoringPresenter : Presenter<IMonitoringView>, IMonitoringPresen
 
         // Subscribe/connect immediately (not in Display()) so nothing logged/published before
         // the window is first shown is lost - the view itself buffers everything it's given.
-        // Phase 7 (docs/11-migration-plan.md): this used to be bus.Events.Subscribe(...), the
+        // docs/07-messaging-bus.md / docs/09-client-uis.md: this used to be bus.Events.Subscribe(...), the
         // same in-process IObservable<IDomainEvent> Fohjin.DDD.WebApi's SSE endpoint also
         // subscribes to server-side - now that WinForms doesn't host the CQRS core itself
         // anymore, it reaches the same events the same way Fohjin.DDD.WebUI's Monitoring.vue

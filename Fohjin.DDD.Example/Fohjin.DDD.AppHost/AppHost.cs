@@ -7,11 +7,11 @@ var builder = DistributedApplication.CreateBuilder(args);
 // `dotnet run` (F5) inner-loop; it only matters when publishing.
 builder.AddDockerComposeEnvironment("docker-compose");
 
-// One SQL Server instance for every environment (docs/11-migration-plan.md Phase 8 - SQLite
-// doesn't containerize as a separate resource the way a real server engine does, so the whole
-// solution moved off it). Fixed port/password so the same docs/11-migration-plan.md dev
-// conventions (Server=127.0.0.1,14330;...;Password=Dev!Passw0rd) keep working whether the
-// database is started by this AppHost or by hand via `docker run` during Phase 8 development.
+// One SQL Server instance for every environment - SQLite doesn't containerize as a separate
+// resource the way a real server engine does, so the whole solution moved off it. Fixed
+// port/password so the same CLAUDE.md dev conventions
+// (Server=127.0.0.1,14330;...;Password=Dev!Passw0rd) keep working whether the database is
+// started by this AppHost or by hand via `docker run` (CLAUDE.md's `fohjin-sqlserver-dev`).
 var sqlPassword = builder.AddParameter("sql-password", "Dev!Passw0rd", secret: true);
 var sql = builder.AddSqlServer("sql", sqlPassword, port: 14330)
     .WithDataVolume();

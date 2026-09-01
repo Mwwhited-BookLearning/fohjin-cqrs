@@ -231,6 +231,20 @@ them dynamically.
   `Fohjin.DDD.AppHost` itself, since it spawns the Vue dev server as a child process that
   inherits this same broken `PATH` otherwise (the Vite resource then silently never starts;
   the giveaway is `dcp.exe` listening on 5173 but every request to it timing out).
+- **Two dependency pins are deliberately behind "latest"**, both confirmed live rather than
+  assumed, both worth re-checking next time packages get bumped:
+  - `Microsoft.OpenApi` is held at `2.7.5` (`Directory.Packages.props`) — `Microsoft.AspNetCore.OpenApi`
+    10.0.11 hard-pins `Microsoft.OpenApi < 3.0.0`, and 3.x's interface redesign
+    (`IOpenApiMediaType.Example` became read-only, `IDictionary<string, IOpenApiMediaType>` no
+    longer accepts a plain `Dictionary<string, OpenApiMediaType>`) breaks both the framework's
+    own source-generated code and `Fohjin.DDD.WebApi/Program.cs`'s OData/QUERY document
+    transformers. Move once `Microsoft.AspNetCore.OpenApi` itself supports v3.
+  - `Fohjin.DDD.WebUI`'s `typescript` is held at `6.0.3` (its actual latest 6.x release, not an
+    old pin) rather than `7.x` — TypeScript 7 is a from-scratch native/Go rewrite with a
+    different package layout, and `vue-tsc` (even at its own latest, `3.3.11`) still hardcodes
+    a `require("typescript/lib/tsc")` that 7.x's `package.json` exports map no longer exposes
+    (`ERR_PACKAGE_PATH_NOT_EXPORTED`), breaking `npm run typecheck`/`build` outright. Move once
+    `vue-tsc` ships TS7 support.
 
 ## Observability
 
@@ -249,7 +263,7 @@ distributed traces by the standard `traceparent` header) and metrics:
   Sts's discovery document).
   - **Database spans**: `ConfigureOpenTelemetry` also adds
     `OpenTelemetry.Instrumentation.EntityFrameworkCore` (no stable release exists for this
-    package as of this writing — pinned at `1.17.0-beta.1`, matching the other
+    package as of this writing — pinned at `1.18.0-beta.1`, matching the other
     `OpenTelemetry.*` packages here). Every EF Core query against the event store, the
     reporting store, or `Sts`'s own `ApplicationDbContext` now shows up as a real span with
     its SQL text, nested under whatever request/command span triggered it - it hooks EF
